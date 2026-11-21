@@ -6,7 +6,8 @@ import { useState } from "react";
 import { api } from "../lib/api";
 import { ActionForm, ConfirmButton, CredentialsForm, Messages, PageHead, Section, TagsForm, go, useAction } from "../lib/forms";
 import { StatusBadge, formatTime, useApp } from "../landscape/ui";
-import type { HostDetail, HostInfo } from "./types";
+import { CertificateFacts } from "../lib/certificate";
+import type { HostCertificate, HostDetail, HostInfo } from "./types";
 
 const LIST = "/configuration/hosts";
 
@@ -77,6 +78,7 @@ interface ConnectionValues {
   sapcontrol_port_offset: string;
   https: boolean;
   verify_tls: boolean;
+  verify_hostname: boolean;
 }
 
 function ConnectionFields({ values, onChange }: { values: ConnectionValues; onChange: (v: ConnectionValues) => void }) {
@@ -107,16 +109,26 @@ function ConnectionFields({ values, onChange }: { values: ConnectionValues; onCh
           <input type="checkbox" checked={values.https} onChange={(e) => set({ https: e.target.checked })} /> {t("field.https")}
         </label>
         <label className="oslo-inline">
-          <input type="checkbox" checked={values.verify_tls} onChange={(e) => set({ verify_tls: e.target.checked })} /> {t("field.verify_tls")}
+          <input type="checkbox" checked={values.verify_tls} disabled={!values.https} onChange={(e) => set({ verify_tls: e.target.checked })} /> {t("field.verify_tls")}
+        </label>
+        <label className="oslo-inline">
+          <input
+            type="checkbox"
+            checked={values.verify_hostname}
+            disabled={!values.https || !values.verify_tls}
+            onChange={(e) => set({ verify_hostname: e.target.checked })}
+          />{" "}
+          {t("field.verify_hostname")}
         </label>
       </div>
+      {values.https && <p className="oslo-muted">{t("host.verify_hint")}</p>}
     </>
   );
 }
 
 export function HostNewPage() {
   const { t } = useApp();
-  const [values, setValues] = useState<ConnectionValues>({ name: "", address: "", hostagent_port: "", sapcontrol_port_offset: "", https: false, verify_tls: true });
+  const [values, setValues] = useState<ConnectionValues>({ name: "", address: "", hostagent_port: "", sapcontrol_port_offset: "", https: false, verify_tls: true, verify_hostname: true });
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   return (
@@ -135,6 +147,7 @@ export function HostNewPage() {
                 sapcontrol_port_offset: values.sapcontrol_port_offset ? Number(values.sapcontrol_port_offset) : 0,
                 https: values.https,
                 verify_tls: values.verify_tls,
+                verify_hostname: values.verify_hostname,
                 username: username.trim() || null,
                 password: password || null,
               },
@@ -221,54 +234,61 @@ export function HostPage({ id }: { id: number }) {
           </ul>
         </div>
       )}
-      <div className="oslo-two">
-        <Section title={t("host.system_info")}>
-          <dl className="oslo-facts">
-            <dt>{t("field.reachable")}</dt>
-            <dd>
-              <ReachBadge host={host} />
-            </dd>
-            <dt>{t("field.hostagent")}</dt>
-            <dd>{host.hostagent_version ?? ""}</dd>
-            <dt>{t("field.os")}</dt>
-            <dd>{[host.os_name, host.os_version].filter(Boolean).join(" ")}</dd>
-            <dt>{t("field.cpus")}</dt>
-            <dd>{host.cpu_count ?? ""}</dd>
-            <dt>{t("field.memory")}</dt>
-            <dd>{memory(host.memory_kb)}</dd>
-            <dt>{t("field.last_discovery")}</dt>
-            <dd>{host.last_discovery_at ? formatTime(host.last_discovery_at, language) : t("hosts.never")}</dd>
-            {host.last_error && (
-              <>
-                <dt>{t("field.last_error")}</dt>
-                <dd className="error-text">{host.last_error}</dd>
-              </>
-            )}
-          </dl>
-        </Section>
-        <Section title={t("host.connection")} hint={t("host.connection_hint")}>
-          <ConnectionForm host={host} onSaved={reload} />
-        </Section>
-        <Section title={t("credentials.title")}>
-          <CredentialsForm
-            username={host.username}
-            hasCredentials={host.has_credentials}
-            hint={t("credentials.host_hint")}
-            onSave={async (body) => {
-              await api(`/hosts/${id}/credentials`, { method: "PUT", body });
-              await reload();
-            }}
-          />
-        </Section>
-        <Section title={t("field.tags")}>
-          <TagsForm
-            tags={host.tags}
-            onSave={async (tags) => {
-              await api(`/hosts/${id}/tags`, { method: "PUT", body: { tags } });
-              await reload();
-            }}
-          />
-        </Section>
+      <div className="oslo-columns">
+        <div className="oslo-column">
+          <Section title={t("host.system_info")}>
+            <dl className="oslo-facts">
+              <dt>{t("field.reachable")}</dt>
+              <dd>
+                <ReachBadge host={host} />
+              </dd>
+              <dt>{t("field.hostagent")}</dt>
+              <dd>{host.hostagent_version ?? ""}</dd>
+              <dt>{t("field.os")}</dt>
+              <dd>{[host.os_name, host.os_version].filter(Boolean).join(" ")}</dd>
+              <dt>{t("field.cpus")}</dt>
+              <dd>{host.cpu_count ?? ""}</dd>
+              <dt>{t("field.memory")}</dt>
+              <dd>{memory(host.memory_kb)}</dd>
+              <dt>{t("field.last_discovery")}</dt>
+              <dd>{host.last_discovery_at ? formatTime(host.last_discovery_at, language) : t("hosts.never")}</dd>
+              {host.last_error && (
+                <>
+                  <dt>{t("field.last_error")}</dt>
+                  <dd className="error-text">{host.last_error}</dd>
+                </>
+              )}
+            </dl>
+          </Section>
+          <Section title={t("credentials.title")}>
+            <CredentialsForm
+              username={host.username}
+              hasCredentials={host.has_credentials}
+              hint={t("credentials.host_hint")}
+              onSave={async (body) => {
+                await api(`/hosts/${id}/credentials`, { method: "PUT", body });
+                await reload();
+              }}
+            />
+          </Section>
+          <Section title={t("field.tags")}>
+            <TagsForm
+              tags={host.tags}
+              onSave={async (tags) => {
+                await api(`/hosts/${id}/tags`, { method: "PUT", body: { tags } });
+                await reload();
+              }}
+            />
+          </Section>
+        </div>
+        <div className="oslo-column">
+          <Section title={t("host.connection")} hint={t("host.connection_hint")}>
+            <ConnectionForm host={host} onSaved={reload} />
+          </Section>
+          <Section title={t("host.certificate")} hint={host.https ? t("host.certificate_hint") : undefined}>
+            <CertificateSection host={host} />
+          </Section>
+        </div>
       </div>
       <Section title={t("field.instances")}>
         {!host.instances.length ? (
@@ -353,6 +373,7 @@ function ConnectionForm({ host, onSaved }: { host: HostInfo; onSaved: () => Prom
     sapcontrol_port_offset: host.sapcontrol_port_offset ? String(host.sapcontrol_port_offset) : "",
     https: host.https,
     verify_tls: host.verify_tls,
+    verify_hostname: host.verify_hostname,
   });
   return (
     <ActionForm
@@ -367,6 +388,7 @@ function ConnectionForm({ host, onSaved }: { host: HostInfo; onSaved: () => Prom
             sapcontrol_port_offset: values.sapcontrol_port_offset ? Number(values.sapcontrol_port_offset) : 0,
             https: values.https,
             verify_tls: values.verify_tls,
+            verify_hostname: values.verify_hostname,
           },
         });
         await onSaved();
@@ -374,5 +396,65 @@ function ConnectionForm({ host, onSaved }: { host: HostInfo; onSaved: () => Prom
     >
       <ConnectionFields values={values} onChange={setValues} />
     </ActionForm>
+  );
+}
+
+/** Reads the certificate the host agent shows; admins can trust it right here. */
+function CertificateSection({ host }: { host: HostInfo }) {
+  const { t, role } = useApp();
+  const action = useAction();
+  const [cert, setCert] = useState<HostCertificate | null>(null);
+  const [name, setName] = useState(host.name);
+  if (!host.https) return <p className="oslo-muted">{t("host.https_off")}</p>;
+  const read = () =>
+    action.run(async () => {
+      setCert(null);
+      setCert(await api<HostCertificate>(`/hosts/${host.id}/certificate`, { method: "POST" }));
+    });
+  return (
+    <>
+      <div className="oslo-form-buttons">
+        <button type="button" className="oslo-secondary" disabled={action.busy} onClick={() => void read()}>
+          {t("host.fetch_certificate")}
+        </button>
+      </div>
+      <Messages error={action.error} notice={action.notice} />
+      {cert && (
+        <>
+          <CertificateFacts cert={cert} />
+          {cert.trusted_id !== null ? (
+            <p className="flash notice" role="status">
+              {t("host.certificate_trusted")}
+            </p>
+          ) : role !== "admin" ? (
+            <p className="oslo-muted">
+              {t("host.certificate_untrusted")} {t("host.trust_admin_only")}
+            </p>
+          ) : (
+            <form
+              className="oslo-form"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void action.run(async () => {
+                  const added = await api<{ id: number }>("/trusted-certificates", { method: "POST", body: { name: name.trim(), pem: cert.pem } });
+                  setCert({ ...cert, trusted_id: added.id });
+                });
+              }}
+            >
+              <p className="oslo-muted">{t("host.certificate_untrusted")}</p>
+              <label className="oslo-field">
+                {t("field.name")}
+                <input value={name} required maxLength={255} onChange={(e) => setName(e.target.value)} />
+              </label>
+              <div className="oslo-form-buttons">
+                <button type="submit" className="oslo-primary" disabled={action.busy}>
+                  {t("host.trust")}
+                </button>
+              </div>
+            </form>
+          )}
+        </>
+      )}
+    </>
   );
 }

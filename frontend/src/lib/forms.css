@@ -29,3 +29,13 @@
 .oslo-disabled { opacity: 0.5; pointer-events: none; }
 .oslo-log-warning td { background: var(--yellow-bg); }
 .oslo-log-error td { background: var(--red-bg); }
+
+/* Two columns of cards that keep their own height (page of a host). */
+.oslo-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.oslo-column { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+@media (max-width: 900px) { .oslo-columns { grid-template-columns: minmax(0, 1fr); } }
+.oslo-wrap { overflow-wrap: anywhere; }
+.oslo-fingerprint { font-size: 12px; }
+td.oslo-fingerprint { min-width: 220px; max-width: 300px; white-space: normal; word-break: break-all; }
+.oslo-cert-tag { margin-left: 8px; }
+.oslo-field textarea.oslo-pem { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; min-height: 180px; }

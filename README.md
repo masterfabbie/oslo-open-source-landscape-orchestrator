@@ -121,7 +121,9 @@ Bestätigt mit einem echten Host, auf dem ein ABAP-System und eine HANA-Datenban
 
 Noch nicht gegen echte Hosts getestet:
 
-- HTTPS mit Zertifikatsprüfung (eigenes CA-Bundle)
+- HTTPS mit Zertifikatsprüfung gegen ein Zertifikat aus Administration → Zertifikate (im Test
+  mit einem selbst signierten Zertifikat ohne CA-Merkmal geprüft, nicht mit dem eines echten
+  Host Agents)
 - HTTPS zum sapstartsrv (Port 5NN14)
 
 Nicht Teil der ersten Version: Verschieben von Instanzen (Adaptive Computing) und Hooks.
@@ -300,7 +302,7 @@ eigenen Seite, danach geht es zur Seite des neuen Eintrags (bei Pools zur Liste)
 | Activities | Tab „Aktivitäten“ mit Filtern (Status, Suche, Teilaktivitäten) und Live-Ansicht je Aktivität; Tab „Protokolle“ mit den letzten 200 Protokolleinträgen |
 | Configuration | „Hosts“ (`/configuration/hosts`): anlegen, Verbindung ändern, Discovery, Zugangsdaten, Tags, Instanzen, Datenbanken, löschen. „Systeme“: Reiter „Übersicht“ mit den Systemen, aufklappbar mit ihren Instanzen, und Reiter „Nicht zugeordnete Instanzen“ zum Zuordnen; „System anlegen“ wählt die Instanzen aus allen nicht zugeordneten und schlägt den Namen vor; Seite eines Systems mit Name, Stufe, Beschreibung, Pool, Tags, Abhängigkeiten, Instanzen, Zugangsdaten je SID, Löschen. „Pools“: anlegen und löschen |
 | Operations | Nur Admins. „Eigene Operationen“ (`/operations/custom`) und „Operationsvorlagen“ (`/operations/templates`), siehe unten |
-| Administration | „Allgemein“: Version und Einstellungen; „Benutzer“: anlegen, bearbeiten, Passwort zurücksetzen; „Braucht Aufmerksamkeit“: die Regeln der Übersicht |
+| Administration | „Allgemein“: Version und Einstellungen; „Benutzer“: anlegen, bearbeiten, Passwort zurücksetzen; „Braucht Aufmerksamkeit“: die Regeln der Übersicht; „Zertifikate“: vertrauenswürdige Zertifikate für HTTPS zu den Hosts (siehe unten) |
 
 Die Hauptmenüpunkte heißen auf Englisch Overview, Landscape, Activities, Configuration,
 Operations und Administration, auf Deutsch Übersicht, Landschaft, Aktivitäten, Konfiguration,
@@ -549,6 +551,28 @@ auf und liest die Ausgabe laufend ins Protokoll.
   Warnung bzw. Fehler. Ein Exit-Code ungleich 0 lässt die Aktivität scheitern; die Meldung
   nennt die letzte Fehlerzeile. Beim Zeitlimit bricht das Tool die Operation auf dem Host ab.
 
+### HTTPS und vertrauenswürdige Zertifikate
+
+Je Host gibt es drei Schalter: **HTTPS verwenden** (Port 1129 bzw. 5NN14), **Zertifikat prüfen**
+und **Hostnamen prüfen**. Mit „Zertifikat prüfen“ muss der Host ein Zertifikat zeigen, dem das
+Betriebssystem des OSLO-Servers oder die Liste unter **Administration → Zertifikate** vertraut.
+„Hostnamen prüfen“ verlangt zusätzlich, dass der Name im Zertifikat zur Adresse des Hosts passt;
+ausschalten, wenn der Host z. B. über seine IP-Adresse erreicht wird, das Zertifikat aber nur
+den Hostnamen nennt.
+
+- **Administration → Zertifikate** (nur Admins): Zertifikate als PEM-Text oder Datei
+  hinzufügen, mit Inhaber, Aussteller, Gültigkeit und SHA-256-Fingerabdruck; abgelaufene sind
+  markiert. Hinterlegt wird das Zertifikat der ausstellenden CA oder das selbst signierte
+  Zertifikat eines Host Agents (ein selbst signiertes Zertifikat ist sein eigener Aussteller).
+  Private Schlüssel werden abgewiesen. Änderungen gelten sofort für neue Verbindungen.
+- **Zertifikat abrufen** auf der Seite eines Hosts (ab Configurator): liest das Zertifikat, das
+  der Host Agent an seinem HTTPS-Port zeigt, ohne es zu prüfen, und sagt, ob es schon
+  vertrauenswürdig ist. Admins können ihm dort nach dem Vergleich des Fingerabdrucks direkt
+  vertrauen. Gelesen wird nur das Zertifikat des Hosts, nicht der Rest seiner Kette.
+- Annahme: Die Zertifikate echter Host Agents erfüllen die strengeren Prüfungen von Python 3.13
+  (`VERIFY_X509_STRICT`). Schlägt die Prüfung trotz hinterlegtem Zertifikat fehl, steht der
+  Grund im Fehler der Discovery.
+
 ### Tags
 
 Hosts und Systeme tragen Tags: ein Schlüssel mit optionalem Wert, z. B. `dev`,
@@ -653,7 +677,12 @@ keine Inventardaten.
 | PUT | `/api/hosts/{id}/tags` | Tags eines Hosts ersetzen |
 | POST | `/api/hosts` | Host anlegen |
 | GET | `/api/hosts/{id}` | Host mit Instanzen und Datenbanken |
-| PATCH | `/api/hosts/{id}` | Verbindungsdaten ändern (Name, Adresse, `hostagent_port`, `https`, `verify_tls`, `sapcontrol_port_offset`); nicht angegebene Felder bleiben, Port 0 heißt Standardport. Während einer Aktivität auf dem Host: HTTP 409 |
+| PATCH | `/api/hosts/{id}` | Verbindungsdaten ändern (Name, Adresse, `hostagent_port`, `https`, `verify_tls`, `verify_hostname`, `sapcontrol_port_offset`); nicht angegebene Felder bleiben, Port 0 heißt Standardport. Während einer Aktivität auf dem Host: HTTP 409 |
+| POST | `/api/hosts/{id}/certificate` | Zertifikat lesen, das der Host Agent zeigt (ungeprüft), mit `trusted_id`, falls es schon vertrauenswürdig ist; nicht erreichbar: HTTP 502 |
+| GET | `/api/trusted-certificates` | vertrauenswürdige Zertifikate (nur Admin) |
+| POST | `/api/trusted-certificates` | Zertifikat hinzufügen (`name`, `pem`; nur Admin); schon vorhanden: HTTP 409 |
+| POST | `/api/trusted-certificates/check` | PEM-Text lesen, ohne ihn zu speichern (nur Admin) |
+| DELETE | `/api/trusted-certificates/{id}` | Zertifikat entfernen (nur Admin) |
 | PUT | `/api/hosts/{id}/credentials` | Zugangsdaten des Hosts setzen |
 | DELETE | `/api/hosts/{id}` | Host samt Instanzen und Datenbanken löschen |
 | POST | `/api/hosts/{id}/discover` | Host auslesen und Inventar aktualisieren |
@@ -843,8 +872,9 @@ async with SapControlClient("sapapp1", 0, auth=("devadm", "...")) as sap:
 
 - Ports: Host Agent 1128 (HTTP) bzw. 1129 (HTTPS), sapstartsrv 5NN13 bzw. 5NN14. Mit `https=True`
   wird HTTPS genutzt, mit `port=` lässt sich der Port überschreiben.
-- `verify` steuert die Zertifikatsprüfung bei HTTPS: `True` (Standard), Pfad zu einem CA-Bundle
-  oder `False`.
+- `verify` steuert die Zertifikatsprüfung bei HTTPS: `True` (Standard), Pfad zu einem CA-Bundle,
+  ein `ssl.SSLContext` oder `False`. Für Inventareinträge baut `ClientFactory` den Kontext aus
+  den Einstellungen des Hosts und den vertrauenswürdigen Zertifikaten.
 - Start und Stopp kehren sofort zurück. Den Fortschritt liest man über `get_process_list` bzw.
   `get_system_instance_list`.
 - Umgebungsvariablen für Proxys werden ignoriert, verwaltete Hosts werden direkt angesprochen.

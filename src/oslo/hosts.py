@@ -29,6 +29,7 @@ class Connection:
     hostagent_port: int | None = None
     https: bool | None = None
     verify_tls: bool | None = None
+    verify_hostname: bool | None = None
     sapcontrol_port_offset: int | None = None
 
 
@@ -92,4 +93,6 @@ async def update_connection(session: AsyncSession, host: Host, change: Connectio
         host.https = change.https
     if change.verify_tls is not None:
         host.verify_tls = change.verify_tls
+    if change.verify_hostname is not None:
+        host.verify_hostname = change.verify_hostname
     host.sapcontrol_port_offset = offset

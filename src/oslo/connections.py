@@ -2,12 +2,17 @@
 
 from __future__ import annotations
 
+import ssl
+
 import httpx
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from .clients import HostAgentClient, SapControlClient
 from .clients.sapcontrol import sapcontrol_port
 from .crypto import SecretBox
-from .models import Host, Sid
+from .models import Host, Sid, TrustedCertificate
+from .tls import client_context
 
 
 class ClientFactory:
@@ -22,6 +27,33 @@ class ClientFactory:
         self._timeout = timeout
         # Only set in tests and local development, to reach the simulated landscape.
         self._transport = transport
+        # PEM texts of Administration → Certificates; see load_trusted().
+        self._trusted: list[str] = []
+        self._contexts: dict[bool, ssl.SSLContext] = {}
+
+    async def load_trusted(self, session: AsyncSession) -> None:
+        """Read the trusted certificates again, at start and after every change."""
+        self.set_trusted(list(await session.scalars(select(TrustedCertificate.pem))))
+
+    @property
+    def trusted(self) -> list[str]:
+        return list(self._trusted)
+
+    def set_trusted(self, pems: list[str]) -> None:
+        self._trusted = pems
+        self._contexts.clear()
+
+    def _verify(self, host: Host) -> bool | ssl.SSLContext:
+        """False without checking, else a context with the system store and the trusted
+        certificates. Built once per hostname setting, since loading the store takes time."""
+        if not host.https or not host.verify_tls:
+            return False
+        check_hostname = host.verify_hostname is not False
+        context = self._contexts.get(check_hostname)
+        if context is None:
+            context = client_context(self._trusted, check_hostname=check_hostname)
+            self._contexts[check_hostname] = context
+        return context
 
     def _auth(self, *owners: Host | Sid | None) -> tuple[str, str] | None:
         """Credentials of the first owner that has any."""
@@ -35,7 +67,7 @@ class ClientFactory:
             host.address,
             port=host.hostagent_port,
             https=host.https,
-            verify=host.verify_tls,
+            verify=self._verify(host),
             auth=self._auth(host),
             timeout=self._timeout,
             transport=self._transport,
@@ -50,7 +82,7 @@ class ClientFactory:
             instance_number,
             port=port,
             https=host.https,
-            verify=host.verify_tls,
+            verify=self._verify(host),
             auth=self._auth(sid, host),
             timeout=self._timeout,
             transport=self._transport,

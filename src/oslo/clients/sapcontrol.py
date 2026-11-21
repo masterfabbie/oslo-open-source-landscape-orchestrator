@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ssl
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any
@@ -80,7 +81,7 @@ class SapControlClient(SoapClient):
         port: int | None = None,
         https: bool = False,
         auth: tuple[str, str] | None = None,
-        verify: bool | str = True,
+        verify: bool | str | ssl.SSLContext = True,
         timeout: float = 30.0,
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> None:

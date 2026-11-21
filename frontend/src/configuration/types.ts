@@ -25,6 +25,7 @@ export interface HostInfo {
   hostagent_port: number | null;
   https: boolean;
   verify_tls: boolean;
+  verify_hostname: boolean;
   sapcontrol_port_offset: number;
   username: string | null;
   has_credentials: boolean;
@@ -81,3 +82,27 @@ export interface SidInfo {
 }
 
 export const STAGES = ["sandbox", "development", "quality", "preprod", "production"];
+
+/** A certificate as the server reads it (Administration → Certificates, a host's certificate). */
+export interface CertificateInfo {
+  subject: string;
+  issuer: string;
+  fingerprint: string;
+  not_before: string;
+  not_after: string;
+  self_signed: boolean;
+  expired: boolean;
+}
+
+export interface HostCertificate extends CertificateInfo {
+  pem: string;
+  trusted_id: number | null;
+}
+
+export interface TrustedCertificate extends CertificateInfo {
+  id: number;
+  name: string;
+  pem: string;
+  created_at: string;
+  created_by: string | null;
+}

@@ -1,10 +1,13 @@
-// Administration: platform information, users (list, create, edit, reset password) and the
-// rules of "needs attention" on the overview, which apply to everyone.
+// Administration: platform information, users (list, create, edit, reset password), the
+// rules of "needs attention" on the overview, which apply to everyone, and the certificates
+// OSLO trusts for HTTPS to hosts.
 
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { api } from "../lib/api";
-import { ActionForm, PageHead, Section, go } from "../lib/forms";
+import { CertificateFacts } from "../lib/certificate";
+import { ActionForm, ConfirmButton, PageHead, Section, go } from "../lib/forms";
+import type { CertificateInfo, TrustedCertificate } from "../configuration/types";
 import { StatusBadge, formatTime, useApp } from "../landscape/ui";
 
 const ROLES = ["viewer", "operator", "configurator", "admin"];
@@ -291,6 +294,149 @@ function RulesEditor({ initial, operations }: { initial: Rules; operations: { ke
           ))}
         </div>
       </ActionForm>
+    </div>
+  );
+}
+
+// --- trusted certificates -------------------------------------------------------------------
+
+const CERTS = "/administration/certificates";
+
+export function CertificatesPage() {
+  const { t, language } = useApp();
+  const { data, isPending, refetch } = useQuery({
+    queryKey: ["trusted-certificates"],
+    queryFn: () => api<TrustedCertificate[]>("/trusted-certificates"),
+  });
+  return (
+    <div className="oslo-page">
+      <PageHead title={t("tab.certificates")} action={{ href: `${CERTS}/new`, label: t("cert.add") }} tabs={[{ href: CERTS, label: t("tab.overview"), current: true }]} />
+      <p className="oslo-muted">{t("cert.intro")}</p>
+      {isPending ? (
+        <p className="oslo-muted">{t("ui.loading")}</p>
+      ) : !data?.length ? (
+        <p className="oslo-empty">{t("cert.empty")}</p>
+      ) : (
+        <div className="oslo-table-wrap">
+          <table className="oslo-table">
+            <thead>
+              <tr>
+                <th>{t("field.name")}</th>
+                <th>{t("field.subject")}</th>
+                <th>{t("field.issuer")}</th>
+                <th>{t("field.valid_until")}</th>
+                <th>{t("field.fingerprint")}</th>
+                <th>{t("cert.added_by")}</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((c) => (
+                <tr key={c.id}>
+                  <td className="oslo-strong">{c.name}</td>
+                  <td className="oslo-wrap">
+                    <span className="oslo-mono">{c.subject}</span>
+                    {c.self_signed && <span className="oslo-badge oslo-badge-gray oslo-cert-tag">{t("cert.self_signed")}</span>}
+                  </td>
+                  <td className="oslo-mono oslo-wrap">{c.issuer}</td>
+                  <td>
+                    {formatTime(c.not_after, language)} {c.expired && <span className="oslo-badge oslo-badge-red">{t("cert.expired")}</span>}
+                  </td>
+                  <td className="oslo-mono oslo-wrap oslo-fingerprint">{c.fingerprint}</td>
+                  <td className="oslo-muted">
+                    {formatTime(c.created_at, language)}
+                    {c.created_by && <span className="oslo-sub">{c.created_by}</span>}
+                  </td>
+                  <td>
+                    <ConfirmButton
+                      label={t("cert.delete")}
+                      confirm={t("cert.delete_confirm")}
+                      onConfirm={async () => {
+                        await api(`/trusted-certificates/${c.id}`, { method: "DELETE" });
+                        await refetch();
+                      }}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function CertificateNewPage() {
+  const { t } = useApp();
+  const [name, setName] = useState("");
+  const [pem, setPem] = useState("");
+  const [preview, setPreview] = useState<CertificateInfo | null>(null);
+  const [checkError, setCheckError] = useState<string | null>(null);
+  const check = async (text: string) => {
+    setPreview(null);
+    setCheckError(null);
+    if (!text.trim()) return;
+    try {
+      setPreview(await api<CertificateInfo>("/trusted-certificates/check", { method: "POST", body: { name: name || "-", pem: text } }));
+    } catch (exc) {
+      setCheckError(exc instanceof Error ? exc.message : String(exc));
+    }
+  };
+  return (
+    <div className="oslo-page">
+      <PageHead title={t("cert.add")} crumbs={[{ href: CERTS, label: t("tab.certificates") }]} />
+      <Section hint={t("cert.intro")}>
+        <ActionForm
+          submit={t("cert.add")}
+          onSubmit={async () => {
+            await api("/trusted-certificates", { method: "POST", body: { name: name.trim(), pem } });
+            go(CERTS, "certificate_added");
+          }}
+        >
+          <label className="oslo-field">
+            {t("field.name")}
+            <input value={name} required maxLength={255} onChange={(e) => setName(e.target.value)} />
+          </label>
+          <label className="oslo-field">
+            {t("cert.pem")}
+            <textarea
+              className="oslo-pem"
+              value={pem}
+              required
+              spellCheck={false}
+              placeholder="-----BEGIN CERTIFICATE-----"
+              onChange={(e) => {
+                setPem(e.target.value);
+                setPreview(null);
+              }}
+              onBlur={() => void check(pem)}
+            />
+          </label>
+          <label className="oslo-field">
+            {t("cert.file")}
+            <input
+              type="file"
+              accept=".pem,.crt,.cer,.txt"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                void file.text().then((text) => {
+                  setPem(text);
+                  void check(text);
+                });
+              }}
+            />
+          </label>
+          <p className="oslo-muted">{t("cert.pem_hint")}</p>
+          {checkError && (
+            <p className="flash error" role="alert">
+              {checkError}
+            </p>
+          )}
+          {preview && <CertificateFacts cert={preview} />}
+        </ActionForm>
+      </Section>
     </div>
   );
 }

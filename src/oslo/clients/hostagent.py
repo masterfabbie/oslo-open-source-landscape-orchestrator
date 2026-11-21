@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import ssl
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from enum import Enum
@@ -317,7 +318,7 @@ class HostAgentClient(SoapClient):
         port: int | None = None,
         https: bool = False,
         auth: tuple[str, str] | None = None,
-        verify: bool | str = True,
+        verify: bool | str | ssl.SSLContext = True,
         timeout: float = 30.0,
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> None:

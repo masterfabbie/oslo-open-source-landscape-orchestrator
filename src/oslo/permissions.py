@@ -40,7 +40,14 @@ def required_role(method: str, path: str) -> Role:
     if path == "/attention-rules" and method not in ("GET", "HEAD"):
         return Role.ADMIN
     if path.startswith(
-        ("/administration", "/users", "/custom-operations", "/templates", "/platform")
+        (
+            "/administration",
+            "/users",
+            "/custom-operations",
+            "/templates",
+            "/platform",
+            "/trusted-certificates",
+        )
     ):
         return Role.ADMIN
     # Web area "Operations": custom operations and templates. "/operations" alone is the

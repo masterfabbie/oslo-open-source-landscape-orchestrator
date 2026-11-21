@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ssl
 from types import TracebackType
 from typing import Any, Self
 
@@ -79,7 +80,7 @@ class SoapClient:
         base_url: str,
         *,
         auth: tuple[str, str] | None = None,
-        verify: bool | str = True,
+        verify: bool | str | ssl.SSLContext = True,
         timeout: float = 30.0,
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> None:

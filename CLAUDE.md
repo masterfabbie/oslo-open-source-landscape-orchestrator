@@ -85,6 +85,7 @@ Alles liegt unter `src/oslo/`.
 | `models.py`, `db.py` | Datenmodell (SQLAlchemy, asynchron): Host, Sid, Instance, System, Pool, Database, Activity, ActivityLogEntry; Migration beim Start, Sicherungskopie, Befehl `oslo-db` |
 | `migrations/` | Alembic-Migrationen (`env.py`, `versions/`) |
 | `hosts.py` | Verbindungsdaten eines Hosts ändern |
+| `tls.py` | vertrauenswürdige Zertifikate lesen und prüfen (`parse_pem`), TLS-Kontext für Hosts (`client_context`), Zertifikat eines Hosts abrufen (`fetch_certificate`) |
 | `users.py` | Benutzer, Rollen, Passwörter (scrypt), Sperre nach Fehlversuchen, Sitzungs-Cookies, persönliche API-Tokens, Einstellungen pro Benutzer |
 | `permissions.py` | welche Rolle eine Route braucht, gemeinsam für API und Oberfläche |
 | `usercli.py` | Befehl `oslo-user` |
@@ -176,6 +177,18 @@ Wichtige Entwurfsentscheidungen:
   dabei jedes Mal vor, die Fremdschlüssel von `activities` aus Migration 0004 neu aufzubauen;
   das ist nur die Lücke beim Zurücklesen (siehe Migration 0004) und muss aus der erzeugten
   Datei entfernt werden.
+- **HTTPS und vertrauenswürdige Zertifikate** (Wunsch des Eigentümers, 2026-11-21): Tabelle
+  `trusted_certificates` (Migration 0010, Administration → Zertifikate, nur Admins), dazu
+  `hosts.verify_hostname`. `ClientFactory` hält die PEM-Texte (`load_trusted` beim Start und
+  nach jeder Änderung) und je Einstellung von `verify_hostname` einen gecachten
+  `ssl.SSLContext` (Speicher des Betriebssystems plus Liste); ohne HTTPS oder ohne
+  `verify_tls` ist `verify` False. Ein selbst signiertes Zertifikat ohne CA-Merkmal wird von
+  OpenSSL direkt als Vertrauensanker angenommen (in den Tests mit echten TLS-Servern auf
+  127.0.0.1 geprüft). `POST /api/hosts/{id}/certificate` liest das Zertifikat ungeprüft
+  (`app.state.fetch_certificate`), nur das Blatt, nicht die Kette (Python 3.11). Annahme:
+  echte Host-Agent-Zertifikate bestehen `VERIFY_X509_STRICT` von Python 3.13.
+- **Seite eines Hosts:** zwei Spalten (`oslo-columns`), links Systeminformationen,
+  Zugangsdaten, Tags, rechts Verbindung und Zertifikat; darunter Instanzen und Datenbanken.
 - **Verbindungsdaten eines Hosts** lassen sich ändern (`hosts.update_connection`), nicht aber
   während einer Aktivität, die eine Instanz oder ein System auf dem Host betrifft. Geprüft wird
   die neue Verbindung erst durch die nächste Discovery.
@@ -362,7 +375,7 @@ Wichtige Entwurfsentscheidungen:
   Systeme, Hosts), Activities (Aktivitäten, Protokolle), Configuration (einrichten: Hosts,
   Systeme, Pools), Operations (nur Admins: eigene Operationen unter `/operations/custom`,
   Operationsvorlagen unter `/operations/templates`), Administration (Allgemein, Benutzer,
-  Regeln für „Braucht Aufmerksamkeit“), „Mein Konto“ (Passwort, API-Tokens). Menüpunkte deutsch:
+  Regeln für „Braucht Aufmerksamkeit“, Zertifikate), „Mein Konto“ (Passwort, API-Tokens). Menüpunkte deutsch:
   Übersicht, Landschaft, Aktivitäten, Konfiguration, Operationen, Administration; englisch
   unverändert (Wunsch des Eigentümers, 2026-11-20).
 - **Bereiche mit Unterbereichen** (Wunsch des Eigentümers nach LaMa-Vorbild): Configuration,
@@ -422,6 +435,8 @@ Wichtige Entwurfsentscheidungen:
   ohne es kann die Aktivität mit der falschen Uhr schon fertig sein (wackelige Tests).
 - Zeit wird über eine falsche Uhr gesteuert (`FakeClock` in `tests/conftest.py`). Tests, die
   Operationen ausführen, übergeben `sleep` und `clock` an `create_app`.
+- Zertifikate testet `tests/test_certificates.py` mit echten TLS-Servern auf 127.0.0.1 und
+  selbst erzeugten Zertifikaten (`self_signed`, `TlsServer`).
 - Die neuen API-Teile für die Oberfläche (Cookie, Landscape-Daten, Prozesse, Ereignisse,
   Texte, Header, Filter der Aktivitäten, strukturierte Protokolleinträge) testet
   `tests/test_interface_api.py`, die Übersicht und die Regeln `tests/test_overview.py`;
@@ -514,7 +529,8 @@ Aktuelle WSDLs lassen sich von einem Host abrufen:
   Korrektur vorgeschlagen (ToDo 11).
 - **HTTPS zum Host Agent** (2026-11-21): OSLO erreicht einen Host Agent über Port 1129 mit
   abgeschalteter Zertifikatsprüfung (selbst signiertes Zertifikat). Noch nicht getestet:
-  HTTPS mit Zertifikatsprüfung (eigenes CA-Bundle) und HTTPS zum sapstartsrv (Port 5NN14).
+  HTTPS mit Zertifikatsprüfung gegen ein Zertifikat aus Administration → Zertifikate, das
+  Abrufen des Zertifikats von einem echten Host Agent und HTTPS zum sapstartsrv (Port 5NN14).
 
 ## Offene Annahmen, die ein Test mit einer echten Instanz klären muss
 
@@ -532,7 +548,8 @@ Aktuelle WSDLs lassen sich von einem Host abrufen:
 6. **Verschachtelung bei `GetComputerSystem`:** Der Client sucht Klassen in jeder Tiefe. Die
    echte Struktur ist nicht mit der des Mocks verglichen.
 7. **HTTPS:** Geklärt für den Host Agent (Port 1129) ohne Zertifikatsprüfung. Offen sind die
-   Prüfung gegen ein CA-Bundle und HTTPS zum sapstartsrv.
+   Prüfung gegen ein vertrauenswürdiges Zertifikat (Administration → Zertifikate; besteht das
+   Zertifikat eines echten Host Agents `VERIFY_X509_STRICT`?) und HTTPS zum sapstartsrv.
 8. **`GetSystemInstanceList` bei getrennter Datenbank-SID:** Dass die Liste eines
    ABAP-Systems die HANA-Instanz nicht enthält, ist aus den getrennten SIDs abgeleitet, aber
    nicht direkt beobachtet.

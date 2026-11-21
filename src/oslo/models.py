@@ -83,6 +83,8 @@ class Host(Base):
     hostagent_port: Mapped[int | None] = mapped_column(Integer)
     https: Mapped[bool] = mapped_column(Boolean, default=False)
     verify_tls: Mapped[bool] = mapped_column(Boolean, default=True)
+    # With verify_tls: whether the name in the certificate must match the address.
+    verify_hostname: Mapped[bool] = mapped_column(Boolean, default=True)
     # Added to the default sapstartsrv ports (5NN13). Only needed for test setups where
     # several simulated hosts share one machine.
     sapcontrol_port_offset: Mapped[int] = mapped_column(Integer, default=0)
@@ -509,6 +511,25 @@ class UserSetting(Base):
     )
     key: Mapped[str] = mapped_column(String(64), primary_key=True)
     value: Mapped[str] = mapped_column(Text)
+
+
+class TrustedCertificate(Base):
+    """A certificate admins trust for HTTPS to managed hosts, besides the system's store; a CA
+    or a host's self-signed certificate (Administration → Certificates)."""
+
+    __tablename__ = "trusted_certificates"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(255))
+    pem: Mapped[str] = mapped_column(Text)
+    subject: Mapped[str] = mapped_column(Text)
+    issuer: Mapped[str] = mapped_column(Text)
+    # SHA-256 of the certificate, hex with colons.
+    fingerprint: Mapped[str] = mapped_column(String(95), unique=True)
+    not_before: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    not_after: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    created_by: Mapped[str | None] = mapped_column(String(64))
 
 
 class PlatformSetting(Base):

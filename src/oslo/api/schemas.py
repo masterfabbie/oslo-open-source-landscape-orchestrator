@@ -20,6 +20,7 @@ class HostCreate(BaseModel):
     hostagent_port: int | None = Field(default=None, ge=1, le=65535)
     https: bool = False
     verify_tls: bool = True
+    verify_hostname: bool = True
     sapcontrol_port_offset: int = Field(default=0, ge=0, le=15000)
     username: str | None = Field(default=None, min_length=1, max_length=255)
     password: str | None = Field(default=None, min_length=1)
@@ -33,6 +34,7 @@ class HostUpdate(BaseModel):
     hostagent_port: int | None = Field(default=None, ge=0, le=65535)
     https: bool | None = None
     verify_tls: bool | None = None
+    verify_hostname: bool | None = None
     sapcontrol_port_offset: int | None = Field(default=None, ge=0, le=15000)
 
 
@@ -88,6 +90,7 @@ class HostOut(BaseModel):
     hostagent_port: int | None
     https: bool
     verify_tls: bool
+    verify_hostname: bool
     sapcontrol_port_offset: int
     username: str | None
     has_credentials: bool
@@ -107,6 +110,37 @@ class HostOut(BaseModel):
 class HostDetail(HostOut):
     instances: list[InstanceOut]
     databases: list[DatabaseOut]
+
+
+class CertificateOut(BaseModel):
+    """A certificate as read from PEM text or from a host."""
+
+    subject: str
+    issuer: str
+    fingerprint: str
+    not_before: datetime
+    not_after: datetime
+    self_signed: bool
+    expired: bool
+
+
+class HostCertificateOut(CertificateOut):
+    pem: str
+    # Id of the trusted certificate with the same fingerprint, if any.
+    trusted_id: int | None
+
+
+class TrustedCertificateIn(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+    pem: str = Field(min_length=1, max_length=64_000)
+
+
+class TrustedCertificateOut(CertificateOut):
+    id: int
+    name: str
+    pem: str
+    created_at: datetime
+    created_by: str | None
 
 
 class SidOut(BaseModel):

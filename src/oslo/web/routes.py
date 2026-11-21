@@ -160,6 +160,7 @@ SECTIONS: dict[str, dict[str, Any]] = {
             ("/administration", "tab.general"),
             ("/administration/users", "tab.users"),
             ("/administration/attention", "ov.attention"),
+            ("/administration/certificates", "tab.certificates"),
         ],
     },
 }
@@ -550,6 +551,16 @@ async def user_page(
 @pages.get("/administration/attention")
 async def attention_rules(request: Request, user: CurrentUser) -> HTMLResponse:
     return _administration(request, user, "attention")
+
+
+@pages.get("/administration/certificates")
+async def certificates(request: Request, user: CurrentUser) -> HTMLResponse:
+    return _administration(request, user, "certificates")
+
+
+@pages.get("/administration/certificates/new")
+async def certificate_new(request: Request, user: CurrentUser) -> HTMLResponse:
+    return _administration(request, user, "certificate_new")
 
 
 @pages.get("/account")

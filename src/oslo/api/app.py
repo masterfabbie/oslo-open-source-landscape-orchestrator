@@ -63,6 +63,7 @@ from ..models import (
     Sid,
     System,
     SystemTag,
+    TrustedCertificate,
     User,
     activity_systems,
 )
@@ -93,6 +94,7 @@ from ..systems import (
 )
 from ..tags import TagError, matches, parse_tags, replace_tags
 from ..templates import TemplateError, save_template, steps_using, template_values
+from ..tls import CertificateError, CertificateInfo, fetch_certificate, parse_pem
 from ..users import (
     API_REQUEST_HEADER,
     SESSION_COOKIE,
@@ -117,12 +119,14 @@ from .schemas import (
     AttentionExceptionsIn,
     AttentionRulesIn,
     BuildingBlocksOut,
+    CertificateOut,
     Credentials,
     CustomOperationIn,
     CustomOperationOut,
     DependenciesIn,
     DiscoveryOut,
     FavoritesIn,
+    HostCertificateOut,
     HostCreate,
     HostDetail,
     HostOut,
@@ -151,6 +155,8 @@ from .schemas import (
     TemplateRunIn,
     TokenCreate,
     TokenOut,
+    TrustedCertificateIn,
+    TrustedCertificateOut,
     UserCreate,
     UserOut,
     UserUpdate,
@@ -167,6 +173,11 @@ _CHANGE_STATUS = {
     "assigned": 409,
     "busy": 409,
 }
+
+
+def _aware(value: datetime) -> datetime:
+    """SQLite returns times without zone; they are stored in UTC."""
+    return value if value.tzinfo else value.replace(tzinfo=UTC)
 
 
 def _systems_query():
@@ -233,6 +244,7 @@ def create_app(
         await runner.recover_interrupted()
         async with session_factory() as session:
             await catalog.reload(session)
+            await clients.load_trusted(session)
             if await user_count(session) == 0:
                 # One-time code for creating the first admin on the page /setup.
                 code = "-".join(secrets.token_hex(3).upper() for _ in range(3))
@@ -377,6 +389,7 @@ def create_app(
             hostagent_port=body.hostagent_port,
             https=body.https,
             verify_tls=body.verify_tls,
+            verify_hostname=body.verify_hostname,
             sapcontrol_port_offset=body.sapcontrol_port_offset,
             username=body.username,
             password_encrypted=secret_box.encrypt(body.password) if body.password else None,
@@ -423,6 +436,24 @@ def create_app(
         await session.delete(host)
         await session.commit()
         return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+    @api.post("/hosts/{host_id}/certificate", response_model=HostCertificateOut)
+    async def host_certificate(host_id: int, session: Session) -> object:
+        """Read the certificate the host agent shows, without checking it, so that an admin
+        can compare its fingerprint and trust it."""
+        host = await load_host(session, host_id)
+        address, port = host.address, host.hostagent_port or 1129
+        await session.rollback()  # end the read transaction while waiting for the host
+        try:
+            info = await app.state.fetch_certificate(address, port)
+        except CertificateError as exc:
+            raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(exc)) from exc
+        trusted_id = await session.scalar(
+            select(TrustedCertificate.id).where(
+                TrustedCertificate.fingerprint == info.fingerprint
+            )
+        )
+        return {**certificate_fields(info), "pem": info.pem, "trusted_id": trusted_id}
 
     @api.post("/hosts/{host_id}/discover", response_model=DiscoveryOut)
     async def discover(host_id: int, session: Session) -> object:
@@ -618,6 +649,96 @@ def create_app(
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Pool not found")
         await session.delete(pool)
         await session.commit()
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+    def certificate_fields(info: CertificateInfo) -> dict[str, object]:
+        return {
+            "subject": info.subject,
+            "issuer": info.issuer,
+            "fingerprint": info.fingerprint,
+            "not_before": info.not_before,
+            "not_after": info.not_after,
+            "self_signed": info.self_signed,
+            "expired": info.expired(),
+        }
+
+    def trusted_out(cert: TrustedCertificate) -> dict[str, object]:
+        info = CertificateInfo(
+            pem=cert.pem,
+            subject=cert.subject,
+            issuer=cert.issuer,
+            fingerprint=cert.fingerprint,
+            not_before=_aware(cert.not_before),
+            not_after=_aware(cert.not_after),
+        )
+        return {
+            **certificate_fields(info),
+            "id": cert.id,
+            "name": cert.name,
+            "pem": cert.pem,
+            "created_at": cert.created_at,
+            "created_by": cert.created_by,
+        }
+
+    @api.get("/trusted-certificates", response_model=list[TrustedCertificateOut])
+    async def list_trusted_certificates(session: Session) -> list[dict[str, object]]:
+        certs = await session.scalars(
+            select(TrustedCertificate).order_by(TrustedCertificate.name, TrustedCertificate.id)
+        )
+        return [trusted_out(cert) for cert in certs]
+
+    @api.post("/trusted-certificates/check", response_model=CertificateOut)
+    async def check_trusted_certificate(body: TrustedCertificateIn) -> dict[str, object]:
+        """Show what a PEM text contains before it is added."""
+        try:
+            return certificate_fields(parse_pem(body.pem))
+        except CertificateError as exc:
+            raise HTTPException(422, str(exc)) from exc
+
+    @api.post(
+        "/trusted-certificates",
+        response_model=TrustedCertificateOut,
+        status_code=status.HTTP_201_CREATED,
+    )
+    async def add_trusted_certificate(
+        body: TrustedCertificateIn, session: Session, user: CurrentUser
+    ) -> dict[str, object]:
+        try:
+            info = parse_pem(body.pem)
+        except CertificateError as exc:
+            raise HTTPException(422, str(exc)) from exc
+        existing = await session.scalar(
+            select(TrustedCertificate).where(TrustedCertificate.fingerprint == info.fingerprint)
+        )
+        if existing is not None:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                f"This certificate is already trusted as '{existing.name}'",
+            )
+        cert = TrustedCertificate(
+            name=body.name.strip(),
+            pem=info.pem,
+            subject=info.subject,
+            issuer=info.issuer,
+            fingerprint=info.fingerprint,
+            not_before=info.not_before,
+            not_after=info.not_after,
+            created_at=datetime.now(UTC),
+            created_by=user.username,
+        )
+        session.add(cert)
+        await session.commit()
+        await clients.load_trusted(session)
+        return trusted_out(cert)
+
+    @api.delete("/trusted-certificates/{cert_id}", status_code=status.HTTP_204_NO_CONTENT)
+    async def delete_trusted_certificate(cert_id: int, session: Session) -> Response:
+        cert = await session.get(TrustedCertificate, cert_id)
+        if cert is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Certificate not found")
+        await session.delete(cert)
+        await session.commit()
+        await clients.load_trusted(session)
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
     @api.put("/systems/{system_id}/pool", response_model=SystemOut)
@@ -1499,6 +1620,9 @@ def create_app(
         response.headers.setdefault("Referrer-Policy", "same-origin")
         return response
     app.state.catalog = catalog
+    app.state.clients = clients
+    # Replaced in tests; reads the certificate a host shows (tls.fetch_certificate).
+    app.state.fetch_certificate = fetch_certificate
     app.state.setup_code = None
     app.state.session_factory = session_factory
     app.mount("/api", api)

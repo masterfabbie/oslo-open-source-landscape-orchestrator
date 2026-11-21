@@ -395,6 +395,77 @@ TEXTS: dict[str, tuple[str, str]] = {
         "Keine Instanzen bekannt. Starte eine Discovery.",
     ),
     "host.no_databases": ("No databases known.", "Keine Datenbanken bekannt."),
+    "host.certificate": ("Certificate", "Zertifikat"),
+    "host.certificate_hint": (
+        "Shows the certificate the host agent presents on its HTTPS port, without checking it. "
+        "Compare the fingerprint with the one on the host before you trust it.",
+        "Zeigt das Zertifikat, das der Host Agent an seinem HTTPS-Port vorzeigt, ohne es zu "
+        "prüfen. Vergleiche den Fingerabdruck mit dem auf dem Host, bevor du ihm vertraust.",
+    ),
+    "host.fetch_certificate": ("Read certificate", "Zertifikat abrufen"),
+    "host.certificate_trusted": (
+        "Trusted (Administration → Certificates).",
+        "Vertrauenswürdig (Administration → Zertifikate).",
+    ),
+    "host.certificate_untrusted": (
+        "Not trusted yet. Without trust, “Verify certificate” fails unless the operating "
+        "system trusts its issuer.",
+        "Noch nicht vertrauenswürdig. Ohne Vertrauen schlägt „Zertifikat prüfen“ fehl, außer "
+        "das Betriebssystem vertraut seinem Aussteller.",
+    ),
+    "host.trust": ("Trust this certificate", "Diesem Zertifikat vertrauen"),
+    "host.trust_admin_only": (
+        "Only admins can trust certificates.",
+        "Nur Admins können Zertifikaten vertrauen.",
+    ),
+    "host.https_off": (
+        "This host is reached over HTTP. Switch on HTTPS to use a certificate.",
+        "Dieser Host wird über HTTP erreicht. Schalte HTTPS ein, um ein Zertifikat zu nutzen.",
+    ),
+    "host.verify_hint": (
+        "“Verify certificate”: the host must show a certificate the operating system or "
+        "Administration → Certificates trusts. “Check host name”: the name in the certificate "
+        "must also match the address.",
+        "„Zertifikat prüfen“: Der Host muss ein Zertifikat zeigen, dem das Betriebssystem oder "
+        "Administration → Zertifikate vertraut. „Hostnamen prüfen“: Zusätzlich muss der Name im "
+        "Zertifikat zur Adresse passen.",
+    ),
+    "field.verify_hostname": ("Check host name", "Hostnamen prüfen"),
+    "field.subject": ("Subject", "Inhaber"),
+    "field.issuer": ("Issuer", "Aussteller"),
+    "field.valid_from": ("Valid from", "Gültig ab"),
+    "field.valid_until": ("Valid until", "Gültig bis"),
+    "field.fingerprint": ("Fingerprint (SHA-256)", "Fingerabdruck (SHA-256)"),
+    "tab.certificates": ("Certificates", "Zertifikate"),
+    "cert.add": ("Add certificate", "Zertifikat hinzufügen"),
+    "cert.intro": (
+        "OSLO trusts these certificates for HTTPS to hosts, in addition to those of the "
+        "operating system. Add the certificate of the issuing CA, or the self-signed "
+        "certificate of a host agent. They apply to hosts with “Verify certificate”.",
+        "OSLO vertraut diesen Zertifikaten bei HTTPS zu den Hosts, zusätzlich zu denen des "
+        "Betriebssystems. Hinterlege das Zertifikat der ausstellenden CA oder das selbst "
+        "signierte Zertifikat eines Host Agents. Sie gelten für Hosts mit „Zertifikat prüfen“.",
+    ),
+    "cert.empty": ("No certificates yet.", "Noch keine Zertifikate."),
+    "cert.pem": ("Certificate (PEM)", "Zertifikat (PEM)"),
+    "cert.pem_hint": (
+        "Paste the text from -----BEGIN CERTIFICATE----- to -----END CERTIFICATE-----, or "
+        "choose a file. Never add a private key.",
+        "Füge den Text von -----BEGIN CERTIFICATE----- bis -----END CERTIFICATE----- ein oder "
+        "wähle eine Datei. Niemals einen privaten Schlüssel hinterlegen.",
+    ),
+    "cert.file": ("From file", "Aus Datei"),
+    "cert.check": ("Check", "Prüfen"),
+    "cert.expired": ("expired", "abgelaufen"),
+    "cert.self_signed": ("self-signed", "selbst signiert"),
+    "cert.delete": ("Remove", "Entfernen"),
+    "cert.delete_confirm": (
+        "Stop trusting this certificate? Hosts that rely on it fail the check afterwards.",
+        "Diesem Zertifikat nicht mehr vertrauen? Hosts, die darauf angewiesen sind, bestehen "
+        "die Prüfung danach nicht mehr.",
+    ),
+    "cert.added_by": ("Added", "Hinzugefügt"),
+    "notice.certificate_added": ("Certificate added.", "Zertifikat hinzugefügt."),
     "credentials.title": ("Credentials", "Zugangsdaten"),
     "credentials.save": ("Save credentials", "Zugangsdaten speichern"),
     "credentials.set": ("stored", "hinterlegt"),
