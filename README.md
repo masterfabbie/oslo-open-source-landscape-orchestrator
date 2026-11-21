@@ -116,9 +116,13 @@ Bestätigt mit einem echten Host, auf dem ein ABAP-System und eine HANA-Datenban
     den Zeilen bis dahin. Danach kennt der Host Agent die Operation nicht mehr
     (`GetOperationResults`: Fault-Code -20 „Operation ID not found“).
 
+- **HTTPS zum Host Agent** (Port 1129) funktioniert mit abgeschalteter Zertifikatsprüfung
+  (selbst signiertes Zertifikat).
+
 Noch nicht gegen echte Hosts getestet:
 
-- HTTPS
+- HTTPS mit Zertifikatsprüfung (eigenes CA-Bundle)
+- HTTPS zum sapstartsrv (Port 5NN14)
 
 Nicht Teil der ersten Version: Verschieben von Instanzen (Adaptive Computing) und Hooks.
 

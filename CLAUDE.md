@@ -512,7 +512,9 @@ Aktuelle WSDLs lassen sich von einem Host abrufen:
   trotzdem durch; vermutlich scheiterte die Abfrage von `GetProcessList` und OSLO ging weiter wie
   bei einem nicht antwortenden sapstartsrv. Ausführlicher Test durch den Eigentümer steht aus,
   Korrektur vorgeschlagen (ToDo 11).
-- Noch nicht gegen echte Systeme getestet: HTTPS.
+- **HTTPS zum Host Agent** (2026-11-21): OSLO erreicht einen Host Agent über Port 1129 mit
+  abgeschalteter Zertifikatsprüfung (selbst signiertes Zertifikat). Noch nicht getestet:
+  HTTPS mit Zertifikatsprüfung (eigenes CA-Bundle) und HTTPS zum sapstartsrv (Port 5NN14).
 
 ## Offene Annahmen, die ein Test mit einer echten Instanz klären muss
 
@@ -529,7 +531,8 @@ Aktuelle WSDLs lassen sich von einem Host abrufen:
 5. **Datenbanken:** Der Schlüssel `Database/Vendor` ist angenommen.
 6. **Verschachtelung bei `GetComputerSystem`:** Der Client sucht Klassen in jeder Tiefe. Die
    echte Struktur ist nicht mit der des Mocks verglichen.
-7. **HTTPS** zu den verwalteten Hosts ist vorbereitet, aber ungetestet.
+7. **HTTPS:** Geklärt für den Host Agent (Port 1129) ohne Zertifikatsprüfung. Offen sind die
+   Prüfung gegen ein CA-Bundle und HTTPS zum sapstartsrv.
 8. **`GetSystemInstanceList` bei getrennter Datenbank-SID:** Dass die Liste eines
    ABAP-Systems die HANA-Instanz nicht enthält, ist aus den getrennten SIDs abgeleitet, aber
    nicht direkt beobachtet.
