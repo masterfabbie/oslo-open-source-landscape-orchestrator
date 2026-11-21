@@ -543,6 +543,12 @@ und freigeben lassen:
 8. „Erneut ausführen“-Knopf an einer abgebrochenen Aktivität (gleiche Operation, Ziele und Werte;
    gewünscht 2026-11-21).
 9. Bereich „Schedules“ für alle geplanten Operationen (gewünscht 2026-11-21).
+10. Konzept für LO-eigene Operationen: Dateien in `operations.d`, die LO braucht (z. B. für den
+    Neustart des Instanz-Agents, normal und forciert), verteilen und regelmäßig bzw. auf
+    Anforderung prüfen; Vorschlag mit `DeployConfiguration` und Versionsprüfung liegt vor,
+    Test am Host steht aus (gewünscht 2026-11-21).
+11. Prüfung vor dem Neu-Registrieren des Instanz-Agents festlegen (heute: Abbruch, solange ein
+    Prozess der Instanz läuft; gewünscht 2026-11-21).
 
 ## Bekannte Lücken
 
