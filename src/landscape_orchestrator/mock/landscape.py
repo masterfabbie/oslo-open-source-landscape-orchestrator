@@ -92,6 +92,8 @@ class MockInstance:
     nr: int
     kind: str
     hostname: str
+    # The instance's sapstartsrv is registered and running (it answers on its port).
+    service_running: bool = True
     # Scheduled transitions, sorted by time. The first entry is the current state.
     _timeline: list[tuple[float, Status]] = field(default_factory=list, repr=False)
     _started_at: float | None = field(default=None, repr=False)

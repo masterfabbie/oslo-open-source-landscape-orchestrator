@@ -93,14 +93,12 @@ def log(activity: dict) -> list[str]:
 
 async def test_list_operations(app, api):
     keys = {op["key"]: op for op in (await api.get("/api/operations")).json()}
-    assert set(keys) == {"start", "stop", "restart", "discover"}
+    agent = {"register", "unregister", "reregister"}
+    assert set(keys) == {"start", "stop", "restart", "discover"} | agent
     assert keys["discover"]["targets"] == ["HOST"]
     async with client(app, await make_user(app, "op", "operator")) as operator:
-        assert {o["key"] for o in (await operator.get("/api/operations")).json()} == {
-            "start",
-            "stop",
-            "restart",
-        }
+        offered = {o["key"] for o in (await operator.get("/api/operations")).json()}
+        assert offered == {"start", "stop", "restart"} | agent
 
 
 async def test_mass_start_follows_dependencies(app, api, landscape, clock):

@@ -337,6 +337,17 @@ Wichtige Entwurfsentscheidungen:
   Teilaktivitäten (`parent_id`). `_run_mass` startet Kinder bis zur Parallelität, beachtet
   Abhängigkeiten der ausgewählten Systeme, lässt bei Sperrkonflikt auf Geschwister warten und
   überspringt Ziele, die von außen belegt sind. Endstatus SUCCEEDED, PARTIAL oder FAILED.
+- **Instanz-Agent registrieren, abmelden, neu registrieren** (Wunsch des Eigentümers, statt der
+  in LaMa eingebauten Operation, die bei neuen Systemen scheiterte): eingebaute Operationen
+  `register`, `unregister`, `reregister` für Instanzen (`OperationKind` REGISTER usw., Rolle
+  Operator, auch als Massenoperation und Vorlagenschritt). Sie rufen am Host Agent
+  `RegisterInstanceService` bzw. `UnregisterInstanceService` synchron (Timeout -1) mit SID,
+  Nummer und `mHostname`; die Zeilen der Antwort kommen ins Protokoll. Abmelden und neu
+  Registrieren werden abgelehnt, solange ein Prozess der Instanz nicht gestoppt ist; antwortet
+  der sapstartsrv nicht, geht es weiter. Nach dem Registrieren wartet LO, bis der sapstartsrv
+  antwortet (`_service_operation`). Der Mock bildet das mit `MockInstance.service_running`
+  nach (abgemeldet: Verbindung abgelehnt). Annahme: `sapadm` darf beide Methoden per SOAP
+  aufrufen (geprüft ist nur `saphostctrl` als root).
 - **Host-Operationen** (bisher nur Discovery) laufen als Aktivität mit `host_id`; je Host
   höchstens eine gleichzeitig.
 - **Migration 0004** fügt Spalten mit Fremdschlüssel per `ALTER TABLE … REFERENCES` an, weil
@@ -487,6 +498,11 @@ Aktuelle WSDLs lassen sich von einem Host abrufen:
 - **Operationsvorlagen und Einplanen** (2026-11-21): Eine Vorlage mit festen Zielen (System
   stoppen → eigene Operation auf zwei Hosts als Massenoperation → System starten) lief
   erfolgreich, auch als eingeplante Operation; Zeitplan und Protokoll zeigen die Schritte richtig.
+- **Instanz-Agent** (2026-11-21, per `saphostctrl` als root, nicht aus dem Tool):
+  `UnregisterInstanceService` führt `sapcontrol -function StopService` und `sapstartsrv
+  -unreg` aus, `RegisterInstanceService` `sapstartsrv -reg` und `sapcontrol -function
+  StartService`; beide antworten synchron mit diesen Zeilen (je „exitcode=0“ und „… successfully
+  executed“). Die Operation-ID ist danach nicht mehr bekannt (Fault -20).
 - Noch nicht gegen echte Systeme getestet: HTTPS.
 
 ## Offene Annahmen, die ein Test mit einer echten Instanz klären muss
@@ -536,7 +552,8 @@ und freigeben lassen:
 - Abbrechen von Start und Stopp beendet nur das Warten
 - kein Probelauf für Operationsvorlagen
 - Einplanen in der Oberfläche nur für Vorlagen (per API für jede Operation)
-- keine eingebaute Operation „Instanz-Agent neu starten und registrieren“
+- Instanz-Agent neu starten (normal und forciert) fehlt noch; offen ist, wie LO die nötigen
+  Dateien in `operations.d` verteilt und prüft
 - keine Kernel-Repositories (Ablage der Kernel-Versionen für Kernel-Tausch-Skripte)
 - keine Hooks und kein HTTP-Provider für eigene Operationen
 - keine eigenen Datenbank-Operationen (`StartDatabase`, `StopDatabase`)

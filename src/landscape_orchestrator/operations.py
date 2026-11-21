@@ -34,6 +34,7 @@ from .clients import (
     SoapConnectionError,
     SoapError,
     SoapFaultError,
+    SoapProtocolError,
 )
 from .clients.hostagent import FAULT_TIMEOUT, OperationFault, OperationResult
 from .clients.sapcontrol import StateColor
@@ -67,6 +68,10 @@ class OperationKind(StrEnum):
     STOP = "STOP"
     RESTART = "RESTART"
     DISCOVER = "DISCOVER"
+    # The sapstartsrv of an instance via the host agent: (Un)RegisterInstanceService.
+    REGISTER = "REGISTER"
+    UNREGISTER = "UNREGISTER"
+    REREGISTER = "REREGISTER"
     # A custom operation: a script configured in the host agent's operations.d.
     CUSTOM = "CUSTOM"
     # An operation template: its steps run as child activities, after their predecessors.
@@ -137,6 +142,9 @@ class OperationFailedError(Exception):
 class PartlyFailedError(OperationFailedError):
     """Some steps of a template failed, the chain went on; ends as PARTIAL."""
 
+
+# Operations on the sapstartsrv of an instance (instance agent).
+SERVICE_KINDS = (OperationKind.REGISTER, OperationKind.UNREGISTER, OperationKind.REREGISTER)
 
 # A step of a template that cannot start: handled like a failed step.
 _STEP_ERRORS = (OperationConflictError, TargetNotFoundError, NotAssignedError)
@@ -1093,6 +1101,9 @@ class OperationRunner:
         if activity.target_type == TargetType.HOST:
             await self._discover(session, activity)
             return
+        if kind in SERVICE_KINDS:
+            await self._service_operation(session, activity, kind)
+            return
         phases = {
             OperationKind.START: (True,),
             OperationKind.STOP: (False,),
@@ -1646,6 +1657,132 @@ class OperationRunner:
                     f"expected {target}"
                 )
             await self._pause(self._poll_interval)
+
+    # --- instance agent (sapstartsrv) --------------------------------------------------
+
+    async def _service_operation(
+        self, session: AsyncSession, activity: Activity, kind: OperationKind
+    ) -> None:
+        """Register, unregister or re-register the sapstartsrv of an instance through the
+        host agent (RegisterInstanceService, UnregisterInstanceService; both wait).
+
+        Unregistering stops the sapstartsrv, not the instance; it is refused while a
+        process of the instance runs (the instance could no longer be controlled). If the
+        sapstartsrv does not answer, it goes ahead. After registering, it waits until the
+        sapstartsrv answers.
+        """
+        instance = await session.scalar(
+            select(Instance)
+            .where(Instance.id == activity.instance_id)
+            .options(selectinload(Instance.host), selectinload(Instance.sid))
+        )
+        if instance is None:
+            raise OperationFailedError("The instance no longer exists")
+        label = instance.label
+        await self._log(
+            session,
+            activity,
+            f"{kind.title()} of the instance agent of {label} on {instance.host.name}",
+            event="op_started",
+            subject=label,
+        )
+        if kind in (OperationKind.UNREGISTER, OperationKind.REREGISTER):
+            running = await self._running_processes(instance)
+            if running is None:
+                await self._log(
+                    session, activity, "sapstartsrv does not answer; going ahead", subject=label
+                )
+            elif running:
+                message = "Processes of the instance are still running: " + ", ".join(running)
+                await self._log_error(session, activity, message, label)
+                raise OperationFailedError(f"{label}: {message}")
+            await self._service_call(session, activity, instance, register=False)
+            instance.last_status = STATUS_UNKNOWN
+            instance.status_checked_at = _now()
+        if kind in (OperationKind.REGISTER, OperationKind.REREGISTER):
+            await self._service_call(session, activity, instance, register=True)
+            await self._wait_for_service(session, activity, instance)
+        await self._log(
+            session, activity, f"Instance agent of {label}: done", event="op_done", subject=label
+        )
+
+    async def _running_processes(self, instance: Instance) -> list[str] | None:
+        """Names of processes that are not stopped; None if the sapstartsrv does not answer."""
+        try:
+            async with self._clients.sapcontrol(
+                instance.host, int(instance.number), instance.sid
+            ) as sapcontrol:
+                processes = await sapcontrol.get_process_list()
+        except (SoapConnectionError, SoapFaultError, SoapProtocolError):
+            return None
+        return [p.name for p in processes if p.dispstatus is not StateColor.GRAY]
+
+    async def _service_call(
+        self, session: AsyncSession, activity: Activity, instance: Instance, *, register: bool
+    ) -> None:
+        call = "RegisterInstanceService" if register else "UnregisterInstanceService"
+        try:
+            async with self._clients.hostagent(instance.host) as agent:
+                method = (
+                    agent.register_instance_service
+                    if register
+                    else agent.unregister_instance_service
+                )
+                result = await method(
+                    instance.sid.name, instance.number, hostname=instance.hostname
+                )
+        except SoapFaultError as exc:
+            await self._log_error(session, activity, f"{call} failed: {exc}", instance.label)
+            raise explain_fault(exc, call, instance.host) from exc
+        except SoapConnectionError as exc:
+            raise OperationFailedError(
+                f"{call} for {instance.label}: the host agent of {instance.host.name} "
+                f"could not be reached ({exc})"
+            ) from exc
+        for line in result.log:
+            session.add(
+                self._entry(
+                    activity,
+                    _LEVELS.get(line.severity.lower(), "INFO"),
+                    f"{line.source}: {line.text}" if line.source else line.text,
+                    subject=instance.label,
+                )
+            )
+        await self._log(session, activity, f"{call} succeeded", subject=instance.label)
+
+    async def _wait_for_service(
+        self, session: AsyncSession, activity: Activity, instance: Instance
+    ) -> None:
+        deadline = self._clock() + activity.timeout_seconds
+        while True:
+            try:
+                status = await self._read_instance_status(instance)
+            except OperationFailedError:
+                status = STATUS_UNKNOWN  # still starting
+            if status != STATUS_UNKNOWN:
+                instance.last_status = status
+                instance.status_checked_at = _now()
+                await self._log(
+                    session,
+                    activity,
+                    f"sapstartsrv answers; instance status: {status}",
+                    event="status",
+                    subject=instance.label,
+                    data={instance.label: status},
+                )
+                return
+            if self._deadline_reached(deadline):
+                raise OperationFailedError(
+                    f"Timeout after {activity.timeout_seconds} s: the sapstartsrv of "
+                    f"{instance.label} does not answer"
+                )
+            await self._pause(self._poll_interval)
+
+    async def _log_error(
+        self, session: AsyncSession, activity: Activity, message: str, subject: str
+    ) -> None:
+        session.add(self._entry(activity, "ERROR", message, event="op_failed", subject=subject))
+        await session.commit()
 
     async def _read_instance_status(self, instance: Instance) -> str:
         """Status from sapstartsrv; UNKNOWN while it cannot be reached."""

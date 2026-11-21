@@ -17,7 +17,15 @@ from .customspec import CustomSpec, ParameterSpec
 
 ON_ERROR = ("stop", "continue", "stop_and_start")
 STEP_TARGETS = ("INSTANCE", "SYSTEM", "HOST")
-BUILT_IN_NAMES = {"START": "Start", "STOP": "Stop", "RESTART": "Restart", "DISCOVER": "Discovery"}
+BUILT_IN_NAMES = {
+    "START": "Start",
+    "STOP": "Stop",
+    "RESTART": "Restart",
+    "DISCOVER": "Discovery",
+    "REGISTER": "Register instance agent",
+    "UNREGISTER": "Unregister instance agent",
+    "REREGISTER": "Re-register instance agent",
+}
 # Parameters of a step are passed in a run as "<position>.<NAME>", e.g. "3.KRNLREL".
 SEPARATOR = "."
 SELECTION = "$selection"

@@ -147,7 +147,7 @@ export function buildTimeline(
         segment = { kind: "op", from: at, to: null, state: "running" };
         l.segments.push(segment);
       }
-      if (/hook successfully executed/.test(entry.message)) {
+      if (entry.event === "op_done" || /hook successfully executed/.test(entry.message)) {
         segment.to = at;
         segment.state = "done";
       } else if (/hook failed|cancelled on/.test(entry.message) || entry.level === "ERROR") {

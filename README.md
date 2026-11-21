@@ -67,6 +67,9 @@ Bestätigt mit einem echten Host, auf dem ein ABAP-System und eine HANA-Datenban
   der Instanz aus der Discovery mit. Damit funktionieren Start, Stopp und Neustart eines
   Systems, dessen Instanzen unter virtuellen Hostnamen auf zwei Hosts laufen.
 - **Diagnostics Agents** melden das Feature `SMDAGENT`.
+- **Instanz-Agent** (per `saphostctrl` als root): `UnregisterInstanceService` führt
+  `sapcontrol -function StopService` und `sapstartsrv -unreg` aus, `RegisterInstanceService`
+  `sapstartsrv -reg` und `sapcontrol -function StartService`, beide synchron.
 - **Operationsvorlagen und Einplanen** (2026-11-21): Eine Vorlage mit festen Zielen (System
   stoppen → eigene Operation auf zwei Hosts als Massenoperation → System starten) lief
   erfolgreich, auch als eingeplante Operation; Zeitplan und Protokoll zeigen die Schritte richtig.
@@ -463,6 +466,23 @@ einem Fehler weitergemacht (Standard) oder angehalten wird. Daraus entsteht eine
 
 **Host-Operationen:** Die Discovery und eigene Operationen für Hosts laufen als Aktivität mit
 Protokoll (Landscape → Hosts, Hostseite).
+
+### Instanz-Agent registrieren, abmelden, neu registrieren
+
+Drei eingebaute Operationen für Instanzen (Rolle Operator, auch als Massenoperation und als
+Schritt einer Vorlage). Sie laufen über den Host Agent (`RegisterInstanceService`,
+`UnregisterInstanceService`) und schreiben dessen Ausgabe ins Protokoll.
+
+| Operation | Ablauf |
+|---|---|
+| Instanz-Agent registrieren | `sapstartsrv -reg`, dann `StartService`; LO wartet, bis der sapstartsrv antwortet |
+| Instanz-Agent abmelden | `StopService`, dann `sapstartsrv -unreg`; die Instanz selbst wird nicht gestoppt |
+| Instanz-Agent neu registrieren | abmelden, dann registrieren |
+
+Abmelden und neu Registrieren werden abgelehnt, solange ein Prozess der Instanz läuft (sie wäre
+dann nicht mehr steuerbar). Antwortet der sapstartsrv gar nicht, z. B. bei einem neuen System,
+geht es weiter. Annahme: `sapadm` darf beide Methoden aufrufen; geprüft ist bisher nur
+`saphostctrl` als root.
 
 ### Eigene Operationen
 

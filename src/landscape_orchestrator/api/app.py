@@ -590,7 +590,9 @@ def create_app(
         await session.commit()
         return await load_system(session, system_id)
 
-    OperationName = Literal["start", "stop", "restart"]
+    SystemOperationName = Literal["start", "stop", "restart"]
+    # Instances also: the instance agent (sapstartsrv) through the host agent.
+    OperationName = Literal["start", "stop", "restart", "register", "unregister", "reregister"]
 
     @api.get("/pools", response_model=list[PoolOut])
     async def list_pools(session: Session) -> list[Pool]:
@@ -668,7 +670,7 @@ def create_app(
     )
     async def operate_system(
         system_id: int,
-        operation: OperationName,
+        operation: SystemOperationName,
         session: Session,
         user: CurrentUser,
         timeout: Timeout = DEFAULT_TIMEOUT_SECONDS,

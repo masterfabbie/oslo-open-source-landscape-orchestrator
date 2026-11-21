@@ -512,6 +512,27 @@ class HostAgentClient(SoapClient):
             "StopInstance", sid, system_number, hostname, timeout, options, soft_timeout
         )
 
+    async def register_instance_service(
+        self, sid: str, system_number: str | int, *, hostname: str | None = None
+    ) -> OperationResult:
+        """Register the sapstartsrv of an instance (sapstartsrv -reg) and start it, and wait.
+
+        A real host agent answered with the log lines of "sapstartsrv -reg" and
+        "sapcontrol -function StartService" (checked with saphostctrl as root; whether
+        sapadm may call it is an assumption)."""
+        return await self._instance_operation(
+            "RegisterInstanceService", sid, system_number, hostname, -1, ()
+        )
+
+    async def unregister_instance_service(
+        self, sid: str, system_number: str | int, *, hostname: str | None = None
+    ) -> OperationResult:
+        """Stop the sapstartsrv of an instance (StopService) and unregister it
+        (sapstartsrv -unreg), and wait. The instance's processes are not stopped."""
+        return await self._instance_operation(
+            "UnregisterInstanceService", sid, system_number, hostname, -1, ()
+        )
+
     async def _instance_operation(
         self,
         method: str,

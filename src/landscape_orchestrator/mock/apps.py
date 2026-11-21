@@ -127,6 +127,10 @@ def create_sapcontrol_app(landscape: MockLandscape, host_name: str, nr: int) -> 
         raise KeyError(f"No instance {nr:02d} on host {host_name}")
 
     def get_process_list(_: dict[str, Any]) -> dict[str, Any]:
+        if not instance.service_running:
+            # In-process (MockLandscapeTransport) the connection is refused; the mock server
+            # on real ports can only answer with a fault.
+            raise SoapFault("sapstartsrv is not running")
         now = landscape.clock()
         status = instance.status(now)
         started_at = instance.started_at(now)
@@ -229,6 +233,8 @@ HOSTCONTROL_PROTECTED = frozenset(
     {
         "StartInstance",
         "StopInstance",
+        "RegisterInstanceService",
+        "UnregisterInstanceService",
         "ExecuteOperation",
         "IsOperationFinished",
         "GetOperationResults",
@@ -523,6 +529,26 @@ def create_hostagent_app(landscape: MockLandscape, host_name: str) -> FastAPI:
         landscape.stop_instance(inst)
         return _operation_result(f"Stop of instance {inst.sid}/{inst.nr:02d} triggered")
 
+    def _service_result(commands: list[str]) -> dict[str, Any]:
+        """Lines as a real host agent returned them for (Un)RegisterInstanceService."""
+        lines: list[dict[str, str]] = []
+        for command in commands:
+            if command.startswith("sapstartsrv"):
+                lines += _line("Info", "saphostcontrol", f"Executing '{command}'")
+            lines += _line("Info", "saphostcontrol", "exitcode=0")
+            lines += _line("Info", "saphostcontrol", f"'{command}' successfully executed")
+        return {"response": {"mOperationID": "", "mOperationResults": lines}}
+
+    def register_instance_service(params: dict[str, Any]) -> dict[str, Any]:
+        inst = _find_instance(params)
+        inst.service_running = True
+        return _service_result(["sapstartsrv -reg", "sapcontrol -function StartService"])
+
+    def unregister_instance_service(params: dict[str, Any]) -> dict[str, Any]:
+        inst = _find_instance(params)
+        inst.service_running = False
+        return _service_result(["sapcontrol -function StopService", "sapstartsrv -unreg"])
+
     service = SoapService(
         prefix="SAPHostControl",
         namespace="urn:SAPHostControl",
@@ -533,6 +559,8 @@ def create_hostagent_app(landscape: MockLandscape, host_name: str) -> FastAPI:
             "GetComputerSystem": get_computer_system,
             "StartInstance": start_instance,
             "StopInstance": stop_instance,
+            "RegisterInstanceService": register_instance_service,
+            "UnregisterInstanceService": unregister_instance_service,
             "ExecuteOperation": execute_operation,
             "IsOperationFinished": is_operation_finished,
             "GetOperationResults": get_operation_results,

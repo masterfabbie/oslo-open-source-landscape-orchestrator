@@ -255,3 +255,22 @@ async def test_get_operation_results_answers_get_operation_response(landscape):
 
     body = build_response("SAPHostControl", "urn:SAPHostControl", "GetOperationResults", {})
     assert b"GetOperationResponse" in body and b"GetOperationResultsResponse" not in body
+
+
+async def test_register_and_unregister_instance_service(landscape):
+    instance = landscape.host("sapapp1").instance(0)
+    async with make_client(landscape) as client:
+        result = await client.unregister_instance_service("DEV", 0, hostname="sapapp1")
+        assert not instance.service_running
+        # Lines as a real host agent returned them (four LogMsg/* messages per line).
+        assert [(m.severity, m.source, m.text) for m in result.log][-1] == (
+            "Info",
+            "saphostcontrol",
+            "'sapstartsrv -unreg' successfully executed",
+        )
+        result = await client.register_instance_service("DEV", "00", hostname="sapapp1")
+        assert instance.service_running
+        assert "Executing 'sapstartsrv -reg'" in [m.text for m in result.log]
+    async with make_client(landscape, auth=None) as anonymous:
+        with pytest.raises(AuthenticationRequiredError):
+            await anonymous.register_instance_service("DEV", 0)

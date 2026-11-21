@@ -61,6 +61,7 @@ class OperationDef:
 
 
 _SYSTEM_AND_INSTANCE = frozenset({TargetType.SYSTEM, TargetType.INSTANCE})
+_INSTANCE = frozenset({TargetType.INSTANCE})
 
 BUILT_IN: tuple[OperationDef, ...] = (
     OperationDef("start", OperationKind.START, _SYSTEM_AND_INSTANCE, Role.OPERATOR),
@@ -71,6 +72,10 @@ BUILT_IN: tuple[OperationDef, ...] = (
     OperationDef(
         "discover", OperationKind.DISCOVER, frozenset({TargetType.HOST}), Role.CONFIGURATOR
     ),
+    # The instance agent (sapstartsrv) through the host agent.
+    OperationDef("register", OperationKind.REGISTER, _INSTANCE, Role.OPERATOR),
+    OperationDef("unregister", OperationKind.UNREGISTER, _INSTANCE, Role.OPERATOR, danger=True),
+    OperationDef("reregister", OperationKind.REREGISTER, _INSTANCE, Role.OPERATOR, danger=True),
 )
 BUILT_IN_KEYS = frozenset(op.key for op in BUILT_IN)
 # Kept for code that only needs the built-in operations.
