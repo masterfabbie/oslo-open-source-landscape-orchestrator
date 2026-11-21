@@ -560,6 +560,7 @@ und freigeben lassen:
     Prozess der Instanz läuft; gewünscht 2026-11-21). Am Host lief Neu registrieren trotz
     laufender Prozesse durch. Vorschlag: nur bei abgelehnter Verbindung weitermachen, sonst
     abbrechen; zusätzlich `ListInstances` mit `S-RUNNING` am Host Agent prüfen.
+12. Pools bearbeiten (Name, Beschreibung; heute nur anlegen und löschen; gewünscht 2026-11-21).
 
 ## Bekannte Lücken
 
