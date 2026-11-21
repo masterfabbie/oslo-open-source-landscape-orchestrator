@@ -70,6 +70,9 @@ Bestätigt mit einem echten Host, auf dem ein ABAP-System und eine HANA-Datenban
 - **Instanz-Agent** (per `saphostctrl` als root): `UnregisterInstanceService` führt
   `sapcontrol -function StopService` und `sapstartsrv -unreg` aus, `RegisterInstanceService`
   `sapstartsrv -reg` und `sapcontrol -function StartService`, beide synchron.
+- **Instanz-Agent aus dem Tool** (2026-11-21): Registrieren funktioniert. Neu registrieren lief
+  bei laufenden Prozessen trotzdem durch (vermutlich, weil die Prozessliste nicht gelesen werden
+  konnte); wird weiter getestet und korrigiert.
 - **Operationsvorlagen und Einplanen** (2026-11-21): Eine Vorlage mit festen Zielen (System
   stoppen → eigene Operation auf zwei Hosts als Massenoperation → System starten) lief
   erfolgreich, auch als eingeplante Operation; Zeitplan und Protokoll zeigen die Schritte richtig.

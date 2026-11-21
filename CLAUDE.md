@@ -503,6 +503,11 @@ Aktuelle WSDLs lassen sich von einem Host abrufen:
   -unreg` aus, `RegisterInstanceService` `sapstartsrv -reg` und `sapcontrol -function
   StartService`; beide antworten synchron mit diesen Zeilen (je „exitcode=0“ und „… successfully
   executed“). Die Operation-ID ist danach nicht mehr bekannt (Fault -20).
+- **Instanz-Agent aus dem Tool** (2026-11-21): Registrieren funktioniert per SOAP mit den
+  Zugangsdaten des Hosts. Neu registrieren lief bei einer Instanz mit laufenden Prozessen
+  trotzdem durch; vermutlich scheiterte die Abfrage von `GetProcessList` und LO ging weiter wie
+  bei einem nicht antwortenden sapstartsrv. Ausführlicher Test durch den Eigentümer steht aus,
+  Korrektur vorgeschlagen (ToDo 11).
 - Noch nicht gegen echte Systeme getestet: HTTPS.
 
 ## Offene Annahmen, die ein Test mit einer echten Instanz klären muss
@@ -548,7 +553,9 @@ und freigeben lassen:
     Anforderung prüfen; Vorschlag mit `DeployConfiguration` und Versionsprüfung liegt vor,
     Test am Host steht aus (gewünscht 2026-11-21).
 11. Prüfung vor dem Neu-Registrieren des Instanz-Agents festlegen (heute: Abbruch, solange ein
-    Prozess der Instanz läuft; gewünscht 2026-11-21).
+    Prozess der Instanz läuft; gewünscht 2026-11-21). Am Host lief Neu registrieren trotz
+    laufender Prozesse durch. Vorschlag: nur bei abgelehnter Verbindung weitermachen, sonst
+    abbrechen; zusätzlich `ListInstances` mit `S-RUNNING` am Host Agent prüfen.
 
 ## Bekannte Lücken
 
