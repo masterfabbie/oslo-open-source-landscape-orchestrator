@@ -8,8 +8,8 @@ from alembic.autogenerate import compare_metadata
 from alembic.runtime.migration import MigrationContext
 from sqlalchemy import create_engine as create_sync_engine
 
-from landscape_orchestrator import db
-from landscape_orchestrator.db import (
+from oslo import db
+from oslo.db import (
     SchemaError,
     backup_sqlite,
     create_engine,
@@ -17,7 +17,7 @@ from landscape_orchestrator.db import (
     head_revision,
     upgrade_database,
 )
-from landscape_orchestrator.models import Base
+from oslo.models import Base
 
 pytestmark = pytest.mark.anyio
 
@@ -163,10 +163,10 @@ def test_only_the_newest_backups_are_kept(tmp_path):
 
 def test_lo_db_command(tmp_path, monkeypatch, capsys):
     path = tmp_path / "cli.db"
-    monkeypatch.setenv("LO_DATABASE_URL", url_of(path))
+    monkeypatch.setenv("OSLO_DATABASE_URL", url_of(path))
 
     def run(action: str) -> str:
-        monkeypatch.setattr(sys, "argv", ["lo-db", action])
+        monkeypatch.setattr(sys, "argv", ["oslo-db", action])
         db.main()
         return capsys.readouterr().out
 
@@ -190,7 +190,7 @@ async def test_template_chains_become_graphs(tmp_path):
         connection.execute(
             "INSERT INTO custom_operations (id, key, name, agent_operation, target, "
             "instance_types, ordering, role, mass, timeout_seconds, created_at) VALUES "
-            "(1, 'lo_test', 'Test', 'LO_TEST', 'SYSTEM', '', 'parallel', 'operator', 1, 60, "
+            "(1, 'oslo_test', 'Test', 'OSLO_TEST', 'SYSTEM', '', 'parallel', 'operator', 1, 60, "
             "'2026-11-20')"
         )
         connection.execute(
@@ -201,7 +201,7 @@ async def test_template_chains_become_graphs(tmp_path):
             "INSERT INTO operation_templates (id, key, name, target, role, mass, created_at) "
             "VALUES (1, 'chain', 'Chain', 'SYSTEM', 'operator', 1, '2026-11-20')"
         )
-        for position, operation in ((1, "lo_test"), (2, "stop")):
+        for position, operation in ((1, "oslo_test"), (2, "stop")):
             connection.execute(
                 "INSERT INTO template_steps (template_id, position, operation, parameters, "
                 "on_error) VALUES (1, ?, ?, '{}', 'stop')",

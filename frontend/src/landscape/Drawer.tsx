@@ -30,13 +30,13 @@ function useEscape(onClose: () => void) {
 function Header({ title, subtitle, onClose, children }: { title: string; subtitle?: string; onClose: () => void; children?: ReactNode }) {
   const { t } = useApp();
   return (
-    <div className="lo-drawer-head">
+    <div className="oslo-drawer-head">
       <div>
         <h2>{title}</h2>
-        {subtitle && <span className="lo-sub">{subtitle}</span>}
+        {subtitle && <span className="oslo-sub">{subtitle}</span>}
       </div>
       {children}
-      <button type="button" className="lo-close" onClick={onClose} aria-label={t("ui.close")}>
+      <button type="button" className="oslo-close" onClick={onClose} aria-label={t("ui.close")}>
         ×
       </button>
     </div>
@@ -48,12 +48,12 @@ function Operations({ operations, selection, onRun }: { operations: OperationDef
   const available = operationsFor(operations, selection, new Map());
   if (!available.length) return null;
   return (
-    <div className="lo-drawer-ops">
+    <div className="oslo-drawer-ops">
       {available.map((op) => (
         <button
           key={op.key}
           type="button"
-          className={op.danger ? "lo-danger" : "secondary"}
+          className={op.danger ? "oslo-danger" : "secondary"}
           onClick={() => {
             if (!op.danger || window.confirm(t("op.confirm"))) onRun(op, selection);
           }}
@@ -73,18 +73,18 @@ export function RecentActivities({ filter }: { filter: string }) {
     queryKey: ["landscape", "activities", filter],
     queryFn: () => api<Activity[]>(`/activities?limit=${RECENT_ACTIVITIES}&${filter}`),
   });
-  if (isPending) return <p className="lo-muted">{t("ui.loading")}</p>;
-  if (!data?.length) return <p className="lo-muted">{t("ui.no_activities")}</p>;
+  if (isPending) return <p className="oslo-muted">{t("ui.loading")}</p>;
+  if (!data?.length) return <p className="oslo-muted">{t("ui.no_activities")}</p>;
   return (
-    <ul className="lo-recent">
+    <ul className="oslo-recent">
       {data.map((activity) => (
         <li key={activity.id}>
           <a href={`/activities/${activity.id}`}>
-            <span className={`lo-badge lo-badge-${activityTone(activity.status)}`}>{t(`activity.${activity.status}`)}</span>
-            <span className="lo-recent-what">
-              {t(`kind.${activity.kind}`)} <span className="lo-mono">{activity.target_label}</span>
+            <span className={`oslo-badge oslo-badge-${activityTone(activity.status)}`}>{t(`activity.${activity.status}`)}</span>
+            <span className="oslo-recent-what">
+              {t(`kind.${activity.kind}`)} <span className="oslo-mono">{activity.target_label}</span>
             </span>
-            <span className="lo-muted">
+            <span className="oslo-muted">
               {formatTime(activity.requested_at, language)}
               {activity.requested_by ? ` · ${activity.requested_by}` : ""}
             </span>
@@ -155,14 +155,14 @@ export function SystemDrawer({
   };
 
   return (
-    <aside className="lo-drawer" aria-label={system.name}>
+    <aside className="oslo-drawer" aria-label={system.name}>
       <Header title={system.name} subtitle={system.description ?? t("field.system")} onClose={onClose}>
         <StatusBadge status={system.status} />
       </Header>
-      <p className={`lo-summary-line lo-tone-${system.status.toLowerCase()}`}>
+      <p className={`oslo-summary-line oslo-tone-${system.status.toLowerCase()}`}>
         {t("ui.instances_running", { running, total: counted.length })}
       </p>
-      <dl className="lo-facts">
+      <dl className="oslo-facts">
         {system.pool && (
           <>
             <dt>{t("field.pool")}</dt>
@@ -183,7 +183,7 @@ export function SystemDrawer({
         )}
       </dl>
       <Operations operations={operations} selection={{ kind: "SYSTEM", ids: [system.id] }} onRun={onRun} />
-      <div className="lo-drawer-links">
+      <div className="oslo-drawer-links">
         <button type="button" className="secondary" onClick={refresh} disabled={refreshing}>
           {t("ui.refresh_status")}
         </button>
@@ -192,14 +192,14 @@ export function SystemDrawer({
       </div>
 
       <h3>{t("ui.instances_in_order")}</h3>
-      <ul className="lo-instance-list">
+      <ul className="oslo-instance-list">
         {system.instances.map((instance) => (
           <li key={instance.id}>
-            <button type="button" onClick={() => onOpenInstance(instance.id)} className={instance.agent ? "lo-agent" : undefined}>
+            <button type="button" onClick={() => onOpenInstance(instance.id)} className={instance.agent ? "oslo-agent" : undefined}>
               <StatusDot status={instance.status} label={t(`status.${instance.status}`)} />
-              <span className="lo-mono">{instance.label}</span>
-              <span className="lo-muted">{instanceKind(instance, t)}</span>
-              <span className="lo-muted lo-right">{instance.host.name}</span>
+              <span className="oslo-mono">{instance.label}</span>
+              <span className="oslo-muted">{instanceKind(instance, t)}</span>
+              <span className="oslo-muted oslo-right">{instance.host.name}</span>
             </button>
           </li>
         ))}
@@ -222,13 +222,13 @@ function Processes({ instance }: { instance: InstanceRow }) {
     queryFn: () => api<ProcessList>(`/instances/${instance.id}/processes`),
     refetchInterval: 15_000,
   });
-  if (isPending) return <p className="lo-muted">{t("ui.loading")}</p>;
+  if (isPending) return <p className="oslo-muted">{t("ui.loading")}</p>;
   if (isError || !data) return <p className="error-text">{t("ui.load_failed")}</p>;
   return (
     <>
-      <div className="lo-drawer-links">
+      <div className="oslo-drawer-links">
         <StatusBadge status={data.status} />
-        <span className="lo-muted">{t("ui.checked_at", { time: formatTime(new Date(dataUpdatedAt).toISOString(), language) })}</span>
+        <span className="oslo-muted">{t("ui.checked_at", { time: formatTime(new Date(dataUpdatedAt).toISOString(), language) })}</span>
         <button type="button" className="link" onClick={() => void refetch()} disabled={isFetching}>
           {t("ui.read_again")}
         </button>
@@ -238,9 +238,9 @@ function Processes({ instance }: { instance: InstanceRow }) {
           {t("ui.processes_unavailable")}: {data.error}
         </p>
       ) : !data.processes.length ? (
-        <p className="lo-muted">{t("ui.no_processes")}</p>
+        <p className="oslo-muted">{t("ui.no_processes")}</p>
       ) : (
-        <table className="lo-processes">
+        <table className="oslo-processes">
           <thead>
             <tr>
               <th>{t("ui.process")}</th>
@@ -253,18 +253,18 @@ function Processes({ instance }: { instance: InstanceRow }) {
             {data.processes.map((p) => (
               <tr key={`${p.name}-${p.pid}`}>
                 <td>
-                  <span className="lo-mono">{p.name}</span>
-                  <span className="lo-sub">{p.description}</span>
+                  <span className="oslo-mono">{p.name}</span>
+                  <span className="oslo-sub">{p.description}</span>
                 </td>
                 <td>
-                  <span className="lo-process-status">
+                  <span className="oslo-process-status">
                     <StatusDot status={p.status} />
                     {p.text}
                   </span>
-                  {p.elapsed && <span className="lo-sub">{p.elapsed}</span>}
+                  {p.elapsed && <span className="oslo-sub">{p.elapsed}</span>}
                 </td>
-                <td className="lo-muted">{p.started}</td>
-                <td className="lo-mono">{p.pid || ""}</td>
+                <td className="oslo-muted">{p.started}</td>
+                <td className="oslo-mono">{p.pid || ""}</td>
               </tr>
             ))}
           </tbody>
@@ -301,11 +301,11 @@ export function InstanceDrawer({
     ["log", t("ui.tab_log")],
   ];
   return (
-    <aside className="lo-drawer" aria-label={instance.label}>
+    <aside className="oslo-drawer" aria-label={instance.label}>
       <Header title={instance.label} subtitle={`${instanceKind(instance, t)} · ${instance.host.name}`} onClose={onClose}>
         <StatusBadge status={instance.status} />
       </Header>
-      <nav className="tabs lo-drawer-tabs" aria-label={instance.label}>
+      <nav className="tabs oslo-drawer-tabs" aria-label={instance.label}>
         {tabs.map(([key, label]) => (
           <a
             key={key}
@@ -323,7 +323,7 @@ export function InstanceDrawer({
 
       {tab === "general" && (
         <>
-          <dl className="lo-facts">
+          <dl className="oslo-facts">
             <dt>{t("field.type")}</dt>
             <dd>{instanceKind(instance, t)}</dd>
             <dt>{t("field.system")}</dt>
@@ -337,19 +337,19 @@ export function InstanceDrawer({
               )}
             </dd>
             <dt>{t("field.sid")}</dt>
-            <dd className="lo-mono">{instance.sid}</dd>
+            <dd className="oslo-mono">{instance.sid}</dd>
             <dt>{t("ui.instance_number")}</dt>
-            <dd className="lo-mono">{instance.number}</dd>
+            <dd className="oslo-mono">{instance.number}</dd>
             <dt>{t("field.host")}</dt>
             <dd>
               <a href={`/hosts/${instance.host.id}`}>{instance.host.name}</a>
             </dd>
             <dt>{t("field.hostname")}</dt>
-            <dd className="lo-mono">{instance.hostname}</dd>
+            <dd className="oslo-mono">{instance.hostname}</dd>
             {instance.version && (
               <>
                 <dt>{t("ui.kernel")}</dt>
-                <dd className="lo-mono">{instance.version}</dd>
+                <dd className="oslo-mono">{instance.version}</dd>
               </>
             )}
             <dt>{t("field.priority")}</dt>
@@ -388,13 +388,13 @@ export function HostDrawer({
   if (!host) return null;
   const onHost = systems.flatMap((s) => s.instances.filter((i) => i.host.id === host.id).map((i) => ({ system: s, instance: i })));
   return (
-    <aside className="lo-drawer" aria-label={host.name}>
+    <aside className="oslo-drawer" aria-label={host.name}>
       <Header title={host.name} subtitle={t("field.host")} onClose={onClose}>
         <StatusBadge status={reachOf(host)} prefix="reach" />
       </Header>
-      <dl className="lo-facts">
+      <dl className="oslo-facts">
         <dt>{t("field.address")}</dt>
-        <dd className="lo-mono">{host.address}</dd>
+        <dd className="oslo-mono">{host.address}</dd>
         <dt>{t("field.hostagent")}</dt>
         <dd>{host.hostagent_version ?? "–"}</dd>
         <dt>{t("field.os")}</dt>
@@ -409,25 +409,25 @@ export function HostDrawer({
         )}
       </dl>
       <Operations operations={operations} selection={{ kind: "HOST", ids: [host.id] }} onRun={onRun} />
-      <div className="lo-drawer-links">
+      <div className="oslo-drawer-links">
         <a href={`/hosts/${host.id}`}>{t("ui.open_page")}</a>
         {hasRole(role, "configurator") && <a href={`/configuration/hosts/${host.id}`}>{t("action.configure")}</a>}
       </div>
       <h3>{t("field.instances")}</h3>
       {onHost.length ? (
-        <ul className="lo-instance-list">
+        <ul className="oslo-instance-list">
           {onHost.map(({ system, instance }) => (
             <li key={instance.id}>
-              <span className="lo-instance-row">
+              <span className="oslo-instance-row">
                 <StatusDot status={instance.status} label={t(`status.${instance.status}`)} />
-                <span className="lo-mono">{instance.label}</span>
-                <span className="lo-muted">{system.name}</span>
+                <span className="oslo-mono">{instance.label}</span>
+                <span className="oslo-muted">{system.name}</span>
               </span>
             </li>
           ))}
         </ul>
       ) : (
-        <p className="lo-muted">{t("ui.no_instances_on_host")}</p>
+        <p className="oslo-muted">{t("ui.no_instances_on_host")}</p>
       )}
       <h3>{t("ui.recent_activities")}</h3>
       <RecentActivities filter={`host_id=${host.id}`} />

@@ -52,19 +52,19 @@ export function SystemsPage() {
     setOpen(next);
   };
   return (
-    <div className="lo-page">
+    <div className="oslo-page">
       <SystemTabs current="overview" unassigned={unassigned} />
-      <p className="lo-muted">{t("config.systems_hint")}</p>
+      <p className="oslo-muted">{t("config.systems_hint")}</p>
       {systems.isPending ? (
-        <p className="lo-muted">{t("ui.loading")}</p>
+        <p className="oslo-muted">{t("ui.loading")}</p>
       ) : !systems.data?.length ? (
-        <p className="lo-empty">{t("config.no_systems")}</p>
+        <p className="oslo-empty">{t("config.no_systems")}</p>
       ) : (
-        <div className="lo-table-wrap">
-          <table className="lo-table">
+        <div className="oslo-table-wrap">
+          <table className="oslo-table">
             <thead>
               <tr>
-                <th className="lo-expand" aria-label={t("ui.expand")} />
+                <th className="oslo-expand" aria-label={t("ui.expand")} />
                 <th>{t("field.name")}</th>
                 <th>{t("field.stage")}</th>
                 <th>{t("field.pool")}</th>
@@ -77,28 +77,28 @@ export function SystemsPage() {
               {systems.data.map((s) => (
                 <Fragment key={s.id}>
                   <tr>
-                    <td className="lo-expand">
+                    <td className="oslo-expand">
                       <button type="button" aria-expanded={open.has(s.id)} aria-label={s.name} onClick={() => toggle(s.id)}>
                         {open.has(s.id) ? "▾" : "▸"}
                       </button>
                     </td>
                     <td>
-                      <a className="lo-strong" href={`${LIST}/${s.id}`}>
+                      <a className="oslo-strong" href={`${LIST}/${s.id}`}>
                         {s.name}
                       </a>
-                      {s.description && <span className="lo-sub">{s.description}</span>}
+                      {s.description && <span className="oslo-sub">{s.description}</span>}
                     </td>
-                    <td>{s.stage ? t(`stage.${s.stage}`) : <span className="lo-muted">{t("stage.none")}</span>}</td>
-                    <td>{s.pool_id ? poolName.get(s.pool_id) : <span className="lo-muted">{t("pool.none")}</span>}</td>
+                    <td>{s.stage ? t(`stage.${s.stage}`) : <span className="oslo-muted">{t("stage.none")}</span>}</td>
+                    <td>{s.pool_id ? poolName.get(s.pool_id) : <span className="oslo-muted">{t("pool.none")}</span>}</td>
                     <td>{s.instances.length}</td>
                     <td>{s.depends_on_ids.map((d) => systems.data.find((x) => x.id === d)?.name ?? `#${d}`).join(", ")}</td>
                     <td>{s.tags.join(", ")}</td>
                   </tr>
                   {open.has(s.id) &&
                     s.instances.map((i) => (
-                      <tr key={`i${i.id}`} className="lo-nested">
+                      <tr key={`i${i.id}`} className="oslo-nested">
                         <td />
-                        <td className="lo-mono">{i.label}</td>
+                        <td className="oslo-mono">{i.label}</td>
                         <td colSpan={2}>
                           <InstanceType instance={i} />
                         </td>
@@ -114,7 +114,7 @@ export function SystemsPage() {
           </table>
         </div>
       )}
-      <p className="lo-muted">{t("system.depends_hint")}</p>
+      <p className="oslo-muted">{t("system.depends_hint")}</p>
     </div>
   );
 }
@@ -137,17 +137,17 @@ export function UnassignedPage() {
     }, t("notice.instances_assigned"));
 
   return (
-    <div className="lo-page">
+    <div className="oslo-page">
       <SystemTabs current="unassigned" unassigned={rows.length} />
       <Messages error={action.error} notice={action.notice} />
       {instances.isPending ? (
-        <p className="lo-muted">{t("ui.loading")}</p>
+        <p className="oslo-muted">{t("ui.loading")}</p>
       ) : !rows.length ? (
-        <p className="lo-empty">{t("unassigned.none")}</p>
+        <p className="oslo-empty">{t("unassigned.none")}</p>
       ) : (
         <>
-          <div className="lo-table-wrap">
-            <table className="lo-table">
+          <div className="oslo-table-wrap">
+            <table className="oslo-table">
               <thead>
                 <tr>
                   <th>{t("unassigned.select")}</th>
@@ -170,8 +170,8 @@ export function UnassignedPage() {
                         onChange={(e) => setChosen(e.target.checked ? [...chosen, i.id] : chosen.filter((c) => c !== i.id))}
                       />
                     </td>
-                    <td className="lo-mono">{i.label}</td>
-                    <td className="lo-mono">{i.sid}</td>
+                    <td className="oslo-mono">{i.label}</td>
+                    <td className="oslo-mono">{i.sid}</td>
                     <td>
                       <InstanceType instance={i} />
                     </td>
@@ -191,9 +191,9 @@ export function UnassignedPage() {
               </tbody>
             </table>
           </div>
-          <div className="lo-form-buttons">
+          <div className="oslo-form-buttons">
             <a
-              className={`button-primary${chosen.length ? "" : " lo-disabled"}`}
+              className={`button-primary${chosen.length ? "" : " oslo-disabled"}`}
               aria-disabled={!chosen.length}
               href={`${LIST}/new?${chosen.map((c) => `instance_id=${c}`).join("&")}`}
             >
@@ -201,7 +201,7 @@ export function UnassignedPage() {
             </a>
             {(systems.data?.length ?? 0) > 0 && (
               <>
-                <label className="lo-inline">
+                <label className="oslo-inline">
                   {t("field.system")}
                   <select value={target} onChange={(e) => setTarget(e.target.value ? Number(e.target.value) : "")}>
                     <option value="">–</option>
@@ -212,7 +212,7 @@ export function UnassignedPage() {
                     ))}
                   </select>
                 </label>
-                <button type="button" className="lo-secondary" disabled={!chosen.length || target === "" || action.busy} onClick={() => target !== "" && void assign(target, chosen)}>
+                <button type="button" className="oslo-secondary" disabled={!chosen.length || target === "" || action.busy} onClick={() => target !== "" && void assign(target, chosen)}>
                   {t("system.assign")}
                 </button>
               </>
@@ -245,11 +245,11 @@ export function SystemNewPage() {
   }, [chosen, named]);
 
   return (
-    <div className="lo-page">
+    <div className="oslo-page">
       <PageHead title={t("system.create_title")} crumbs={[{ href: LIST, label: t("tab.systems") }]} />
       <Section>
         {instances.isPending ? (
-          <p className="lo-muted">{t("ui.loading")}</p>
+          <p className="oslo-muted">{t("ui.loading")}</p>
         ) : !rows.length ? (
           <p>{t("system.create_none")}</p>
         ) : (
@@ -264,9 +264,9 @@ export function SystemNewPage() {
               go(`${LIST}/${system.id}`, "system_saved");
             }}
           >
-            <p className="lo-muted">{t("system.create_hint")}</p>
-            <div className="lo-form-grid">
-              <label className="lo-field">
+            <p className="oslo-muted">{t("system.create_hint")}</p>
+            <div className="oslo-form-grid">
+              <label className="oslo-field">
                 {t("field.name")}
                 <input
                   value={name}
@@ -278,11 +278,11 @@ export function SystemNewPage() {
                   }}
                 />
               </label>
-              <label className="lo-field">
+              <label className="oslo-field">
                 {t("field.description")}
                 <input value={description} maxLength={1000} onChange={(e) => setDescription(e.target.value)} />
               </label>
-              <label className="lo-field">
+              <label className="oslo-field">
                 {t("field.pool")}
                 <select value={pool} onChange={(e) => setPool(e.target.value ? Number(e.target.value) : "")}>
                   <option value="">{t("pool.none")}</option>
@@ -296,8 +296,8 @@ export function SystemNewPage() {
               <StageField value={stage} onChange={setStage} />
             </div>
             <h3>{t("system.choose_instances")}</h3>
-            <div className="lo-table-wrap">
-              <table className="lo-table lo-compact">
+            <div className="oslo-table-wrap">
+              <table className="oslo-table oslo-compact">
                 <thead>
                   <tr>
                     <th>{t("unassigned.select")}</th>
@@ -313,7 +313,7 @@ export function SystemNewPage() {
                       <td>
                         <input type="checkbox" aria-label={i.label} checked={chosen.includes(i.id)} onChange={(e) => setChosen(e.target.checked ? [...chosen, i.id] : chosen.filter((c) => c !== i.id))} />
                       </td>
-                      <td className="lo-mono">{i.label}</td>
+                      <td className="oslo-mono">{i.label}</td>
                       <td>
                         <InstanceType instance={i} />
                       </td>
@@ -336,7 +336,7 @@ export function SystemNewPage() {
 function StageField({ value, onChange }: { value: string; onChange: (stage: string) => void }) {
   const { t } = useApp();
   return (
-    <label className="lo-field">
+    <label className="oslo-field">
       {t("field.stage")}
       <select value={value} onChange={(e) => onChange(e.target.value)}>
         <option value="">{t("stage.none")}</option>
@@ -364,14 +364,14 @@ export function SystemPage({ id }: { id: number }) {
     await queries.invalidateQueries({ queryKey: ["sids"] });
   };
 
-  if (isPending) return <p className="lo-muted">{t("ui.loading")}</p>;
+  if (isPending) return <p className="oslo-muted">{t("ui.loading")}</p>;
   if (error || !system) return <p className="flash error">{(error as Error)?.message}</p>;
   const hostName = new Map((hosts.data ?? []).map((h) => [h.id, h.name]));
   const others = (systems.data ?? []).filter((s) => s.id !== id);
   const systemSids = (sids.data ?? []).filter((s) => system.instances.some((i) => i.sid_id === s.id));
 
   return (
-    <div className="lo-page">
+    <div className="oslo-page">
       <PageHead
         title={`${t("field.system")} ${system.name}`}
         crumbs={[{ href: LIST, label: t("tab.systems") }]}
@@ -391,7 +391,7 @@ export function SystemPage({ id }: { id: number }) {
           </>
         }
       />
-      <div className="lo-two">
+      <div className="oslo-two">
         <Section title={t("system.general")}>
           <GeneralForm system={system} onSaved={reload} />
         </Section>
@@ -418,7 +418,7 @@ export function SystemPage({ id }: { id: number }) {
                   <a href={`${LIST}/${r}`}>{others.find((o) => o.id === r)?.name ?? `#${r}`}</a>
                 </span>
               ))}
-              <span className="lo-sub">{t("deps.required_note")}</span>
+              <span className="oslo-sub">{t("deps.required_note")}</span>
             </p>
           )}
         </Section>
@@ -426,10 +426,10 @@ export function SystemPage({ id }: { id: number }) {
       <Section title={t("field.instances")}>
         <Messages error={remove.error} />
         {!system.instances.length ? (
-          <p className="lo-muted">{t("system.no_instances")}</p>
+          <p className="oslo-muted">{t("system.no_instances")}</p>
         ) : (
-          <div className="lo-table-wrap">
-            <table className="lo-table lo-compact">
+          <div className="oslo-table-wrap">
+            <table className="oslo-table oslo-compact">
               <thead>
                 <tr>
                   <th>{t("field.instance")}</th>
@@ -443,12 +443,12 @@ export function SystemPage({ id }: { id: number }) {
               <tbody>
                 {system.instances.map((i) => (
                   <tr key={i.id}>
-                    <td className="lo-mono">{i.label}</td>
+                    <td className="oslo-mono">{i.label}</td>
                     <td>
                       <InstanceType instance={i} />
                     </td>
                     <td>{hostName.get(i.host_id) ?? ""}</td>
-                    <td className="lo-mono">{i.start_priority ?? ""}</td>
+                    <td className="oslo-mono">{i.start_priority ?? ""}</td>
                     <td>
                       <StatusBadge status={i.last_status} />
                     </td>
@@ -481,8 +481,8 @@ export function SystemPage({ id }: { id: number }) {
       </Section>
       <Section title={t("credentials.per_sid")} hint={t("credentials.sid_hint")}>
         {systemSids.map((sid) => (
-          <div key={sid.id} className="lo-form-section">
-            <h3 className="lo-mono">{sid.name}</h3>
+          <div key={sid.id} className="oslo-form-section">
+            <h3 className="oslo-mono">{sid.name}</h3>
             <CredentialsForm
               username={sid.username}
               hasCredentials={sid.has_credentials}
@@ -512,14 +512,14 @@ function GeneralForm({ system, onSaved }: { system: SystemInfo; onSaved: () => P
         await onSaved();
       }}
     >
-      <div className="lo-form-grid">
-        <label className="lo-field">
+      <div className="oslo-form-grid">
+        <label className="oslo-field">
           {t("field.name")}
           <input value={name} required maxLength={64} onChange={(e) => setName(e.target.value)} />
         </label>
         <StageField value={stage} onChange={setStage} />
       </div>
-      <label className="lo-field">
+      <label className="oslo-field">
         {t("field.description")}
         <input value={description} maxLength={1000} onChange={(e) => setDescription(e.target.value)} />
       </label>
@@ -532,7 +532,7 @@ function PoolForm({ system, pools, onSaved }: { system: SystemInfo; pools: PoolI
   const [pool, setPool] = useState<number | "">(system.pool_id ?? "");
   if (!pools.length)
     return (
-      <p className="lo-muted">
+      <p className="oslo-muted">
         {t("pool.none_defined")} <a href="/configuration/pools/new">{t("pool.add")}</a>
       </p>
     );
@@ -544,7 +544,7 @@ function PoolForm({ system, pools, onSaved }: { system: SystemInfo; pools: PoolI
         await onSaved();
       }}
     >
-      <label className="lo-field">
+      <label className="oslo-field">
         {t("field.pool")}
         <select value={pool} onChange={(e) => setPool(e.target.value ? Number(e.target.value) : "")}>
           <option value="">{t("pool.none")}</option>
@@ -562,7 +562,7 @@ function PoolForm({ system, pools, onSaved }: { system: SystemInfo; pools: PoolI
 function DependenciesForm({ system, others, onSaved }: { system: SystemInfo; others: SystemInfo[]; onSaved: () => Promise<unknown> }) {
   const { t } = useApp();
   const [chosen, setChosen] = useState<number[]>(system.depends_on_ids);
-  if (!others.length) return <p className="lo-muted">{t("deps.no_candidates")}</p>;
+  if (!others.length) return <p className="oslo-muted">{t("deps.no_candidates")}</p>;
   return (
     <ActionForm
       submit={t("action.save")}
@@ -571,10 +571,10 @@ function DependenciesForm({ system, others, onSaved }: { system: SystemInfo; oth
         await onSaved();
       }}
     >
-      <fieldset className="lo-checks">
+      <fieldset className="oslo-checks">
         <legend>{t("deps.depends_on")}</legend>
         {others.map((o) => (
-          <label key={o.id} className="lo-inline">
+          <label key={o.id} className="oslo-inline">
             <input type="checkbox" checked={chosen.includes(o.id)} onChange={(e) => setChosen(e.target.checked ? [...chosen, o.id] : chosen.filter((c) => c !== o.id))} />
             {o.name}
           </label>

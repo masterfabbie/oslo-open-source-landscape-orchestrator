@@ -32,14 +32,14 @@ export function AccountPage() {
   const [created, setCreated] = useState<string | null>(null);
 
   return (
-    <div className="lo-page">
+    <div className="oslo-page">
       <PageHead title={t("account.title")} />
-      <div className="lo-two">
+      <div className="oslo-two">
         <Section title={t("system.general")}>
           {me.data && (
-            <dl className="lo-facts">
+            <dl className="oslo-facts">
               <dt>{t("field.username")}</dt>
-              <dd className="lo-mono">{me.data.username}</dd>
+              <dd className="oslo-mono">{me.data.username}</dd>
               <dt>{t("field.display_name")}</dt>
               <dd>{me.data.display_name ?? ""}</dd>
               <dt>{t("field.role")}</dt>
@@ -64,12 +64,12 @@ export function AccountPage() {
               await queries.invalidateQueries({ queryKey: ["tokens"] });
             }}
           >
-            <div className="lo-form-grid">
-              <label className="lo-field">
+            <div className="oslo-form-grid">
+              <label className="oslo-field">
                 {t("field.name")}
                 <input value={name} required maxLength={64} placeholder={t("token.name_hint")} onChange={(e) => setName(e.target.value)} />
               </label>
-              <label className="lo-field">
+              <label className="oslo-field">
                 {t("token.expires_days")}
                 <input type="number" min={1} max={3650} value={days} placeholder={t("token.never")} onChange={(e) => setDays(e.target.value)} />
               </label>
@@ -78,17 +78,17 @@ export function AccountPage() {
           {created && (
             <div className="flash notice" role="status">
               <strong>{t("token.created")}</strong>
-              <p className="lo-mono lo-token">{created}</p>
+              <p className="oslo-mono oslo-token">{created}</p>
             </div>
           )}
         </Section>
       </div>
       <Section title={t("token.title")}>
         {!tokens.data?.length ? (
-          <p className="lo-muted">{t("token.none")}</p>
+          <p className="oslo-muted">{t("token.none")}</p>
         ) : (
-          <div className="lo-table-wrap">
-            <table className="lo-table lo-compact">
+          <div className="oslo-table-wrap">
+            <table className="oslo-table oslo-compact">
               <thead>
                 <tr>
                   <th>{t("field.name")}</th>
@@ -103,10 +103,10 @@ export function AccountPage() {
                 {tokens.data.map((token) => (
                   <tr key={token.id}>
                     <td>{token.name}</td>
-                    <td className="lo-mono">{token.prefix}…</td>
-                    <td className="lo-muted">{formatTime(token.created_at, language)}</td>
-                    <td className="lo-muted">{token.expires_at ? formatTime(token.expires_at, language) : t("token.never")}</td>
-                    <td className="lo-muted">{token.last_used_at ? formatTime(token.last_used_at, language) : t("hosts.never")}</td>
+                    <td className="oslo-mono">{token.prefix}…</td>
+                    <td className="oslo-muted">{formatTime(token.created_at, language)}</td>
+                    <td className="oslo-muted">{token.expires_at ? formatTime(token.expires_at, language) : t("token.never")}</td>
+                    <td className="oslo-muted">{token.last_used_at ? formatTime(token.last_used_at, language) : t("hosts.never")}</td>
                     <td>
                       <ConfirmButton
                         label={t("token.delete")}

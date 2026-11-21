@@ -35,7 +35,7 @@ export function ActivitiesPage({ tab }: { tab: "activities" | "logs" }) {
   const { t } = useApp();
   useLiveUpdates(["activities"]);
   return (
-    <div className="lo-page">
+    <div className="oslo-page">
       <PageHead
         title={t("nav.activities")}
         tabs={[
@@ -65,9 +65,9 @@ function ActivityList() {
   }, [data, status, text, children, t]);
   return (
     <>
-      <div className="lo-form-buttons">
-        <input className="lo-filter-input" type="search" value={text} placeholder={t("ui.search")} aria-label={t("ui.search")} onChange={(e) => setText(e.target.value)} />
-        <label className="lo-inline">
+      <div className="oslo-form-buttons">
+        <input className="oslo-filter-input" type="search" value={text} placeholder={t("ui.search")} aria-label={t("ui.search")} onChange={(e) => setText(e.target.value)} />
+        <label className="oslo-inline">
           {t("field.status")}
           <select value={status} onChange={(e) => setStatus(e.target.value)}>
             <option value="">{t("pool.all")}</option>
@@ -78,17 +78,17 @@ function ActivityList() {
             ))}
           </select>
         </label>
-        <label className="lo-inline">
+        <label className="oslo-inline">
           <input type="checkbox" checked={children} onChange={(e) => setChildren(e.target.checked)} /> {t("activities.with_children")}
         </label>
       </div>
       {isPending ? (
-        <p className="lo-muted">{t("ui.loading")}</p>
+        <p className="oslo-muted">{t("ui.loading")}</p>
       ) : !rows.length ? (
-        <p className="lo-empty">{t("activities.empty")}</p>
+        <p className="oslo-empty">{t("activities.empty")}</p>
       ) : (
-        <div className="lo-table-wrap">
-          <table className="lo-table">
+        <div className="oslo-table-wrap">
+          <table className="oslo-table">
             <thead>
               <tr>
                 <th>#</th>
@@ -108,9 +108,9 @@ function ActivityList() {
                   </td>
                   <td>{t(`kind.${a.kind}`)}</td>
                   <td>
-                    {t(`target.${a.target_type}`)} <span className="lo-mono">{a.target_label}</span>
+                    {t(`target.${a.target_type}`)} <span className="oslo-mono">{a.target_label}</span>
                     {a.parent_id && (
-                      <a className="lo-sub" href={`/activities/${a.parent_id}`}>
+                      <a className="oslo-sub" href={`/activities/${a.parent_id}`}>
                         {t("mass.part_of", { id: a.parent_id })}
                       </a>
                     )}
@@ -118,9 +118,9 @@ function ActivityList() {
                   <td>
                     <StatusBadge status={a.status} prefix="activity" />
                   </td>
-                  <td className="lo-muted">{formatTime(a.requested_at, language)}</td>
-                  <td className="lo-mono">{a.requested_by ?? ""}</td>
-                  <td className="lo-muted">{formatTime(a.finished_at, language)}</td>
+                  <td className="oslo-muted">{formatTime(a.requested_at, language)}</td>
+                  <td className="oslo-mono">{a.requested_by ?? ""}</td>
+                  <td className="oslo-muted">{formatTime(a.finished_at, language)}</td>
                 </tr>
               ))}
             </tbody>
@@ -139,9 +139,9 @@ function LogList() {
   const rows = (data ?? []).filter((e) => !level || e.level === level);
   return (
     <>
-      <div className="lo-form-buttons">
-        <span className="lo-muted">{t("logs.hint", { limit })}</span>
-        <label className="lo-inline">
+      <div className="oslo-form-buttons">
+        <span className="oslo-muted">{t("logs.hint", { limit })}</span>
+        <label className="oslo-inline">
           {t("ui.log_level")}
           <select value={level} onChange={(e) => setLevel(e.target.value)}>
             <option value="">{t("pool.all")}</option>
@@ -151,12 +151,12 @@ function LogList() {
         </label>
       </div>
       {isPending ? (
-        <p className="lo-muted">{t("ui.loading")}</p>
+        <p className="oslo-muted">{t("ui.loading")}</p>
       ) : !rows.length ? (
-        <p className="lo-empty">{t("logs.empty")}</p>
+        <p className="oslo-empty">{t("logs.empty")}</p>
       ) : (
-        <div className="lo-table-wrap">
-          <table className="lo-table">
+        <div className="oslo-table-wrap">
+          <table className="oslo-table">
             <thead>
               <tr>
                 <th>{t("field.time")}</th>
@@ -166,19 +166,19 @@ function LogList() {
             </thead>
             <tbody>
               {rows.map((e) => (
-                <tr key={e.id} className={`lo-log-${e.level.toLowerCase()}`}>
-                  <td className="lo-muted">{formatTime(e.timestamp, language, true)}</td>
+                <tr key={e.id} className={`oslo-log-${e.level.toLowerCase()}`}>
+                  <td className="oslo-muted">{formatTime(e.timestamp, language, true)}</td>
                   <td>
-                    <a href={`/activities/${e.activity_id}`}>{e.activity_id}</a> <span className="lo-mono">{e.target_label}</span>
+                    <a href={`/activities/${e.activity_id}`}>{e.activity_id}</a> <span className="oslo-mono">{e.target_label}</span>
                   </td>
-                  <td className="lo-mono">{e.message}</td>
+                  <td className="oslo-mono">{e.message}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
-      {language !== "en" && <p className="lo-muted">{t("activity.log_language")}</p>}
+      {language !== "en" && <p className="oslo-muted">{t("activity.log_language")}</p>}
     </>
   );
 }

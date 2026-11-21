@@ -8,14 +8,14 @@ import httpx
 import pytest
 
 from conftest import PASSWORD, hold_activities, make_user
-from landscape_orchestrator import catalog
-from landscape_orchestrator.api import create_app
-from landscape_orchestrator.crypto import generate_secret_key
-from landscape_orchestrator.mock.landscape import Status
-from landscape_orchestrator.mock.transport import MockLandscapeTransport
-from landscape_orchestrator.models import User
-from landscape_orchestrator.operations import TargetType
-from landscape_orchestrator.settings import Settings
+from oslo import catalog
+from oslo.api import create_app
+from oslo.crypto import generate_secret_key
+from oslo.mock.landscape import Status
+from oslo.mock.transport import MockLandscapeTransport
+from oslo.models import User
+from oslo.operations import TargetType
+from oslo.settings import Settings
 
 pytestmark = pytest.mark.anyio
 
@@ -229,7 +229,7 @@ async def test_mass_operation_in_the_browser(app, api):
         body = {"operation": "start", "target_type": "SYSTEM", "target_ids": [1, 2, 3]}
         refused = await browser.post("/api/mass-operations", json=body)
         assert refused.status_code == 403  # without the header of the interface
-        headers = {"X-LO-Request": "1"}
+        headers = {"X-OSLO-Request": "1"}
         response = await browser.post("/api/mass-operations", json=body, headers=headers)
         assert response.status_code == 202, response.text
         parent_id = response.json()["id"]
@@ -245,7 +245,7 @@ async def test_mass_operation_in_the_browser(app, api):
 
 
 async def test_host_operations_in_the_browser(app, api):
-    headers = {"X-LO-Request": "1"}
+    headers = {"X-OSLO-Request": "1"}
     body = {"operation": "discover", "target_type": "HOST", "target_ids": [1]}
     async with sign_in(app) as browser:
         started = await browser.post("/api/mass-operations", json=body, headers=headers)

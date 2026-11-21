@@ -112,9 +112,9 @@ export function Messages({ error, notice }: { error: string | null; notice?: str
 
 export function Section({ title, children, hint }: { title?: ReactNode; hint?: ReactNode; children: ReactNode }) {
   return (
-    <section className="lo-card lo-form-section">
+    <section className="oslo-card oslo-form-section">
       {title && <h2>{title}</h2>}
-      {hint && <p className="lo-muted">{hint}</p>}
+      {hint && <p className="oslo-muted">{hint}</p>}
       {children}
     </section>
   );
@@ -138,7 +138,7 @@ export function ActionForm({
   const { t } = useApp();
   return (
     <form
-      className={`lo-form ${className ?? ""}`}
+      className={`oslo-form ${className ?? ""}`}
       onSubmit={(e: FormEvent) => {
         e.preventDefault();
         void action.run(onSubmit, t("ui.saved"));
@@ -146,8 +146,8 @@ export function ActionForm({
     >
       {children}
       <Messages error={action.error} notice={action.notice} />
-      <div className="lo-form-buttons">
-        <button type="submit" className={danger ? "lo-danger-outline" : "lo-primary"} disabled={action.busy}>
+      <div className="oslo-form-buttons">
+        <button type="submit" className={danger ? "oslo-danger-outline" : "oslo-primary"} disabled={action.busy}>
           {submit}
         </button>
       </div>
@@ -160,7 +160,7 @@ export function ConfirmButton({
   label,
   confirm,
   onConfirm,
-  className = "lo-danger-outline",
+  className = "oslo-danger-outline",
 }: {
   label: string;
   confirm: string;
@@ -204,11 +204,11 @@ export function TagsForm({ tags, onSave }: { tags: string[]; onSave: (tags: stri
         )
       }
     >
-      <label className="lo-field">
+      <label className="oslo-field">
         {t("field.tags")}
         <input value={value} placeholder="dev, sla=1" onChange={(e) => setValue(e.target.value)} />
       </label>
-      <p className="lo-muted">{t("tags.hint")}</p>
+      <p className="oslo-muted">{t("tags.hint")}</p>
     </ActionForm>
   );
 }
@@ -229,16 +229,16 @@ export function CredentialsForm({
   const [password, setPassword] = useState("");
   return (
     <ActionForm submit={t("credentials.save")} onSubmit={() => onSave({ username: user, password })}>
-      <p className="lo-muted">
+      <p className="oslo-muted">
         {hasCredentials ? `${username} (${t("credentials.set")})` : t("credentials.missing")}
         {hint ? ` · ${hint}` : ""}
       </p>
-      <div className="lo-form-grid">
-        <label className="lo-field">
+      <div className="oslo-form-grid">
+        <label className="oslo-field">
           {t("field.username")}
           <input value={user} required autoComplete="off" onChange={(e) => setUser(e.target.value)} />
         </label>
-        <label className="lo-field">
+        <label className="oslo-field">
           {t("field.password")}
           <input type="password" value={password} required autoComplete="new-password" onChange={(e) => setPassword(e.target.value)} />
         </label>

@@ -16,16 +16,16 @@ export function PoolsPage() {
   const systems = useQuery({ queryKey: ["systems"], queryFn: () => api<SystemInfo[]>("/systems") });
   const name = new Map((systems.data ?? []).map((s) => [s.id, s.name]));
   return (
-    <div className="lo-page">
+    <div className="oslo-page">
       <PageHead title={t("tab.pools")} action={{ href: `${LIST}/new`, label: t("pool.add") }} tabs={[{ href: LIST, label: t("tab.overview"), current: true }]} />
-      <p className="lo-muted">{t("pool.explanation")}</p>
+      <p className="oslo-muted">{t("pool.explanation")}</p>
       {pools.isPending ? (
-        <p className="lo-muted">{t("ui.loading")}</p>
+        <p className="oslo-muted">{t("ui.loading")}</p>
       ) : !pools.data?.length ? (
-        <p className="lo-empty">{t("pool.empty")}</p>
+        <p className="oslo-empty">{t("pool.empty")}</p>
       ) : (
-        <div className="lo-table-wrap">
-          <table className="lo-table">
+        <div className="oslo-table-wrap">
+          <table className="oslo-table">
             <thead>
               <tr>
                 <th>{t("field.name")}</th>
@@ -37,7 +37,7 @@ export function PoolsPage() {
             <tbody>
               {pools.data.map((p) => (
                 <tr key={p.id}>
-                  <td className="lo-strong">{p.name}</td>
+                  <td className="oslo-strong">{p.name}</td>
                   <td>{p.description ?? ""}</td>
                   <td>
                     {p.system_ids.length ? (
@@ -48,7 +48,7 @@ export function PoolsPage() {
                         </span>
                       ))
                     ) : (
-                      <span className="lo-muted">{t("deps.none")}</span>
+                      <span className="oslo-muted">{t("deps.none")}</span>
                     )}
                   </td>
                   <td>
@@ -76,7 +76,7 @@ export function PoolNewPage() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   return (
-    <div className="lo-page">
+    <div className="oslo-page">
       <PageHead title={t("pool.add")} crumbs={[{ href: LIST, label: t("tab.pools") }]} />
       <Section hint={t("pool.explanation")}>
         <ActionForm
@@ -86,12 +86,12 @@ export function PoolNewPage() {
             go(LIST, "pool_created");
           }}
         >
-          <div className="lo-form-grid">
-            <label className="lo-field">
+          <div className="oslo-form-grid">
+            <label className="oslo-field">
               {t("field.name")}
               <input value={name} required maxLength={64} onChange={(e) => setName(e.target.value)} />
             </label>
-            <label className="lo-field">
+            <label className="oslo-field">
               {t("field.description")}
               <input value={description} maxLength={1000} onChange={(e) => setDescription(e.target.value)} />
             </label>

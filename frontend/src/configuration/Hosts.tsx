@@ -24,15 +24,15 @@ export function HostsPage() {
   const { t, language } = useApp();
   const { data, isPending } = useQuery({ queryKey: ["hosts"], queryFn: () => api<HostInfo[]>("/hosts") });
   return (
-    <div className="lo-page">
+    <div className="oslo-page">
       <PageHead title={t("tab.hosts")} action={{ href: `${LIST}/new`, label: t("hosts.add") }} tabs={[{ href: LIST, label: t("tab.overview"), current: true }]} />
       {isPending ? (
-        <p className="lo-muted">{t("ui.loading")}</p>
+        <p className="oslo-muted">{t("ui.loading")}</p>
       ) : !data?.length ? (
-        <p className="lo-empty">{t("hosts.empty")}</p>
+        <p className="oslo-empty">{t("hosts.empty")}</p>
       ) : (
-        <div className="lo-table-wrap">
-          <table className="lo-table">
+        <div className="oslo-table-wrap">
+          <table className="oslo-table">
             <thead>
               <tr>
                 <th>{t("field.name")}</th>
@@ -48,17 +48,17 @@ export function HostsPage() {
               {data.map((h) => (
                 <tr key={h.id}>
                   <td>
-                    <a className="lo-strong" href={`${LIST}/${h.id}`}>
+                    <a className="oslo-strong" href={`${LIST}/${h.id}`}>
                       {h.name}
                     </a>
                   </td>
-                  <td className="lo-mono">{h.address}</td>
-                  <td className="lo-mono">{h.hostagent_port ?? (h.https ? 1129 : 1128)}</td>
+                  <td className="oslo-mono">{h.address}</td>
+                  <td className="oslo-mono">{h.hostagent_port ?? (h.https ? 1129 : 1128)}</td>
                   <td>{h.has_credentials ? `${h.username} (${t("credentials.set")})` : t("credentials.missing")}</td>
                   <td>
                     <ReachBadge host={h} />
                   </td>
-                  <td className="lo-muted">{h.last_discovery_at ? formatTime(h.last_discovery_at, language) : t("hosts.never")}</td>
+                  <td className="oslo-muted">{h.last_discovery_at ? formatTime(h.last_discovery_at, language) : t("hosts.never")}</td>
                   <td>{h.tags.join(", ")}</td>
                 </tr>
               ))}
@@ -84,29 +84,29 @@ function ConnectionFields({ values, onChange }: { values: ConnectionValues; onCh
   const set = (next: Partial<ConnectionValues>) => onChange({ ...values, ...next });
   return (
     <>
-      <div className="lo-form-grid">
-        <label className="lo-field">
+      <div className="oslo-form-grid">
+        <label className="oslo-field">
           {t("field.name")}
           <input value={values.name} required maxLength={255} onChange={(e) => set({ name: e.target.value })} />
         </label>
-        <label className="lo-field">
+        <label className="oslo-field">
           {t("field.address")}
           <input value={values.address} maxLength={255} placeholder={t("field.address_hint")} onChange={(e) => set({ address: e.target.value })} />
         </label>
-        <label className="lo-field">
+        <label className="oslo-field">
           {t("field.hostagent_port")}
           <input type="number" min={1} max={65535} value={values.hostagent_port} placeholder={values.https ? "1129" : "1128"} onChange={(e) => set({ hostagent_port: e.target.value })} />
         </label>
-        <label className="lo-field">
+        <label className="oslo-field">
           {t("field.port_offset")}
           <input type="number" min={0} max={15000} value={values.sapcontrol_port_offset} placeholder={t("field.port_offset_hint")} onChange={(e) => set({ sapcontrol_port_offset: e.target.value })} />
         </label>
       </div>
-      <div className="lo-checks">
-        <label className="lo-inline">
+      <div className="oslo-checks">
+        <label className="oslo-inline">
           <input type="checkbox" checked={values.https} onChange={(e) => set({ https: e.target.checked })} /> {t("field.https")}
         </label>
-        <label className="lo-inline">
+        <label className="oslo-inline">
           <input type="checkbox" checked={values.verify_tls} onChange={(e) => set({ verify_tls: e.target.checked })} /> {t("field.verify_tls")}
         </label>
       </div>
@@ -120,7 +120,7 @@ export function HostNewPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   return (
-    <div className="lo-page">
+    <div className="oslo-page">
       <PageHead title={t("hosts.add")} crumbs={[{ href: LIST, label: t("tab.hosts") }]} />
       <Section>
         <ActionForm
@@ -143,17 +143,17 @@ export function HostNewPage() {
           }}
         >
           <ConnectionFields values={values} onChange={setValues} />
-          <div className="lo-form-grid">
-            <label className="lo-field">
+          <div className="oslo-form-grid">
+            <label className="oslo-field">
               {t("field.username")}
               <input value={username} autoComplete="off" placeholder="sapadm" onChange={(e) => setUsername(e.target.value)} />
             </label>
-            <label className="lo-field">
+            <label className="oslo-field">
               {t("field.password")}
               <input type="password" value={password} autoComplete="new-password" onChange={(e) => setPassword(e.target.value)} />
             </label>
           </div>
-          <p className="lo-muted">{t("credentials.host_hint")}</p>
+          <p className="oslo-muted">{t("credentials.host_hint")}</p>
         </ActionForm>
       </Section>
     </div>
@@ -171,7 +171,7 @@ export function HostPage({ id }: { id: number }) {
   const [warnings, setWarnings] = useState<string[]>([]);
   const reload = () => queries.invalidateQueries({ queryKey: key });
 
-  if (isPending) return <p className="lo-muted">{t("ui.loading")}</p>;
+  if (isPending) return <p className="oslo-muted">{t("ui.loading")}</p>;
   if (error || !host) return <p className="flash error">{(error as Error)?.message}</p>;
   const systemName = new Map((systems.data ?? []).map((s) => [s.id, s.name]));
 
@@ -190,7 +190,7 @@ export function HostPage({ id }: { id: number }) {
     });
 
   return (
-    <div className="lo-page">
+    <div className="oslo-page">
       <PageHead
         title={`${t("field.host")} ${host.name}`}
         crumbs={[{ href: LIST, label: t("tab.hosts") }]}
@@ -204,7 +204,7 @@ export function HostPage({ id }: { id: number }) {
                 go(LIST, "host_deleted");
               }}
             />
-            <button type="button" className="lo-primary" disabled={discovery.busy} onClick={() => void discover()}>
+            <button type="button" className="oslo-primary" disabled={discovery.busy} onClick={() => void discover()}>
               {t("host.discover")}
             </button>
           </>
@@ -221,9 +221,9 @@ export function HostPage({ id }: { id: number }) {
           </ul>
         </div>
       )}
-      <div className="lo-two">
+      <div className="oslo-two">
         <Section title={t("host.system_info")}>
-          <dl className="lo-facts">
+          <dl className="oslo-facts">
             <dt>{t("field.reachable")}</dt>
             <dd>
               <ReachBadge host={host} />
@@ -272,10 +272,10 @@ export function HostPage({ id }: { id: number }) {
       </div>
       <Section title={t("field.instances")}>
         {!host.instances.length ? (
-          <p className="lo-muted">{t("host.no_instances")}</p>
+          <p className="oslo-muted">{t("host.no_instances")}</p>
         ) : (
-          <div className="lo-table-wrap">
-            <table className="lo-table lo-compact">
+          <div className="oslo-table-wrap">
+            <table className="oslo-table oslo-compact">
               <thead>
                 <tr>
                   <th>{t("field.instance")}</th>
@@ -288,14 +288,14 @@ export function HostPage({ id }: { id: number }) {
               <tbody>
                 {host.instances.map((i) => (
                   <tr key={i.id}>
-                    <td className="lo-mono">{i.label}</td>
+                    <td className="oslo-mono">{i.label}</td>
                     <td>{i.type_key ? t(i.type_key) : (i.features ?? "")}</td>
-                    <td className="lo-mono">{i.hostname}</td>
+                    <td className="oslo-mono">{i.hostname}</td>
                     <td>
                       {i.system_id !== null ? (
                         <a href={`/configuration/systems/${i.system_id}`}>{systemName.get(i.system_id) ?? `#${i.system_id}`}</a>
                       ) : (
-                        <a className="lo-muted" href="/configuration/systems/unassigned">
+                        <a className="oslo-muted" href="/configuration/systems/unassigned">
                           {t("unassigned.label")}
                         </a>
                       )}
@@ -312,10 +312,10 @@ export function HostPage({ id }: { id: number }) {
       </Section>
       <Section title={t("field.databases")}>
         {!host.databases.length ? (
-          <p className="lo-muted">{t("host.no_databases")}</p>
+          <p className="oslo-muted">{t("host.no_databases")}</p>
         ) : (
-          <div className="lo-table-wrap">
-            <table className="lo-table lo-compact">
+          <div className="oslo-table-wrap">
+            <table className="oslo-table oslo-compact">
               <thead>
                 <tr>
                   <th>{t("field.database")}</th>
@@ -327,7 +327,7 @@ export function HostPage({ id }: { id: number }) {
               <tbody>
                 {host.databases.map((d) => (
                   <tr key={d.id}>
-                    <td className="lo-mono">{d.name}</td>
+                    <td className="oslo-mono">{d.name}</td>
                     <td>{[d.vendor, d.type].filter(Boolean).join(" ")}</td>
                     <td>{d.release ?? ""}</td>
                     <td>

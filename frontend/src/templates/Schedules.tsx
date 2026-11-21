@@ -84,22 +84,22 @@ export function Schedules({ operation, selection, snapshot, disabled }: Props) {
   };
 
   return (
-    <section className="lo-card lo-schedule" aria-label={t("sched.title")}>
+    <section className="oslo-card oslo-schedule" aria-label={t("sched.title")}>
       <h2>{t("sched.title")}</h2>
       {data && data.length > 0 ? (
-        <ul className="lo-schedule-list">
+        <ul className="oslo-schedule-list">
           {data.map((s) => (
-            <li key={s.id} className={s.enabled ? undefined : "lo-off"}>
-              <span className="lo-strong">{s.target_ids.length ? s.target_ids.map((id) => names.get(id) ?? `#${id}`).join(", ") : t("tpl.fixed_targets")}</span>
+            <li key={s.id} className={s.enabled ? undefined : "oslo-off"}>
+              <span className="oslo-strong">{s.target_ids.length ? s.target_ids.map((id) => names.get(id) ?? `#${id}`).join(", ") : t("tpl.fixed_targets")}</span>
               <span>{describe(s)}</span>
-              <span className="lo-muted">
+              <span className="oslo-muted">
                 {s.next_run_at ? t("sched.next", { time: formatTime(s.next_run_at, language) }) : t("sched.none_next")}
                 {s.last_run_at && " · "}
                 {s.last_run_at && (s.last_activity_id ? <a href={`/activities/${s.last_activity_id}`}>{t("sched.last", { time: formatTime(s.last_run_at, language) })}</a> : t("sched.last", { time: formatTime(s.last_run_at, language) }))}
                 {` · ${s.created_by}`}
               </span>
               {s.last_error && <span className="error-text">{s.last_error}</span>}
-              <span className="lo-schedule-tools">
+              <span className="oslo-schedule-tools">
                 <button type="button" className="link" onClick={() => void toggle(s)}>
                   {s.enabled ? t("sched.pause") : t("sched.resume")}
                 </button>
@@ -111,18 +111,18 @@ export function Schedules({ operation, selection, snapshot, disabled }: Props) {
           ))}
         </ul>
       ) : (
-        <p className="lo-muted">{t("sched.empty")}</p>
+        <p className="oslo-muted">{t("sched.empty")}</p>
       )}
 
-      <form onSubmit={submit} className="lo-schedule-form">
+      <form onSubmit={submit} className="oslo-schedule-form">
         <h3>{t("sched.add")}</h3>
-        {disabled && <p className="lo-muted">{t("sched.save_first")}</p>}
+        {disabled && <p className="oslo-muted">{t("sched.save_first")}</p>}
         {selection && (
         <fieldset>
           <legend>{t(`target.${selection}`)}</legend>
-          <div className="lo-target-list">
+          <div className="oslo-target-list">
             {targets.map((x) => (
-              <label key={x.id} className="lo-inline">
+              <label key={x.id} className="oslo-inline">
                 <input
                   type="checkbox"
                   checked={chosen.includes(x.id)}
@@ -134,9 +134,9 @@ export function Schedules({ operation, selection, snapshot, disabled }: Props) {
           </div>
         </fieldset>
         )}
-        <div className="lo-segmented" role="radiogroup" aria-label={t("sched.recurrence")}>
+        <div className="oslo-segmented" role="radiogroup" aria-label={t("sched.recurrence")}>
           {(["once", "daily", "interval"] as const).map((r) => (
-            <button key={r} type="button" role="radio" aria-checked={recurrence === r} className={recurrence === r ? "lo-on" : undefined} onClick={() => setRecurrence(r)}>
+            <button key={r} type="button" role="radio" aria-checked={recurrence === r} className={recurrence === r ? "oslo-on" : undefined} onClick={() => setRecurrence(r)}>
               {t(`sched.${r}`)}
             </button>
           ))}
@@ -153,9 +153,9 @@ export function Schedules({ operation, selection, snapshot, disabled }: Props) {
               {t("sched.time")}
               <input type="time" value={time} required onChange={(e) => setTime(e.target.value)} />
             </label>
-            <div className="lo-target-list" aria-label={t("sched.weekdays")}>
+            <div className="oslo-target-list" aria-label={t("sched.weekdays")}>
               {DAYS.map((d) => (
-                <label key={d} className="lo-inline">
+                <label key={d} className="oslo-inline">
                   <input
                     type="checkbox"
                     checked={weekdays.includes(d)}
@@ -165,7 +165,7 @@ export function Schedules({ operation, selection, snapshot, disabled }: Props) {
                 </label>
               ))}
             </div>
-            <p className="lo-muted">{t("sched.timezone_hint", { zone: timezone ?? "" })}</p>
+            <p className="oslo-muted">{t("sched.timezone_hint", { zone: timezone ?? "" })}</p>
           </>
         )}
         {recurrence === "interval" && (
@@ -180,7 +180,7 @@ export function Schedules({ operation, selection, snapshot, disabled }: Props) {
           </p>
         )}
         <div>
-          <button type="submit" className="lo-primary" disabled={disabled || (selection !== null && !chosen.length)}>
+          <button type="submit" className="oslo-primary" disabled={disabled || (selection !== null && !chosen.length)}>
             {t("sched.plan")}
           </button>
         </div>

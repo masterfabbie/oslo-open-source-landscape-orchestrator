@@ -10,16 +10,16 @@ import pytest
 
 import test_mass
 from conftest import hold_activities, make_user
-from landscape_orchestrator.models import Schedule
-from landscape_orchestrator.schedules import next_run
-from test_custom import LO_TEST
+from oslo.models import Schedule
+from oslo.schedules import next_run
+from test_custom import OSLO_TEST
 from test_mass import client
 
 pytestmark = pytest.mark.anyio
 
 app, api, transport = test_mass.app, test_mass.api, test_mass.transport
 
-SYSTEM_LO_TEST = LO_TEST | {"key": "lo_test", "target": "SYSTEM", "role": "operator"}
+SYSTEM_LO_TEST = OSLO_TEST | {"key": "oslo_test", "target": "SYSTEM", "role": "operator"}
 
 
 def chain(*steps, target_type: str = "SYSTEM", **extra) -> dict:
@@ -62,7 +62,7 @@ async def refused(api, body, code: int, error: str) -> None:
 async def test_define_templates(app, api):
     await api.post("/api/custom-operations", json=SYSTEM_LO_TEST)
     body = chain(
-        {"operation": "lo_test", "parameters": {"RC": "0", "SLEEP": "1"}, "ask": ["A", "RC"]},
+        {"operation": "oslo_test", "parameters": {"RC": "0", "SLEEP": "1"}, "ask": ["A", "RC"]},
         "stop",
         {"operation": "start", "on_error": "continue"},
     )
@@ -72,17 +72,17 @@ async def test_define_templates(app, api):
     assert template["steps"][0]["parameters"] == {"RC": "0", "SLEEP": "1"}
     assert template["steps"][2]["after"] == [2] and template["steps"][0]["ask"] == ["A", "RC"]
 
-    lo_test = {"operation": "lo_test", "parameters": {"RC": "0"}}
+    oslo_test = {"operation": "oslo_test", "parameters": {"RC": "0"}}
     for wrong, code, error in [
         (chain("stop", key="start"), 422, "template_key"),
-        (chain("stop", key="lo_test"), 409, "template_key_taken"),  # a custom operation
+        (chain("stop", key="oslo_test"), 409, "template_key_taken"),  # a custom operation
         (body, 409, "template_key_taken"),
         (chain("discover", key="x"), 422, "template_step"),  # a host operation on a system
-        (chain(lo_test | {"parameters": {"NOPE": "1"}}, key="x"), 422, "template_step"),
-        (chain(lo_test | {"parameters": {"RC": "x"}}, key="x"), 422, "template_step"),
-        (chain(lo_test | {"ask": ["NOPE"]}, key="x"), 422, "template_step"),
+        (chain(oslo_test | {"parameters": {"NOPE": "1"}}, key="x"), 422, "template_step"),
+        (chain(oslo_test | {"parameters": {"RC": "x"}}, key="x"), 422, "template_step"),
+        (chain(oslo_test | {"ask": ["NOPE"]}, key="x"), 422, "template_step"),
         # RC is required: it needs a value or must be asked for.
-        (chain({"operation": "lo_test"}, key="x"), 422, "template_step"),
+        (chain({"operation": "oslo_test"}, key="x"), 422, "template_step"),
         (chain("stop", key="x", role="viewer"), 422, "template_role"),
         (
             chain(
@@ -129,7 +129,7 @@ async def test_define_templates(app, api):
 
 async def test_run_a_chain(app, api, landscape):
     await api.post("/api/custom-operations", json=SYSTEM_LO_TEST)
-    first = {"operation": "lo_test", "parameters": {"RC": "0", "SLEEP": "1", "A": "prep"}}
+    first = {"operation": "oslo_test", "parameters": {"RC": "0", "SLEEP": "1", "A": "prep"}}
     await define(api, chain(first | {"ask": ["A"]}, "stop", "start"))
     result = await run(
         app, api, "/api/systems/1/operations/kernel_update", {"parameters": {"1.A": "run"}}
@@ -198,7 +198,7 @@ async def test_parallel_locking_steps_are_refused(app, api):
     apart = [s | {"targets": [t]} for s, t in zip(both, (3, 3), strict=True)]
     apart[0] = {
         "position": 1,
-        "operation": "lo_test",
+        "operation": "oslo_test",
         "target_type": "SYSTEM",
         "parameters": {"RC": "0"},
     }
@@ -229,7 +229,7 @@ async def test_template_with_fixed_targets(app, api):
 
 async def test_error_behavior(app, api):
     await api.post("/api/custom-operations", json=SYSTEM_LO_TEST)
-    failing = {"operation": "lo_test", "parameters": {"RC": "3", "SLEEP": "1"}}
+    failing = {"operation": "oslo_test", "parameters": {"RC": "3", "SLEEP": "1"}}
 
     await define(api, chain(failing, "start"))
     stopped = await run(app, api, "/api/systems/1/operations/kernel_update")

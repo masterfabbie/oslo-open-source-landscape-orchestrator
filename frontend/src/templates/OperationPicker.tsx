@@ -62,7 +62,7 @@ export function OperationPicker({ operations, top, favorites, onToggleFavorite, 
   return (
     <dialog
       ref={dialog}
-      className="lo-palette lo-picker"
+      className="oslo-palette oslo-picker"
       aria-label={t("tpl.pick_operation")}
       onCancel={(e) => {
         e.preventDefault();
@@ -94,12 +94,12 @@ export function OperationPicker({ operations, top, favorites, onToggleFavorite, 
           }
         }}
       />
-      <ul className="lo-palette-list" role="listbox" aria-label={t("tpl.pick_operation")}>
-        {!flat.length && <li className="lo-palette-empty lo-muted">{t("ui.palette_nothing")}</li>}
+      <ul className="oslo-palette-list" role="listbox" aria-label={t("tpl.pick_operation")}>
+        {!flat.length && <li className="oslo-palette-empty oslo-muted">{t("ui.palette_nothing")}</li>}
         {groups.map((group, g) => (
           <li key={group.title + g} role="presentation">
-            <div className="lo-palette-group">{group.title}</div>
-            <ul className="lo-picker-items" role="presentation">
+            <div className="oslo-palette-group">{group.title}</div>
+            <ul className="oslo-picker-items" role="presentation">
               {group.items.map((op) => {
                 row += 1;
                 const index = row;
@@ -109,13 +109,13 @@ export function OperationPicker({ operations, top, favorites, onToggleFavorite, 
                     key={`${group.title}-${op.key}`}
                     role="option"
                     aria-selected={index === active}
-                    className="lo-palette-entry"
+                    className="oslo-palette-entry"
                     onMouseEnter={() => setActive(index)}
                     onClick={() => choose(op)}
                   >
                     <span>
-                      <span className="lo-strong">{operationName(op, t)}</span>
-                      <span className="lo-muted">
+                      <span className="oslo-strong">{operationName(op, t)}</span>
+                      <span className="oslo-muted">
                         {" · "}
                         {op.targets.map((x) => t(`target.${x}`)).join(", ")}
                         {op.custom ? ` · ${t("tpl.kind_custom")}` : ""}
@@ -124,7 +124,7 @@ export function OperationPicker({ operations, top, favorites, onToggleFavorite, 
                     </span>
                     <button
                       type="button"
-                      className={`lo-star${starred ? " lo-on" : ""}`}
+                      className={`oslo-star${starred ? " oslo-on" : ""}`}
                       aria-pressed={starred}
                       aria-label={t(starred ? "tpl.unfavorite" : "tpl.favorite")}
                       title={t(starred ? "tpl.unfavorite" : "tpl.favorite")}
@@ -142,7 +142,7 @@ export function OperationPicker({ operations, top, favorites, onToggleFavorite, 
           </li>
         ))}
       </ul>
-      <div className="lo-palette-keys lo-muted">{t("tpl.picker_keys")}</div>
+      <div className="oslo-palette-keys oslo-muted">{t("tpl.picker_keys")}</div>
     </dialog>
   );
 }

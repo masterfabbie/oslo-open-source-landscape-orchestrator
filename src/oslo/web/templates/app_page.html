@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block head %}
+  <link rel="stylesheet" href="{{ asset_url('app.css') }}">
+  <script type="module" src="{{ asset_url(app ~ '.js') }}"></script>
+{% endblock %}
+{% block content %}
+{# Rendered by a React app (frontend/src/<app>); the start data is read, not run. #}
+<script type="application/json" id="oslo-boot">{{ boot | tojson }}</script>
+<div id="oslo-app">
+  <p class="muted">{{ t("ui.loading") }}</p>
+  <noscript><p class="flash error">{{ t("ui.needs_javascript") }}</p></noscript>
+</div>
+{% endblock %}

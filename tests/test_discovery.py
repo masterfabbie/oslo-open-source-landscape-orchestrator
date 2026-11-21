@@ -4,14 +4,14 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from landscape_orchestrator.clients import HostAgentClient, SoapFaultError
-from landscape_orchestrator.clients.sapcontrol import OSProcess, StateColor
-from landscape_orchestrator.connections import ClientFactory
-from landscape_orchestrator.crypto import SecretBox, generate_secret_key
-from landscape_orchestrator.db import create_engine, create_session_factory, upgrade_database
-from landscape_orchestrator.discovery import DiscoveryError, discover_host, instance_status
-from landscape_orchestrator.mock.transport import MockLandscapeTransport
-from landscape_orchestrator.models import Database, Host, Instance, Sid, System
+from oslo.clients import HostAgentClient, SoapFaultError
+from oslo.clients.sapcontrol import OSProcess, StateColor
+from oslo.connections import ClientFactory
+from oslo.crypto import SecretBox, generate_secret_key
+from oslo.db import create_engine, create_session_factory, upgrade_database
+from oslo.discovery import DiscoveryError, discover_host, instance_status
+from oslo.mock.transport import MockLandscapeTransport
+from oslo.models import Database, Host, Instance, Sid, System
 
 pytestmark = pytest.mark.anyio
 

@@ -8,14 +8,14 @@ import httpx
 import pytest
 
 from conftest import PASSWORD, make_user
-from landscape_orchestrator import usercli
-from landscape_orchestrator.api import create_app
-from landscape_orchestrator.crypto import generate_secret_key
-from landscape_orchestrator.mock.transport import MockLandscapeTransport
-from landscape_orchestrator.models import User
-from landscape_orchestrator.permissions import required_role
-from landscape_orchestrator.settings import Settings
-from landscape_orchestrator.users import (
+from oslo import usercli
+from oslo.api import create_app
+from oslo.crypto import generate_secret_key
+from oslo.mock.transport import MockLandscapeTransport
+from oslo.models import User
+from oslo.permissions import required_role
+from oslo.settings import Settings
+from oslo.users import (
     SESSION_LIFETIME_SECONDS,
     Role,
     UserError,
@@ -163,7 +163,7 @@ async def test_api_rejects_missing_invalid_expired_and_inactive_tokens(app):
     token = await make_user(app, "admin", "admin")
     async with client_for(app) as anonymous:
         assert (await anonymous.get("/api/hosts")).status_code == 401
-    async with client_for(app, "lo_wrong") as wrong:
+    async with client_for(app, "oslo_wrong") as wrong:
         assert (await wrong.get("/api/hosts")).status_code == 401
 
     async with client_for(app, token) as admin:
@@ -193,7 +193,7 @@ async def test_api_own_tokens_and_user_management(app):
         assert (me["username"], me["role"]) == ("admin", "admin")
 
         created = (await admin.post("/api/me/tokens", json={"name": "script"})).json()
-        assert created["token"].startswith("lo_") and created["info"]["name"] == "script"
+        assert created["token"].startswith("oslo_") and created["info"]["name"] == "script"
         listed = (await admin.get("/api/me/tokens")).json()
         assert [t["name"] for t in listed] == ["tests", "script"]
         assert "token" not in listed[1] and created["token"].startswith(listed[1]["prefix"])
@@ -277,7 +277,7 @@ async def test_lockout_after_failed_attempts(app):
         assert (await sign_in(browser, "admin")).status_code == 303
 
 
-HEADERS = {"X-LO-Request": "1"}
+HEADERS = {"X-OSLO-Request": "1"}
 
 
 async def test_roles_in_the_interface(app):
@@ -371,7 +371,7 @@ async def test_own_tokens_with_the_session_cookie(app):
         body = {"name": "monitoring"}
         created = await browser.post("/api/me/tokens", json=body, headers=HEADERS)
         token = created.json()["token"]
-        assert token.startswith("lo_")
+        assert token.startswith("oslo_")
         async with client_for(app, token) as script:
             assert (await script.get("/api/me")).json()["username"] == "admin"
         token_id = created.json()["info"]["id"]
@@ -382,11 +382,11 @@ async def test_own_tokens_with_the_session_cookie(app):
 
 
 def test_lo_user_command(tmp_path, monkeypatch, capsys):
-    monkeypatch.setenv("LO_DATABASE_URL", f"sqlite+aiosqlite:///{tmp_path / 'cli.db'}")
+    monkeypatch.setenv("OSLO_DATABASE_URL", f"sqlite+aiosqlite:///{tmp_path / 'cli.db'}")
     monkeypatch.setattr(usercli.getpass, "getpass", lambda prompt="": PASSWORD)
 
     def run(*args: str) -> str:
-        monkeypatch.setattr(sys, "argv", ["lo-user", *args])
+        monkeypatch.setattr(sys, "argv", ["oslo-user", *args])
         usercli.main()
         return capsys.readouterr().out
 

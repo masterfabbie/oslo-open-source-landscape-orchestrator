@@ -4,20 +4,20 @@ import httpx
 import pytest
 
 from conftest import AUTH, stopped_config
-from landscape_orchestrator.clients import (
+from oslo.clients import (
     AuthenticationRequiredError,
     HostAgentClient,
     SoapFaultError,
 )
-from landscape_orchestrator.clients.hostagent import (
+from oslo.clients.hostagent import (
     DatabaseStatus,
     InstanceStatus,
     LogMessage,
     OperationResult,
     parse_version_info,
 )
-from landscape_orchestrator.mock.apps import create_hostagent_app
-from landscape_orchestrator.mock.landscape import MockLandscape
+from oslo.mock.apps import create_hostagent_app
+from oslo.mock.landscape import MockLandscape
 
 pytestmark = pytest.mark.anyio
 
@@ -185,7 +185,7 @@ async def test_instance_with_virtual_hostname_needs_hostname(clock):
 async def test_asynchronous_custom_operation(landscape, clock):
     """As seen on a real host agent: results while running are fault 255 with the lines so
     far, a failed script is fault 127, a cancelled operation is forgotten (fault -20)."""
-    from landscape_orchestrator.clients.hostagent import (
+    from oslo.clients.hostagent import (
         FAULT_COMMAND_FAILED,
         FAULT_TIMEOUT,
         FAULT_UNKNOWN_OPERATION,
@@ -194,7 +194,7 @@ async def test_asynchronous_custom_operation(landscape, clock):
 
     async with make_client(landscape) as client:
         arguments = {"SAPSYSTEMNAME": "DEV", "PARAM-SLEEP": "5", "PARAM-RC": "3"}
-        operation_id = (await client.execute_async("LO_TEST", arguments)).operation_id
+        operation_id = (await client.execute_async("OSLO_TEST", arguments)).operation_id
         assert operation_id and not await client.is_operation_finished(operation_id)
         with pytest.raises(OperationFault) as running:
             await client.get_operation_results(operation_id)
@@ -209,7 +209,7 @@ async def test_asynchronous_custom_operation(landscape, clock):
             "Error", "saphostcontrol", "Test operation hook failed (exit code = 3)"
         )
 
-        started = await client.execute_async("LO_TEST", {"PARAM-SLEEP": "60", "PARAM-RC": "0"})
+        started = await client.execute_async("OSLO_TEST", {"PARAM-SLEEP": "60", "PARAM-RC": "0"})
         other = started.operation_id
         result = await client.cancel_operation(other)
         assert result.log[-1].text.endswith("hook failed (exit code = 15)")
@@ -220,7 +220,7 @@ async def test_asynchronous_custom_operation(landscape, clock):
 
 def test_log_messages_are_grouped():
     """A real host agent sends each line as LogMsg/TimeStamp, /Severity, /Source, /Text."""
-    from landscape_orchestrator.clients.hostagent import log_messages
+    from oslo.clients.hostagent import log_messages
 
     def line(severity, source, text):
         return [
@@ -251,7 +251,7 @@ def test_log_messages_are_grouped():
 
 async def test_get_operation_results_answers_get_operation_response(landscape):
     """The WSDL and a real host agent name the response GetOperationResponse."""
-    from landscape_orchestrator.mock.soap import build_response
+    from oslo.mock.soap import build_response
 
     body = build_response("SAPHostControl", "urn:SAPHostControl", "GetOperationResults", {})
     assert b"GetOperationResponse" in body and b"GetOperationResultsResponse" not in body

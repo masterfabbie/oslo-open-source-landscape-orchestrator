@@ -92,7 +92,7 @@ export function Landscape() {
         setPaletteOpen(true);
       } else if (event.key === "Escape" && !paletteOpen && !asking) {
         // An open filter list closes first; only then Escape clears the selection.
-        const chips = document.querySelectorAll<HTMLDetailsElement>("details.lo-chip[open]");
+        const chips = document.querySelectorAll<HTMLDetailsElement>("details.oslo-chip[open]");
         if (chips.length) chips.forEach((chip) => (chip.open = false));
         else setSelection(EMPTY);
       }
@@ -151,7 +151,7 @@ export function Landscape() {
     });
   }, []);
 
-  if (isPending) return <p className="lo-muted">{t("ui.loading")}</p>;
+  if (isPending) return <p className="oslo-muted">{t("ui.loading")}</p>;
   if (error || !data) return <p className="flash error">{t("ui.load_failed")}</p>;
 
   const counts = {
@@ -160,9 +160,9 @@ export function Landscape() {
   };
 
   return (
-    <div className={`lo-landscape${detail ? " lo-with-detail" : ""}`}>
-      <div className="lo-main">
-        <div className="lo-head">
+    <div className={`oslo-landscape${detail ? " oslo-with-detail" : ""}`}>
+      <div className="oslo-main">
+        <div className="oslo-head">
           <h1>{t("nav.landscape")}</h1>
           <nav className="tabs" aria-label={t("nav.landscape")}>
             {(["systems", "hosts"] as Tab[]).map((name) => (
@@ -181,7 +181,7 @@ export function Landscape() {
               </a>
             ))}
           </nav>
-          <button type="button" className="lo-palette-button" onClick={() => setPaletteOpen(true)}>
+          <button type="button" className="oslo-palette-button" onClick={() => setPaletteOpen(true)}>
             {t("ui.palette_open")} <kbd>Ctrl K</kbd>
           </button>
         </div>

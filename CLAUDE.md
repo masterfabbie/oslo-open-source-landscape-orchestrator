@@ -1,8 +1,12 @@
-# Landscape Orchestrator – Hinweise für Claude
+# OSLO – Hinweise für Claude
 
-Ein Werkzeug zur zentralen Verwaltung von SAP-Systemlandschaften, angelehnt an den
+OSLO (Open Source Landscape Orchestrator, bis 2026-11-21 „Landscape Orchestrator“, kurz LO)
+ist ein Werkzeug zur zentralen Verwaltung von SAP-Systemlandschaften, angelehnt an den
 Funktionsumfang von SAP Landscape Management. Es ist ein unabhängiges Projekt. Verwende im
-Code und in der Oberfläche keine SAP-Produktnamen als Namen dieses Werkzeugs.
+Code und in der Oberfläche keine SAP-Produktnamen als Namen dieses Werkzeugs; deshalb steht
+„SAP“ auch nicht im Namen (Entscheidung des Eigentümers). Paket `oslo`, Befehle `oslo-*`,
+Umgebungsvariablen `OSLO_*` (die alten `LO_*` werden mit Warnung noch gelesen,
+`settings.env_value`), Header `X-OSLO-Request`, CSS-Klassen `oslo-*`.
 
 Das README beschreibt Bedienung, API und Einschränkungen. Diese Datei beschreibt, wie hier
 gearbeitet wird und was offen ist.
@@ -18,7 +22,7 @@ gearbeitet wird und was offen ist.
   wird im Code als Annahme kommentiert und im README unter den Einschränkungen genannt.
 - Code, Kommentare und Protokollmeldungen sind englisch. README und diese Datei sind deutsch.
   Die Oberfläche ist zweisprachig; jeder Text braucht beide Sprachen
-  (`src/landscape_orchestrator/web/i18n.py`, ein Test prüft das).
+  (`src/oslo/web/i18n.py`, ein Test prüft das).
 
 ## Befehle
 
@@ -34,21 +38,21 @@ gearbeitet wird und was offen ist.
 .venv/bin/ruff check .
 ```
 
-Server gegen die simulierte Landschaft, braucht `LO_SECRET_KEY` (erzeugen mit
-`.venv/bin/lo-keygen`). Ohne Benutzer gibt er einen Einrichtungscode für `/setup` aus:
+Server gegen die simulierte Landschaft, braucht `OSLO_SECRET_KEY` (erzeugen mit
+`.venv/bin/oslo-keygen`). Ohne Benutzer gibt er einen Einrichtungscode für `/setup` aus:
 
 ```bash
-.venv/bin/lo-server --mock
+.venv/bin/oslo-server --mock
 ```
 
 Benutzer ohne Oberfläche anlegen (fragt das Passwort ab):
 
 ```bash
-.venv/bin/lo-user add chief --role admin
+.venv/bin/oslo-user add chief --role admin
 ```
 
 Frontend (React, TypeScript, Vite in `frontend/`): Tests und Build; der Build schreibt nach
-`src/landscape_orchestrator/web/static/app/` und wird mit eingecheckt (der Server braucht kein
+`src/oslo/web/static/app/` und wird mit eingecheckt (der Server braucht kein
 Node.js). Nach jeder Änderung in `frontend/` neu bauen, sonst schlägt die CI fehl:
 
 ```bash
@@ -59,11 +63,11 @@ npm --prefix frontend test
 npm --prefix frontend run build
 ```
 
-Schema der Datenbank aus `LO_DATABASE_URL` anzeigen bzw. migrieren (macht der Server beim Start
+Schema der Datenbank aus `OSLO_DATABASE_URL` anzeigen bzw. migrieren (macht der Server beim Start
 auch selbst):
 
 ```bash
-.venv/bin/lo-db current
+.venv/bin/oslo-db current
 ```
 
 Vor jedem Commit müssen Tests und Lint grün sein. Die CI prüft beides auf Python 3.11 und 3.13,
@@ -72,18 +76,18 @@ dazu im Job `frontend` Vitest, TypeScript, den Build (eingecheckter Build muss g
 
 ## Aufbau
 
-Alles liegt unter `src/landscape_orchestrator/`.
+Alles liegt unter `src/oslo/`.
 
 | Modul | Aufgabe |
 |---|---|
 | `soapxml.py` | SOAP-Envelopes bauen und lesen, gemeinsam für Clients und Mock |
 | `clients/` | asynchrone SOAP-Clients: `HostAgentClient` (SAPHostControl, Port 1128/1129), `SapControlClient` (sapstartsrv, Port 5NN13/5NN14), gemeinsame Fehlerklassen in `base.py` |
-| `models.py`, `db.py` | Datenmodell (SQLAlchemy, asynchron): Host, Sid, Instance, System, Pool, Database, Activity, ActivityLogEntry; Migration beim Start, Sicherungskopie, Befehl `lo-db` |
+| `models.py`, `db.py` | Datenmodell (SQLAlchemy, asynchron): Host, Sid, Instance, System, Pool, Database, Activity, ActivityLogEntry; Migration beim Start, Sicherungskopie, Befehl `oslo-db` |
 | `migrations/` | Alembic-Migrationen (`env.py`, `versions/`) |
 | `hosts.py` | Verbindungsdaten eines Hosts ändern |
 | `users.py` | Benutzer, Rollen, Passwörter (scrypt), Sperre nach Fehlversuchen, Sitzungs-Cookies, persönliche API-Tokens, Einstellungen pro Benutzer |
 | `permissions.py` | welche Rolle eine Route braucht, gemeinsam für API und Oberfläche |
-| `usercli.py` | Befehl `lo-user` |
+| `usercli.py` | Befehl `oslo-user` |
 | `crypto.py`, `settings.py` | Verschlüsselung gespeicherter Passwörter (Fernet), Konfiguration aus Umgebungsvariablen |
 | `connections.py` | baut Clients für Inventareinträge samt Zugangsdaten |
 | `discovery.py` | liest einen Host aus und aktualisiert das Inventar |
@@ -190,7 +194,7 @@ Wichtige Entwurfsentscheidungen:
   ohne Sonderfall gilt: GET → viewer, sonst configurator. Vorlagen blenden Knöpfe mit
   `can("operator")` usw. aus (Makros mit `import … with context`).
 - **Anmeldung:** Sitzungs-Cookie mit Benutzer-ID, `session_epoch` und Ablauf, signiert mit
-  einem aus `LO_SECRET_KEY` abgeleiteten Schlüssel. Passwort- oder Rollenänderung und
+  einem aus `OSLO_SECRET_KEY` abgeleiteten Schlüssel. Passwort- oder Rollenänderung und
   Deaktivieren erhöhen `session_epoch` und beenden so alle Sitzungen. Startpasswörter
   (`must_change_password`) erzwingen den Wechsel vor jeder anderen Seite.
 - **Erster Admin:** Ohne Benutzer erzeugt `create_app` beim Start einen einmaligen
@@ -204,8 +208,8 @@ Wichtige Entwurfsentscheidungen:
   Drag-and-drop. Seit Phase 5 sind alle Seiten außer Anmeldung, Einrichtung und
   Passwortwechsel React-Seiten auf der REST-API. Größere Umbauten erst vorschlagen.
 - **Bibliotheken und Schriften werden mitgeliefert** (Entscheidung des Eigentümers,
-  2026-11-20): gebaut und vom LO-Server ausgeliefert, nie von einem CDN oder aus dem
-  Internet geladen. Gründe: LO muss in abgeschotteten Admin-Netzen und im Störfall laufen; ein
+  2026-11-20): gebaut und vom OSLO-Server ausgeliefert, nie von einem CDN oder aus dem
+  Internet geladen. Gründe: OSLO muss in abgeschotteten Admin-Netzen und im Störfall laufen; ein
   Werkzeug, das Produktivsysteme steuert und Skripte als root startet, lädt keinen fremden
   Code zur Laufzeit (strikte Content-Security-Policy nur mit `'self'` möglich); keine
   Aufrufe an Dritte (Datenschutz); getestete, feste Versionen. Dafür nötig: Build-Schritt
@@ -226,7 +230,7 @@ Wichtige Entwurfsentscheidungen:
     wie in LaMa, siehe „Operationsvorlagen“ unten.
 - **Landscape als React-Seite** (Phase 1 des Umstiegs, ersetzt die alte Seite direkt;
   Wunsch des Eigentümers): `/landscape` liefert nur eine Hülle (`app_page.html` mit
-  `base.html`, Startdaten als `<script type="application/json" id="lo-boot">`: Sprache, alle
+  `base.html`, Startdaten als `<script type="application/json" id="oslo-boot">`: Sprache, alle
   Texte, Benutzer) und lädt `static/app/landscape.js`; die Daten kommen aus `/api/landscape`.
   Dateinamen ohne Hash, `asset_url()` hängt `?v=<Inhalts-Hash>` an. Filter, Auswahl und
   welche Operation passt, rechnet der Browser (`filter.ts`, `selection.ts`). Ein Ziel läuft
@@ -242,7 +246,7 @@ Wichtige Entwurfsentscheidungen:
   grob, Instanzen als Zeilen, letzte 5 Aktivitäten über `/api/activities?system_id=`), erst
   eine Instanz zeigt Details in Reitern (Allgemein, Status mit `GetProcessList`, Aktivitäten).
   Prozesse werden nur gelesen, solange der Reiter „Status“ offen ist. Kein
-  Validierungsstatus wie in LaMa (gibt es in LO nicht).
+  Validierungsstatus wie in LaMa (gibt es in OSLO nicht).
 - **Aktivität live** (Phase 2): `/activities/<id>` ist eine React-Hülle (`app_page.html`,
   Startdaten mit `activity_id`), Daten aus `/api/activities/<id>`, neu geladen bei Ereignissen
   aus `/api/events`. Der Zeitplan rechnet nicht mit Protokolltexten, sondern mit den Feldern
@@ -283,14 +287,14 @@ Wichtige Entwurfsentscheidungen:
   Menüs, Landschaft, Massenoperationen, Einplanungen, `Catalog.for_target` filtert).
 - **Einplanen** (Tabelle `schedules`): beliebige Katalog-Operation, Ziele (mehrere →
   Massenoperation; Vorlage: ein Lauf mit allen Zielen als Auswahl; Vorlage mit festen Zielen:
-  `target_type` "" ohne Ziele), Werte, `once`/`daily` (Ortszeit in `LO_TIMEZONE`, Standard
+  `target_type` "" ohne Ziele), Werte, `once`/`daily` (Ortszeit in `OSLO_TIMEZONE`, Standard
   `Europe/Berlin` als Annahme)/`interval` (≥ 5 Minuten). Läuft mit den Rechten von
   `created_by`, beim Start erneut geprüft; Fehler in `last_error`. Der `Scheduler` prüft alle
-  30 Sekunden (`lo-server` startet ihn, `create_app(run_scheduler=True)`); Tests rufen
+  30 Sekunden (`oslo-server` startet ihn, `create_app(run_scheduler=True)`); Tests rufen
   `app.state.scheduler.tick()` mit eigener Uhr (`scheduler.now`). Verpasste Wiederholungen
   werden nicht nachgeholt, ein fälliger Lauf schon.
 - **API mit Sitzungs-Cookie:** `require_user` nimmt ein Token oder das Sitzungs-Cookie; mit
-  Cookie brauchen ändernde Aufrufe den Header `X-LO-Request: 1` (Schutz gegen fremde Seiten,
+  Cookie brauchen ändernde Aufrufe den Header `X-OSLO-Request: 1` (Schutz gegen fremde Seiten,
   es gibt kein CORS), ein Startpasswort sperrt die API. Rollen wie bisher über
   `permissions.required_role`.
 - **Content-Security-Policy** auf allen Antworten (Middleware in `create_app`): nur `'self'`,
@@ -344,7 +348,7 @@ Wichtige Entwurfsentscheidungen:
   `RegisterInstanceService` bzw. `UnregisterInstanceService` synchron (Timeout -1) mit SID,
   Nummer und `mHostname`; die Zeilen der Antwort kommen ins Protokoll. Abmelden und neu
   Registrieren werden abgelehnt, solange ein Prozess der Instanz nicht gestoppt ist; antwortet
-  der sapstartsrv nicht, geht es weiter. Nach dem Registrieren wartet LO, bis der sapstartsrv
+  der sapstartsrv nicht, geht es weiter. Nach dem Registrieren wartet OSLO, bis der sapstartsrv
   antwortet (`_service_operation`). Der Mock bildet das mit `MockInstance.service_running`
   nach (abgemeldet: Verbindung abgelehnt). Annahme: `sapadm` darf beide Methoden per SOAP
   aufrufen (geprüft ist nur `saphostctrl` als root).
@@ -429,7 +433,7 @@ Wichtige Entwurfsentscheidungen:
 - Vorlagen und Einplanungen testet `tests/test_templates.py` (Fixtures von `test_mass.py`),
   die Graph-Logik des Editors `frontend/src/templates/graph.test.ts`.
 - Eigene Operationen testet `tests/test_custom.py` mit den Fixtures von `test_mass.py` und der
-  simulierten Operation `LO_TEST` (`PARAM-SLEEP` Laufzeit, `PARAM-RC` Exit-Code).
+  simulierten Operation `OSLO_TEST` (`PARAM-SLEEP` Laufzeit, `PARAM-RC` Exit-Code).
 - Neue Funktionen brauchen Tests, auch für Fehlerfälle. Verhalten, das der Mock simulieren
   soll, wird zuerst im Mock ergänzt.
 
@@ -505,7 +509,7 @@ Aktuelle WSDLs lassen sich von einem Host abrufen:
   executed“). Die Operation-ID ist danach nicht mehr bekannt (Fault -20).
 - **Instanz-Agent aus dem Tool** (2026-11-21): Registrieren funktioniert per SOAP mit den
   Zugangsdaten des Hosts. Neu registrieren lief bei einer Instanz mit laufenden Prozessen
-  trotzdem durch; vermutlich scheiterte die Abfrage von `GetProcessList` und LO ging weiter wie
+  trotzdem durch; vermutlich scheiterte die Abfrage von `GetProcessList` und OSLO ging weiter wie
   bei einem nicht antwortenden sapstartsrv. Ausführlicher Test durch den Eigentümer steht aus,
   Korrektur vorgeschlagen (ToDo 11).
 - Noch nicht gegen echte Systeme getestet: HTTPS.
@@ -543,12 +547,12 @@ und freigeben lassen:
 3. Sprache und Dark Mode als Benutzereinstellung (in „Mein Konto“).
 4. Kernel-Repository (Ablage der Kernel-Versionen für Kernel-Tausch-Skripte).
 5. Zertifikatsbasierte Anmeldung am Host Agent (mTLS, Client-Zertifikat statt Passwort).
-6. Docker-Container für LO.
-7. Ansteuerung von außen, z. B. AWS SSM: ein externer Auftrag lässt LO ein SAP-System starten.
+6. Docker-Container für OSLO.
+7. Ansteuerung von außen, z. B. AWS SSM: ein externer Auftrag lässt OSLO ein SAP-System starten.
 8. „Erneut ausführen“-Knopf an einer abgebrochenen Aktivität (gleiche Operation, Ziele und Werte;
    gewünscht 2026-11-21).
 9. Bereich „Schedules“ für alle geplanten Operationen (gewünscht 2026-11-21).
-10. Konzept für LO-eigene Operationen: Dateien in `operations.d`, die LO braucht (z. B. für den
+10. Konzept für OSLO-eigene Operationen: Dateien in `operations.d`, die OSLO braucht (z. B. für den
     Neustart des Instanz-Agents, normal und forciert), verteilen und regelmäßig bzw. auf
     Anforderung prüfen; Vorschlag mit `DeployConfiguration` und Versionsprüfung liegt vor,
     Test am Host steht aus (gewünscht 2026-11-21).
@@ -565,7 +569,7 @@ und freigeben lassen:
 - Abbrechen von Start und Stopp beendet nur das Warten
 - kein Probelauf für Operationsvorlagen
 - Einplanen in der Oberfläche nur für Vorlagen (per API für jede Operation)
-- Instanz-Agent neu starten (normal und forciert) fehlt noch; offen ist, wie LO die nötigen
+- Instanz-Agent neu starten (normal und forciert) fehlt noch; offen ist, wie OSLO die nötigen
   Dateien in `operations.d` verteilt und prüft
 - keine Kernel-Repositories (Ablage der Kernel-Versionen für Kernel-Tausch-Skripte)
 - keine Hooks und kein HTTP-Provider für eigene Operationen
@@ -578,4 +582,4 @@ und freigeben lassen:
 - kein Verschieben von Instanzen (Adaptive Computing)
 - keine Diagramme und Diagnosenachrichten in der Übersicht
 - keine Ende-zu-Ende-Tests der Oberfläche im Browser (geprüft wurde die Landscape von Hand
-  mit Playwright gegen `lo-server --mock`)
+  mit Playwright gegen `oslo-server --mock`)

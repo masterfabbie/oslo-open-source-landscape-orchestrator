@@ -6,10 +6,10 @@ import httpx
 import pytest
 
 from conftest import make_user
-from landscape_orchestrator.api import create_app
-from landscape_orchestrator.crypto import generate_secret_key
-from landscape_orchestrator.mock.transport import MockLandscapeTransport
-from landscape_orchestrator.settings import Settings
+from oslo.api import create_app
+from oslo.crypto import generate_secret_key
+from oslo.mock.transport import MockLandscapeTransport
+from oslo.settings import Settings
 
 pytestmark = pytest.mark.anyio
 

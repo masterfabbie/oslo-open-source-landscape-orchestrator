@@ -16,13 +16,13 @@ export function HostsTable({ rows, selection, onSelect, onOpen, openId }: Props)
   const { t, language } = useApp();
   const selected = new Set(selection.kind === "HOST" ? selection.ids : []);
   const ids = rows.map((h) => h.id);
-  if (!rows.length) return <p className="lo-empty">{t("filter.no_match")}</p>;
+  if (!rows.length) return <p className="oslo-empty">{t("filter.no_match")}</p>;
   return (
-    <div className="lo-table-wrap">
-      <table className="lo-table">
+    <div className="oslo-table-wrap">
+      <table className="oslo-table">
         <thead>
           <tr>
-            <th className="lo-check">
+            <th className="oslo-check">
               <input
                 type="checkbox"
                 aria-label={t("ui.select_all_hosts")}
@@ -44,9 +44,9 @@ export function HostsTable({ rows, selection, onSelect, onOpen, openId }: Props)
           {rows.map((host) => (
             <tr
               key={host.id}
-              className={`${selected.has(host.id) ? "lo-selected" : ""}${openId === host.id ? " lo-current" : ""}`}
+              className={`${selected.has(host.id) ? "oslo-selected" : ""}${openId === host.id ? " oslo-current" : ""}`}
             >
-              <td className="lo-check">
+              <td className="oslo-check">
                 <input
                   type="checkbox"
                   aria-label={t("ui.select", { name: host.name })}
@@ -55,10 +55,10 @@ export function HostsTable({ rows, selection, onSelect, onOpen, openId }: Props)
                 />
               </td>
               <td>
-                <button type="button" className="lo-open" onClick={() => onOpen(host.id)}>
+                <button type="button" className="oslo-open" onClick={() => onOpen(host.id)}>
                   {host.name}
                 </button>
-                {host.address !== host.name && <span className="lo-sub lo-mono">{host.address}</span>}
+                {host.address !== host.name && <span className="oslo-sub oslo-mono">{host.address}</span>}
               </td>
               <td>
                 <StatusBadge status={reachOf(host)} prefix="reach" />
@@ -69,10 +69,10 @@ export function HostsTable({ rows, selection, onSelect, onOpen, openId }: Props)
               <td>
                 <Tags tags={host.tags} />
               </td>
-              <td className="lo-muted">{formatTime(host.last_discovery_at, language) || t("hosts.never")}</td>
+              <td className="oslo-muted">{formatTime(host.last_discovery_at, language) || t("hosts.never")}</td>
               <td>
                 {host.activity && (
-                  <a className="lo-badge lo-badge-running" href={`/activities/${host.activity.id}`}>
+                  <a className="oslo-badge oslo-badge-running" href={`/activities/${host.activity.id}`}>
                     {t(`kind.${host.activity.kind}`)}
                   </a>
                 )}

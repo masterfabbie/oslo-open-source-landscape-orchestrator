@@ -1,54 +1,54 @@
 /* Activity page. Colors from /static/style.css. */
-.lo-activity { display: flex; flex-direction: column; gap: 16px; }
-.lo-activity .crumbs { margin: 0; }
-.lo-activity-head { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
-.lo-activity-head h1 { margin: 0; font-size: 24px; }
-.lo-badge-big { font-size: 14px; padding: 3px 12px; }
-.lo-cancel { margin-left: auto; min-height: 40px; padding: 0 16px; border-radius: 8px; border: 1px solid var(--danger); background: transparent; color: var(--danger); font: inherit; font-weight: 600; cursor: pointer; }
-.lo-activity-meta { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0; color: var(--muted); font-size: 14px; }
-.lo-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; }
-.lo-card h2 { margin: 0 0 10px; font-size: 17px; }
-.lo-counts { display: flex; flex-wrap: wrap; gap: 6px; }
-.lo-table-small { min-width: 600px; }
+.oslo-activity { display: flex; flex-direction: column; gap: 16px; }
+.oslo-activity .crumbs { margin: 0; }
+.oslo-activity-head { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.oslo-activity-head h1 { margin: 0; font-size: 24px; }
+.oslo-badge-big { font-size: 14px; padding: 3px 12px; }
+.oslo-cancel { margin-left: auto; min-height: 40px; padding: 0 16px; border-radius: 8px; border: 1px solid var(--danger); background: transparent; color: var(--danger); font: inherit; font-weight: 600; cursor: pointer; }
+.oslo-activity-meta { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0; color: var(--muted); font-size: 14px; }
+.oslo-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; }
+.oslo-card h2 { margin: 0 0 10px; font-size: 17px; }
+.oslo-counts { display: flex; flex-wrap: wrap; gap: 6px; }
+.oslo-table-small { min-width: 600px; }
 
 /* timeline */
-.lo-timeline { display: grid; grid-template-columns: minmax(140px, max-content) minmax(0, 1fr); row-gap: 8px; column-gap: 16px; align-items: center; overflow-x: auto; }
-.lo-axis { position: relative; height: 18px; font-size: 12px; color: var(--muted); }
-.lo-axis span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
-.lo-axis span:first-child { transform: none; }
-.lo-axis span:last-child { transform: translateX(-100%); }
-.lo-lane-label { display: flex; flex-direction: column; }
-.lo-lane-button { padding: 0; background: none; border: 0; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
-.lo-lane-button.lo-on { color: var(--accent); text-decoration: underline; }
-.lo-lane { position: relative; height: 26px; min-width: 360px; border-radius: 6px; background: var(--bg); }
-.lo-seg { position: absolute; top: 4px; height: 18px; border-radius: 5px; }
-i.lo-seg { position: static; display: inline-block; width: 22px; height: 10px; vertical-align: middle; }
-.lo-seg-stop { background: var(--muted); opacity: 0.6; }
-.lo-seg-start { background: var(--green-fg); }
-.lo-seg-op { background: var(--accent); }
-.lo-seg-failed { background: var(--red-fg); }
-.lo-seg-running { background-image: repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.28) 0 6px, transparent 6px 12px); }
-.lo-now { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--accent); }
-.lo-legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 12px 0 0; font-size: 13px; }
+.oslo-timeline { display: grid; grid-template-columns: minmax(140px, max-content) minmax(0, 1fr); row-gap: 8px; column-gap: 16px; align-items: center; overflow-x: auto; }
+.oslo-axis { position: relative; height: 18px; font-size: 12px; color: var(--muted); }
+.oslo-axis span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+.oslo-axis span:first-child { transform: none; }
+.oslo-axis span:last-child { transform: translateX(-100%); }
+.oslo-lane-label { display: flex; flex-direction: column; }
+.oslo-lane-button { padding: 0; background: none; border: 0; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.oslo-lane-button.oslo-on { color: var(--accent); text-decoration: underline; }
+.oslo-lane { position: relative; height: 26px; min-width: 360px; border-radius: 6px; background: var(--bg); }
+.oslo-seg { position: absolute; top: 4px; height: 18px; border-radius: 5px; }
+i.oslo-seg { position: static; display: inline-block; width: 22px; height: 10px; vertical-align: middle; }
+.oslo-seg-stop { background: var(--muted); opacity: 0.6; }
+.oslo-seg-start { background: var(--green-fg); }
+.oslo-seg-op { background: var(--accent); }
+.oslo-seg-failed { background: var(--red-fg); }
+.oslo-seg-running { background-image: repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.28) 0 6px, transparent 6px 12px); }
+.oslo-now { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--accent); }
+.oslo-legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 12px 0 0; font-size: 13px; }
 @media (prefers-reduced-motion: no-preference) {
-  .lo-seg-running { background-size: 34px 34px; animation: lo-stripes 1.2s linear infinite; }
-  @keyframes lo-stripes { to { background-position: 34px 0; } }
+  .oslo-seg-running { background-size: 34px 34px; animation: oslo-stripes 1.2s linear infinite; }
+  @keyframes oslo-stripes { to { background-position: 34px 0; } }
 }
 
 /* log */
-.lo-log-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-bottom: 10px; }
-.lo-log-head h2 { margin: 0 8px 0 0; }
-.lo-filter-chip { min-height: 32px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; font-size: 14px; cursor: pointer; }
-.lo-filter-chip.lo-on { border-color: var(--accent); background: var(--blue-bg); color: var(--blue-fg); }
-.lo-inline { flex-direction: row !important; align-items: center; gap: 6px !important; color: var(--text) !important; font-size: 14px !important; }
-.lo-inline select { font: inherit; padding: 4px 6px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text); }
-.lo-log-head .lo-search input { min-width: 220px; }
-.lo-log { max-height: 60vh; overflow: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; line-height: 1.55; border-top: 1px solid var(--border); }
-.lo-log-line { display: grid; grid-template-columns: 150px 110px minmax(0, 1fr); gap: 12px; padding: 2px 6px; border-bottom: 1px solid var(--bg); }
-.lo-log-line > span:last-child { white-space: pre-wrap; overflow-wrap: anywhere; }
-.lo-log-subject { color: var(--muted); }
-.lo-level-warning { background: var(--yellow-bg); color: var(--yellow-fg); }
-.lo-level-error { background: var(--red-bg); color: var(--red-fg); }
+.oslo-log-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-bottom: 10px; }
+.oslo-log-head h2 { margin: 0 8px 0 0; }
+.oslo-filter-chip { min-height: 32px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; font-size: 14px; cursor: pointer; }
+.oslo-filter-chip.oslo-on { border-color: var(--accent); background: var(--blue-bg); color: var(--blue-fg); }
+.oslo-inline { flex-direction: row !important; align-items: center; gap: 6px !important; color: var(--text) !important; font-size: 14px !important; }
+.oslo-inline select { font: inherit; padding: 4px 6px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text); }
+.oslo-log-head .oslo-search input { min-width: 220px; }
+.oslo-log { max-height: 60vh; overflow: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; line-height: 1.55; border-top: 1px solid var(--border); }
+.oslo-log-line { display: grid; grid-template-columns: 150px 110px minmax(0, 1fr); gap: 12px; padding: 2px 6px; border-bottom: 1px solid var(--bg); }
+.oslo-log-line > span:last-child { white-space: pre-wrap; overflow-wrap: anywhere; }
+.oslo-log-subject { color: var(--muted); }
+.oslo-level-warning { background: var(--yellow-bg); color: var(--yellow-fg); }
+.oslo-level-error { background: var(--red-bg); color: var(--red-fg); }
 @media (max-width: 760px) {
-  .lo-log-line { grid-template-columns: 1fr; gap: 0; }
+  .oslo-log-line { grid-template-columns: 1fr; gap: 0; }
 }

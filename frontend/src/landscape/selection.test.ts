@@ -44,7 +44,7 @@ describe("starting operations", () => {
     const calls = stubFetch();
     expect(await runOperation(OPERATIONS[0], { kind: "SYSTEM", ids: [1] })).toBe(7);
     expect(calls[0].url).toBe("/api/systems/1/start");
-    expect((calls[0].init.headers as Record<string, string>)["X-LO-Request"]).toBe("1");
+    expect((calls[0].init.headers as Record<string, string>)["X-OSLO-Request"]).toBe("1");
   });
 
   it("runs custom operations with their parameters", async () => {

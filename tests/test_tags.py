@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from landscape_orchestrator.models import SystemTag
-from landscape_orchestrator.tags import TagError, matches, parse_tags, replace_tags
+from oslo.models import SystemTag
+from oslo.tags import TagError, matches, parse_tags, replace_tags
 
 
 def test_parse_tags():

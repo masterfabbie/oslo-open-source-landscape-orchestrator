@@ -38,7 +38,7 @@ export function ActivityPage({ id }: { id: number }) {
   const [cancelError, setCancelError] = useState<string | null>(null);
   const timeline = useMemo(() => (data ? buildTimeline(data, now, t) : null), [data, now, t]);
 
-  if (isPending) return <p className="lo-muted">{t("ui.loading")}</p>;
+  if (isPending) return <p className="oslo-muted">{t("ui.loading")}</p>;
   if (error || !data) return <p className="flash error">{t("ui.load_failed")}</p>;
 
   const template = (data.options?.template ?? null) as { name?: string } | null;
@@ -63,7 +63,7 @@ export function ActivityPage({ id }: { id: number }) {
   };
 
   return (
-    <div className="lo-activity">
+    <div className="oslo-activity">
       <p className="crumbs">
         <a href="/activities">{t("nav.activities")}</a>
         {data.parent_id && (
@@ -73,18 +73,18 @@ export function ActivityPage({ id }: { id: number }) {
           </>
         )}
       </p>
-      <div className="lo-activity-head">
+      <div className="oslo-activity-head">
         <h1>
-          {t("activity.title")} {data.id}: {title} <span className="lo-mono">{data.target_label}</span>
+          {t("activity.title")} {data.id}: {title} <span className="oslo-mono">{data.target_label}</span>
         </h1>
-        <span className={`lo-badge lo-badge-${activityTone(data.status)} lo-badge-big`}>{t(`activity.${data.status}`)}</span>
+        <span className={`oslo-badge oslo-badge-${activityTone(data.status)} oslo-badge-big`}>{t(`activity.${data.status}`)}</span>
         {running && hasRole(role, "operator") && (
-          <button type="button" className="lo-cancel" onClick={cancel} disabled={cancelling}>
+          <button type="button" className="oslo-cancel" onClick={cancel} disabled={cancelling}>
             {t("activity.cancel")}
           </button>
         )}
       </div>
-      <p className="lo-activity-meta">
+      <p className="oslo-activity-meta">
         <span>{t("target." + data.target_type)}</span>
         <span>
           {t("field.requested")}: {formatTime(data.requested_at, language)}
@@ -113,13 +113,13 @@ export function ActivityPage({ id }: { id: number }) {
         </p>
       )}
       {custom && (
-        <dl className="lo-facts lo-card">
+        <dl className="oslo-facts oslo-card">
           <dt>{t("custom.operation")}</dt>
           <dd>
-            {custom.name} <span className="lo-mono lo-muted">{custom.agent_operation}</span>
+            {custom.name} <span className="oslo-mono oslo-muted">{custom.agent_operation}</span>
           </dd>
           <dt>{t("custom.parameters")}</dt>
-          <dd className="lo-mono">
+          <dd className="oslo-mono">
             {Object.entries(parameters)
               .map(([k, v]) => `${k}=${v}`)
               .join(", ") || "–"}
@@ -153,24 +153,24 @@ function Children({ activity }: { activity: ActivityDetail }) {
   for (const child of activity.children) counts.set(child.status, (counts.get(child.status) ?? 0) + 1);
   const total = Array.isArray(options.targets) ? options.targets.length : activity.children.length;
   return (
-    <section className="lo-card">
+    <section className="oslo-card">
       <h2>{activity.kind === "TEMPLATE" ? t("tpl.steps") : t("mass.children")}</h2>
       {activity.target_type === "MASS" && (
-        <p className="lo-muted">
+        <p className="oslo-muted">
           {t("mass.settings_summary", { parallel: String(options.parallel ?? ""), total })}{" "}
           {options.stop_on_error ? t("mass.stop") : t("mass.continue")}
         </p>
       )}
-      <p className="lo-counts">
+      <p className="oslo-counts">
         {[...counts].map(([status, count]) => (
-          <span key={status} className={`lo-badge lo-badge-${activityTone(status)}`}>
+          <span key={status} className={`oslo-badge oslo-badge-${activityTone(status)}`}>
             {t(`activity.${status}`)} {count}
           </span>
         ))}
       </p>
       {activity.children.length > 0 && (
-        <div className="lo-table-wrap">
-          <table className="lo-table lo-table-small">
+        <div className="oslo-table-wrap">
+          <table className="oslo-table oslo-table-small">
             <thead>
               <tr>
                 <th>#</th>
@@ -187,12 +187,12 @@ function Children({ activity }: { activity: ActivityDetail }) {
                     <a href={`/activities/${child.id}`}>{child.id}</a>
                   </td>
                   <td>
-                    {t(`target.${child.target_type}`)} <span className="lo-mono">{child.target_label}</span>
+                    {t(`target.${child.target_type}`)} <span className="oslo-mono">{child.target_label}</span>
                   </td>
                   <td>
-                    <span className={`lo-badge lo-badge-${activityTone(child.status)}`}>{t(`activity.${child.status}`)}</span>
+                    <span className={`oslo-badge oslo-badge-${activityTone(child.status)}`}>{t(`activity.${child.status}`)}</span>
                   </td>
-                  <td className="lo-muted">{formatTime(child.finished_at, language)}</td>
+                  <td className="oslo-muted">{formatTime(child.finished_at, language)}</td>
                   <td className="error-text">{child.error ?? ""}</td>
                 </tr>
               ))}
@@ -227,11 +227,11 @@ function TimelineView({
     .filter((tick, index, all) => index === 0 || tick.label !== all[index - 1].label);
   const nowLeft = timeline.running ? Math.min(((now - timeline.start) / Math.max(span, 1)) * 100, 100) : null;
   return (
-    <section className="lo-card" aria-label={t("ui.timeline")}>
+    <section className="oslo-card" aria-label={t("ui.timeline")}>
       <h2>{t("ui.timeline")}</h2>
-      <div className="lo-timeline">
+      <div className="oslo-timeline">
         <div />
-        <div className="lo-axis" aria-hidden="true">
+        <div className="oslo-axis" aria-hidden="true">
           {ticks.map((tick) => (
             <span key={tick.left} style={{ left: `${tick.left}%` }}>
               {tick.label}
@@ -242,18 +242,18 @@ function TimelineView({
           <TimelineLane key={lane.subject} lane={lane} timeline={timeline} now={now} selected={selected === lane.subject} onSelect={onSelect} mass={mass} nowLeft={nowLeft} />
         ))}
       </div>
-      <p className="lo-legend lo-muted">
+      <p className="oslo-legend oslo-muted">
         <span>
-          <i className="lo-seg lo-seg-stop" /> {t("ui.seg_stop")}
+          <i className="oslo-seg oslo-seg-stop" /> {t("ui.seg_stop")}
         </span>
         <span>
-          <i className="lo-seg lo-seg-start" /> {t("ui.seg_start")}
+          <i className="oslo-seg oslo-seg-start" /> {t("ui.seg_start")}
         </span>
         <span>
-          <i className="lo-seg lo-seg-op" /> {t("ui.seg_op")}
+          <i className="oslo-seg oslo-seg-op" /> {t("ui.seg_op")}
         </span>
         <span>
-          <i className="lo-seg lo-seg-failed" /> {t("ui.seg_failed")}
+          <i className="oslo-seg oslo-seg-failed" /> {t("ui.seg_failed")}
         </span>
         {!mass && <span>{t("ui.timeline_hint")}</span>}
       </p>
@@ -282,19 +282,19 @@ function TimelineLane({
   const child = lane.segments.find((s) => s.activityId);
   return (
     <>
-      <div className="lo-lane-label">
+      <div className="oslo-lane-label">
         {mass && child ? (
-          <a href={`/activities/${child.activityId}`} className="lo-mono">
+          <a href={`/activities/${child.activityId}`} className="oslo-mono">
             {lane.subject}
           </a>
         ) : (
-          <button type="button" className={`lo-mono lo-lane-button${selected ? " lo-on" : ""}`} aria-pressed={selected} onClick={() => onSelect(selected ? null : lane.subject)}>
+          <button type="button" className={`oslo-mono oslo-lane-button${selected ? " oslo-on" : ""}`} aria-pressed={selected} onClick={() => onSelect(selected ? null : lane.subject)}>
             {lane.subject}
           </button>
         )}
-        {lane.status && <span className="lo-sub">{t(mass ? `activity.${lane.status}` : `status.${lane.status}`)}</span>}
+        {lane.status && <span className="oslo-sub">{t(mass ? `activity.${lane.status}` : `status.${lane.status}`)}</span>}
       </div>
-      <div className="lo-lane">
+      <div className="oslo-lane">
         {lane.segments.map((segment, index) => {
           const { left, width } = place(segment, timeline, now);
           const kind = segment.state === "failed" ? "failed" : segment.kind === "child" ? "op" : segment.kind;
@@ -302,13 +302,13 @@ function TimelineLane({
           return (
             <span
               key={index}
-              className={`lo-seg lo-seg-${kind}${segment.state === "running" ? " lo-seg-running" : ""}`}
+              className={`oslo-seg oslo-seg-${kind}${segment.state === "running" ? " oslo-seg-running" : ""}`}
               style={{ left: `${left}%`, width: `${width}%` }}
               title={`${label}: ${formatDuration((segment.to ?? now) - segment.from)}`}
             />
           );
         })}
-        {nowLeft !== null && <span className="lo-now" style={{ left: `${nowLeft}%` }} aria-hidden="true" />}
+        {nowLeft !== null && <span className="oslo-now" style={{ left: `${nowLeft}%` }} aria-hidden="true" />}
       </div>
     </>
   );
@@ -349,20 +349,20 @@ function Log({
   }, [shown.length, follow, running]);
 
   const chip = (value: Level, label: string) => (
-    <button type="button" className={`lo-filter-chip${level === value ? " lo-on" : ""}`} aria-pressed={level === value} onClick={() => setLevel(value)}>
+    <button type="button" className={`oslo-filter-chip${level === value ? " oslo-on" : ""}`} aria-pressed={level === value} onClick={() => setLevel(value)}>
       {label}
     </button>
   );
 
   return (
-    <section className="lo-card" aria-label={t("activity.log")}>
-      <div className="lo-log-head">
+    <section className="oslo-card" aria-label={t("activity.log")}>
+      <div className="oslo-log-head">
         <h2>{t("activity.log")}</h2>
         {chip("all", `${t("ui.log_all")} ${entries.length}`)}
         {chip("WARNING", `${t("ui.log_warnings")} ${warnings}`)}
         {chip("ERROR", `${t("ui.log_errors")} ${errors}`)}
         {subjects.length > 0 && (
-          <label className="lo-inline">
+          <label className="oslo-inline">
             {t("ui.log_subject")}
             <select value={subject ?? ""} onChange={(e) => onSubject(e.target.value || null)}>
               <option value="">{t("ui.log_all")}</option>
@@ -374,28 +374,28 @@ function Log({
             </select>
           </label>
         )}
-        <label className="lo-search lo-inline">
-          <span className="lo-visually-hidden">{t("ui.search")}</span>
+        <label className="oslo-search oslo-inline">
+          <span className="oslo-visually-hidden">{t("ui.search")}</span>
           <input type="search" value={query} placeholder={t("ui.log_search")} onChange={(e) => setQuery(e.target.value)} />
         </label>
         {running && (
-          <label className="lo-inline">
+          <label className="oslo-inline">
             <input type="checkbox" checked={follow} onChange={(e) => setFollow(e.target.checked)} /> {t("ui.log_follow")}
           </label>
         )}
       </div>
-      <div className="lo-log" role="log" aria-live={running ? "polite" : "off"}>
+      <div className="oslo-log" role="log" aria-live={running ? "polite" : "off"}>
         {shown.map((entry) => (
-          <div key={entry.id} className={`lo-log-line lo-level-${entry.level.toLowerCase()}`}>
-            <span className="lo-muted">{formatTime(entry.timestamp, language, true)}</span>
-            <span className="lo-log-subject">{entry.subject ?? ""}</span>
+          <div key={entry.id} className={`oslo-log-line oslo-level-${entry.level.toLowerCase()}`}>
+            <span className="oslo-muted">{formatTime(entry.timestamp, language, true)}</span>
+            <span className="oslo-log-subject">{entry.subject ?? ""}</span>
             <span>{entry.subject && entry.message.startsWith(`${entry.subject}: `) ? entry.message.slice(entry.subject.length + 2) : entry.message}</span>
           </div>
         ))}
-        {!shown.length && <p className="lo-muted">{t("filter.no_match")}</p>}
+        {!shown.length && <p className="oslo-muted">{t("filter.no_match")}</p>}
         <div ref={end} />
       </div>
-      {language !== "en" && <p className="lo-muted">{t("activity.log_language")}</p>}
+      {language !== "en" && <p className="oslo-muted">{t("activity.log_language")}</p>}
     </section>
   );
 }

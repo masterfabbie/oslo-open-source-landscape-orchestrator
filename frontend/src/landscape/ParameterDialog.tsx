@@ -36,34 +36,34 @@ export function ParameterDialog({ operation, selection, onCancel, onRun }: Props
   };
 
   return (
-    <dialog ref={dialog} className="lo-dialog" onCancel={onCancel} aria-labelledby="lo-param-title">
+    <dialog ref={dialog} className="oslo-dialog" onCancel={onCancel} aria-labelledby="oslo-param-title">
       <form onSubmit={submit}>
-        <h2 id="lo-param-title">{operation.name}</h2>
+        <h2 id="oslo-param-title">{operation.name}</h2>
         {operation.description && <p>{operation.description}</p>}
         {operation.template && operation.steps && (
-          <ol className="lo-steps-preview">
+          <ol className="oslo-steps-preview">
             {operation.steps.map((step, index) => (
               <li key={index}>{t(step)}</li>
             ))}
           </ol>
         )}
-        <p className="lo-muted">{t(`ui.selected_${selection.kind.toLowerCase()}`, { count: selection.ids.length })}</p>
-        <div className="lo-fields">
+        <p className="oslo-muted">{t(`ui.selected_${selection.kind.toLowerCase()}`, { count: selection.ids.length })}</p>
+        <div className="oslo-fields">
           {operation.parameters.map((p) =>
             p.type === "BOOLEAN" ? (
-              <label key={p.name} className="lo-check-field">
+              <label key={p.name} className="oslo-check-field">
                 <input
                   type="checkbox"
                   checked={values[p.name] === true}
                   onChange={(e) => setValues({ ...values, [p.name]: e.target.checked })}
                 />
-                {p.label} <span className="lo-mono lo-muted">{p.name}</span>
+                {p.label} <span className="oslo-mono oslo-muted">{p.name}</span>
               </label>
             ) : (
               <label key={p.name}>
                 <span>
                   {p.label}
-                  {p.required ? " *" : ""} <span className="lo-mono lo-muted">{p.name}</span>
+                  {p.required ? " *" : ""} <span className="oslo-mono oslo-muted">{p.name}</span>
                 </span>
                 <input
                   value={String(values[p.name] ?? "")}
@@ -73,13 +73,13 @@ export function ParameterDialog({ operation, selection, onCancel, onRun }: Props
                   maxLength={1024}
                   onChange={(e) => setValues({ ...values, [p.name]: e.target.value })}
                 />
-                {p.help && <small className="lo-muted">{p.help}</small>}
+                {p.help && <small className="oslo-muted">{p.help}</small>}
               </label>
             ),
           )}
         </div>
-        {operation.parameters.length > 0 && <p className="lo-muted">{t("custom.parameters_hint")}</p>}
-        <div className="lo-dialog-buttons">
+        {operation.parameters.length > 0 && <p className="oslo-muted">{t("custom.parameters_hint")}</p>}
+        <div className="oslo-dialog-buttons">
           <button type="submit">{t("custom.run")}</button>
           <button type="button" className="secondary" onClick={onCancel}>
             {t("mass.cancel")}

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from landscape_orchestrator.dependencies import (
+from oslo.dependencies import (
     dependency_closure,
     plan,
     start_order,

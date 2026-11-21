@@ -9,7 +9,7 @@ import pytest
 
 import test_mass
 from conftest import make_user
-from landscape_orchestrator.events import change_events, fingerprint
+from oslo.events import change_events, fingerprint
 from test_mass import client, sign_in
 
 pytestmark = pytest.mark.anyio
@@ -22,8 +22,8 @@ async def test_api_accepts_the_session_cookie(app, api):
         assert (await web.get("/api/systems")).status_code == 200
         # Changes need the header that other sites cannot send.
         refused = await web.post("/api/systems/1/refresh")
-        assert refused.status_code == 403 and "X-LO-Request" in refused.text
-        allowed = await web.post("/api/systems/1/refresh", headers={"X-LO-Request": "1"})
+        assert refused.status_code == 403 and "X-OSLO-Request" in refused.text
+        allowed = await web.post("/api/systems/1/refresh", headers={"X-OSLO-Request": "1"})
         assert allowed.status_code == 200
     async with client(app) as anonymous:
         assert (await anonymous.get("/api/systems")).status_code == 401
@@ -32,7 +32,7 @@ async def test_api_accepts_the_session_cookie(app, api):
 async def test_cookie_keeps_the_roles(app, api):
     await make_user(app, "view", "viewer")
     async with sign_in(app, "view") as web:
-        headers = {"X-LO-Request": "1"}
+        headers = {"X-OSLO-Request": "1"}
         assert (await web.post("/api/systems/1/start", headers=headers)).status_code == 403
         assert (await web.get("/api/landscape")).status_code == 200
 

@@ -7,7 +7,7 @@ export interface Boot {
   timezone?: string;
 }
 
-export function readBoot(id = "lo-boot"): Boot {
+export function readBoot(id = "oslo-boot"): Boot {
   const element = document.getElementById(id);
   if (!element?.textContent) throw new Error(`#${id} is missing`);
   return JSON.parse(element.textContent) as Boot;

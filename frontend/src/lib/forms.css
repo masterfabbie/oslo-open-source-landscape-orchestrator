@@ -1,31 +1,31 @@
 /* Form pages (configuration, operations, administration, account) in the new look. */
-.lo-page { display: flex; flex-direction: column; gap: 16px; }
-.lo-page > .page-head, .lo-page > .tabs, .lo-page > .crumbs { margin-top: 0; margin-bottom: 0; }
-.lo-page > .tabs + * { margin-top: -4px; }
-.lo-form-section { display: flex; flex-direction: column; gap: 10px; }
-.lo-form-section > h2 { margin: 0; font-size: 17px; }
-.lo-form-section > p.lo-muted { margin: 0; }
-.lo-form { display: flex; flex-direction: column; gap: 12px; }
-.lo-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
-.lo-field { display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: var(--muted); }
-.lo-field input:not([type="checkbox"]), .lo-field select, .lo-field textarea, .lo-filter-input {
+.oslo-page { display: flex; flex-direction: column; gap: 16px; }
+.oslo-page > .page-head, .oslo-page > .tabs, .oslo-page > .crumbs { margin-top: 0; margin-bottom: 0; }
+.oslo-page > .tabs + * { margin-top: -4px; }
+.oslo-form-section { display: flex; flex-direction: column; gap: 10px; }
+.oslo-form-section > h2 { margin: 0; font-size: 17px; }
+.oslo-form-section > p.oslo-muted { margin: 0; }
+.oslo-form { display: flex; flex-direction: column; gap: 12px; }
+.oslo-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.oslo-field { display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: var(--muted); }
+.oslo-field input:not([type="checkbox"]), .oslo-field select, .oslo-field textarea, .oslo-filter-input {
   padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font: inherit;
 }
-.lo-field small { color: var(--muted); }
-.lo-checks { display: flex; flex-wrap: wrap; gap: 6px 20px; }
-.lo-form-buttons { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.lo-two { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 16px; align-items: start; }
-.lo-facts { display: grid; grid-template-columns: max-content 1fr; gap: 6px 18px; margin: 0; }
-.lo-facts dt { color: var(--muted); }
-.lo-facts dd { margin: 0; }
-.lo-row-tools { display: flex; gap: 10px; align-items: center; }
-.lo-table.lo-compact { min-width: 0; }
-.lo-expand { width: 28px; }
-.lo-expand button { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 14px; }
-.lo-nested td { background: var(--bg); }
-.lo-badge-inline { margin-left: 8px; }
-.lo-token { word-break: break-all; user-select: all; }
-.lo-param-row { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid var(--border); border-radius: 10px; }
-.lo-disabled { opacity: 0.5; pointer-events: none; }
-.lo-log-warning td { background: var(--yellow-bg); }
-.lo-log-error td { background: var(--red-bg); }
+.oslo-field small { color: var(--muted); }
+.oslo-checks { display: flex; flex-wrap: wrap; gap: 6px 20px; }
+.oslo-form-buttons { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.oslo-two { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 16px; align-items: start; }
+.oslo-facts { display: grid; grid-template-columns: max-content 1fr; gap: 6px 18px; margin: 0; }
+.oslo-facts dt { color: var(--muted); }
+.oslo-facts dd { margin: 0; }
+.oslo-row-tools { display: flex; gap: 10px; align-items: center; }
+.oslo-table.oslo-compact { min-width: 0; }
+.oslo-expand { width: 28px; }
+.oslo-expand button { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 14px; }
+.oslo-nested td { background: var(--bg); }
+.oslo-badge-inline { margin-left: 8px; }
+.oslo-token { word-break: break-all; user-select: all; }
+.oslo-param-row { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid var(--border); border-radius: 10px; }
+.oslo-disabled { opacity: 0.5; pointer-events: none; }
+.oslo-log-warning td { background: var(--yellow-bg); }
+.oslo-log-error td { background: var(--red-bg); }

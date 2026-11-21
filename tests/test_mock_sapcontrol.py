@@ -4,7 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from conftest import AUTH, soap_call
-from landscape_orchestrator.mock.apps import create_sapcontrol_app
+from oslo.mock.apps import create_sapcontrol_app
 
 NS = "urn:SAPControl"
 

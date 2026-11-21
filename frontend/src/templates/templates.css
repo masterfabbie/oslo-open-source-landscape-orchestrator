@@ -1,69 +1,69 @@
 /* Template composer. Colors from /static/style.css. */
-.lo-templates { display: flex; flex-direction: column; gap: 16px; }
-.lo-head-buttons { margin-left: auto; display: flex; gap: 8px; }
-.lo-primary { min-height: 40px; padding: 0 16px; border-radius: 8px; border: 0; background: var(--accent); color: var(--accent-text); font: inherit; font-weight: 600; cursor: pointer; }
-.lo-primary:disabled { opacity: 0.5; cursor: default; }
-.lo-danger-outline { min-height: 40px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--danger); background: transparent; color: var(--danger); font: inherit; cursor: pointer; }
-.lo-fields-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; align-items: end; }
-.lo-fields-row .lo-wide { grid-column: span 2; }
-.lo-fields-row input, .lo-fields-row select, .lo-step-editor input, .lo-step-editor select, .lo-schedule-form input { padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font: inherit; }
-.lo-step-editor { display: flex; flex-direction: column; gap: 16px; }
-.lo-schedule { display: flex; flex-direction: column; gap: 10px; }
-.lo-schedule h3 { margin: 6px 0 0; font-size: 15px; }
-.lo-schedule-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-.lo-schedule-list li { display: flex; flex-direction: column; gap: 2px; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; }
-.lo-schedule-list li.lo-off { opacity: 0.6; }
-.lo-schedule-tools { display: flex; gap: 14px; }
-.lo-strong { font-weight: 650; }
-.lo-schedule-form { display: flex; flex-direction: column; gap: 10px; }
-.lo-schedule-form fieldset { border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; }
-.lo-target-list { display: flex; flex-wrap: wrap; gap: 6px 14px; }
-.lo-segmented { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; width: max-content; }
-.lo-segmented button { padding: 6px 12px; border: 0; background: var(--surface); color: var(--text); font: inherit; font-size: 14px; cursor: pointer; }
-.lo-segmented button.lo-on { background: var(--accent); color: var(--accent-text); }
-.lo-dialog .lo-steps-preview { margin: 8px 0 0; padding-left: 20px; }
+.oslo-templates { display: flex; flex-direction: column; gap: 16px; }
+.oslo-head-buttons { margin-left: auto; display: flex; gap: 8px; }
+.oslo-primary { min-height: 40px; padding: 0 16px; border-radius: 8px; border: 0; background: var(--accent); color: var(--accent-text); font: inherit; font-weight: 600; cursor: pointer; }
+.oslo-primary:disabled { opacity: 0.5; cursor: default; }
+.oslo-danger-outline { min-height: 40px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--danger); background: transparent; color: var(--danger); font: inherit; cursor: pointer; }
+.oslo-fields-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; align-items: end; }
+.oslo-fields-row .oslo-wide { grid-column: span 2; }
+.oslo-fields-row input, .oslo-fields-row select, .oslo-step-editor input, .oslo-step-editor select, .oslo-schedule-form input { padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font: inherit; }
+.oslo-step-editor { display: flex; flex-direction: column; gap: 16px; }
+.oslo-schedule { display: flex; flex-direction: column; gap: 10px; }
+.oslo-schedule h3 { margin: 6px 0 0; font-size: 15px; }
+.oslo-schedule-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.oslo-schedule-list li { display: flex; flex-direction: column; gap: 2px; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; }
+.oslo-schedule-list li.oslo-off { opacity: 0.6; }
+.oslo-schedule-tools { display: flex; gap: 14px; }
+.oslo-strong { font-weight: 650; }
+.oslo-schedule-form { display: flex; flex-direction: column; gap: 10px; }
+.oslo-schedule-form fieldset { border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; }
+.oslo-target-list { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.oslo-segmented { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; width: max-content; }
+.oslo-segmented button { padding: 6px 12px; border: 0; background: var(--surface); color: var(--text); font: inherit; font-size: 14px; cursor: pointer; }
+.oslo-segmented button.oslo-on { background: var(--accent); color: var(--accent-text); }
+.oslo-dialog .oslo-steps-preview { margin: 8px 0 0; padding-left: 20px; }
 /* Same head as the server-rendered pages of the area (style.css: .page-head, .tabs). */
-.lo-templates > .page-head { margin-bottom: -8px; }
-.lo-templates > .tabs { margin-top: 0; }
+.oslo-templates > .page-head { margin-bottom: -8px; }
+.oslo-templates > .tabs { margin-top: 0; }
 
-.lo-secondary { min-height: 40px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--accent); background: transparent; color: var(--accent); font: inherit; cursor: pointer; }
-.lo-secondary:disabled { opacity: 0.5; cursor: default; }
-.lo-selection-note { margin: -8px 0 0; }
+.oslo-secondary { min-height: 40px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--accent); background: transparent; color: var(--accent); font: inherit; cursor: pointer; }
+.oslo-secondary:disabled { opacity: 0.5; cursor: default; }
+.oslo-selection-note { margin: -8px 0 0; }
 
 /* Graph of the steps (React Flow) and the panel of the chosen step, as in LaMa. */
-.lo-graph-editor { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 420px); gap: 20px; align-items: start; }
-@media (max-width: 1100px) { .lo-graph-editor { grid-template-columns: 1fr; } }
-.lo-graph { position: relative; height: min(70vh, 720px); min-height: 420px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg); overflow: hidden; display: flex; flex-direction: column; }
-.lo-graph .react-flow { flex: 1 1 auto; --xy-background-color: var(--bg); --xy-edge-stroke: var(--muted); --xy-edge-stroke-selected: var(--accent); --xy-handle-background-color: var(--muted); --xy-handle-border-color: var(--surface); }
-.lo-graph-empty { margin: auto; display: flex; flex-direction: column; align-items: center; gap: 12px; }
-.lo-graph-hint { position: absolute; z-index: 5; top: 10px; left: 50%; transform: translateX(-50%); margin: 0; padding: 6px 12px; border-radius: 8px; background: var(--blue-bg); color: var(--blue-fg); font-size: 14px; }
-.lo-graph-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 10px 12px; border-top: 1px solid var(--border); background: var(--surface); font-size: 13px; }
-.lo-node { position: relative; width: 220px; height: 84px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; gap: 2px; padding: 8px 12px 8px 40px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text); font-size: 13px; cursor: pointer; }
-.lo-node.lo-on { border: 2px solid var(--accent); padding: 7px 11px 7px 39px; }
-.lo-node.lo-connecting { outline: 2px dashed var(--accent); outline-offset: 3px; }
-.lo-node.lo-invalid { border-color: var(--danger); }
-.lo-node-number { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 5px; border-radius: 999px; background: var(--gray-bg); color: var(--gray-fg); font-size: 12px; font-weight: 700; }
-.lo-node > .lo-node-number { position: absolute; left: 10px; top: 10px; }
-.lo-node.lo-on > .lo-node-number { background: var(--accent); color: var(--accent-text); }
-.lo-node-title { font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.lo-node-target { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.lo-node-flag { color: var(--yellow-fg); font-size: 12px; }
-.lo-node-tools { position: absolute; left: calc(100% + 8px); top: 0; display: flex; flex-direction: column; gap: 4px; }
-.lo-node-tools button { width: 28px; height: 24px; padding: 0; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--text); font-size: 13px; line-height: 1; cursor: pointer; }
-.lo-node-tools button:hover { border-color: var(--accent); color: var(--accent); }
-.lo-step-panel { display: flex; flex-direction: column; gap: 12px; }
-.lo-step-panel h2 { display: flex; align-items: center; gap: 8px; }
-.lo-step-panel details { border-top: 1px solid var(--border); padding-top: 8px; }
-.lo-step-panel summary { cursor: pointer; font-weight: 650; margin-bottom: 8px; }
-.lo-step-panel .lo-fields { display: flex; flex-direction: column; gap: 10px; }
-.lo-param { display: flex; flex-direction: column; gap: 2px; }
-.lo-param.lo-invalid input, .lo-param.lo-invalid select { border-color: var(--danger); }
-.lo-ask { font-size: 13px; color: var(--muted); }
-.lo-target-scroll { max-height: 220px; overflow: auto; flex-direction: column; flex-wrap: nowrap; }
-.lo-step-panel input[type="search"] { padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font: inherit; }
+.oslo-graph-editor { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 420px); gap: 20px; align-items: start; }
+@media (max-width: 1100px) { .oslo-graph-editor { grid-template-columns: 1fr; } }
+.oslo-graph { position: relative; height: min(70vh, 720px); min-height: 420px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg); overflow: hidden; display: flex; flex-direction: column; }
+.oslo-graph .react-flow { flex: 1 1 auto; --xy-background-color: var(--bg); --xy-edge-stroke: var(--muted); --xy-edge-stroke-selected: var(--accent); --xy-handle-background-color: var(--muted); --xy-handle-border-color: var(--surface); }
+.oslo-graph-empty { margin: auto; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.oslo-graph-hint { position: absolute; z-index: 5; top: 10px; left: 50%; transform: translateX(-50%); margin: 0; padding: 6px 12px; border-radius: 8px; background: var(--blue-bg); color: var(--blue-fg); font-size: 14px; }
+.oslo-graph-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 10px 12px; border-top: 1px solid var(--border); background: var(--surface); font-size: 13px; }
+.oslo-node { position: relative; width: 220px; height: 84px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; gap: 2px; padding: 8px 12px 8px 40px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text); font-size: 13px; cursor: pointer; }
+.oslo-node.oslo-on { border: 2px solid var(--accent); padding: 7px 11px 7px 39px; }
+.oslo-node.oslo-connecting { outline: 2px dashed var(--accent); outline-offset: 3px; }
+.oslo-node.oslo-invalid { border-color: var(--danger); }
+.oslo-node-number { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 5px; border-radius: 999px; background: var(--gray-bg); color: var(--gray-fg); font-size: 12px; font-weight: 700; }
+.oslo-node > .oslo-node-number { position: absolute; left: 10px; top: 10px; }
+.oslo-node.oslo-on > .oslo-node-number { background: var(--accent); color: var(--accent-text); }
+.oslo-node-title { font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.oslo-node-target { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.oslo-node-flag { color: var(--yellow-fg); font-size: 12px; }
+.oslo-node-tools { position: absolute; left: calc(100% + 8px); top: 0; display: flex; flex-direction: column; gap: 4px; }
+.oslo-node-tools button { width: 28px; height: 24px; padding: 0; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--text); font-size: 13px; line-height: 1; cursor: pointer; }
+.oslo-node-tools button:hover { border-color: var(--accent); color: var(--accent); }
+.oslo-step-panel { display: flex; flex-direction: column; gap: 12px; }
+.oslo-step-panel h2 { display: flex; align-items: center; gap: 8px; }
+.oslo-step-panel details { border-top: 1px solid var(--border); padding-top: 8px; }
+.oslo-step-panel summary { cursor: pointer; font-weight: 650; margin-bottom: 8px; }
+.oslo-step-panel .oslo-fields { display: flex; flex-direction: column; gap: 10px; }
+.oslo-param { display: flex; flex-direction: column; gap: 2px; }
+.oslo-param.oslo-invalid input, .oslo-param.oslo-invalid select { border-color: var(--danger); }
+.oslo-ask { font-size: 13px; color: var(--muted); }
+.oslo-target-scroll { max-height: 220px; overflow: auto; flex-direction: column; flex-wrap: nowrap; }
+.oslo-step-panel input[type="search"] { padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font: inherit; }
 
 /* Operation picker */
-.lo-picker-items { list-style: none; margin: 0; padding: 0; }
-.lo-picker .lo-palette-entry { align-items: center; }
-.lo-star { border: 0; background: transparent; color: var(--muted); font-size: 18px; line-height: 1; padding: 2px 6px; cursor: pointer; }
-.lo-star.lo-on { color: var(--yellow-fg); }
+.oslo-picker-items { list-style: none; margin: 0; padding: 0; }
+.oslo-picker .oslo-palette-entry { align-items: center; }
+.oslo-star { border: 0; background: transparent; color: var(--muted); font-size: 18px; line-height: 1; padding: 2px 6px; cursor: pointer; }
+.oslo-star.oslo-on { color: var(--yellow-fg); }

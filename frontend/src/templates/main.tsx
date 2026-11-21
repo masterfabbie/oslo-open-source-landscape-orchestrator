@@ -12,7 +12,7 @@ import { TemplatesPage } from "./TemplatesPage";
 
 const boot = readBoot();
 const queries = new QueryClient({ defaultOptions: { queries: { retry: 1, staleTime: 5_000, refetchOnWindowFocus: false } } });
-const root = document.getElementById("lo-app");
+const root = document.getElementById("oslo-app");
 if (root) {
   root.textContent = "";
   createRoot(root).render(

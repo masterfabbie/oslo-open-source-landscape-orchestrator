@@ -15,12 +15,12 @@ import httpx
 import pytest
 
 from conftest import PASSWORD, make_user
-from landscape_orchestrator.api import create_app
-from landscape_orchestrator.crypto import generate_secret_key
-from landscape_orchestrator.mock.transport import MockLandscapeTransport
-from landscape_orchestrator.settings import Settings
-from landscape_orchestrator.web.i18n import TEXTS, instance_type_key, pick_language, translate
-from landscape_orchestrator.web.routes import SESSION_COOKIE
+from oslo.api import create_app
+from oslo.crypto import generate_secret_key
+from oslo.mock.transport import MockLandscapeTransport
+from oslo.settings import Settings
+from oslo.web.i18n import TEXTS, instance_type_key, pick_language, translate
+from oslo.web.routes import SESSION_COOKIE
 
 pytestmark = pytest.mark.anyio
 
@@ -28,7 +28,7 @@ CREDENTIALS = {"username": "devadm", "password": "mock"}
 APP_HOST = {"name": "sapapp1", "address": "127.0.0.1"} | CREDENTIALS
 DB_HOST = APP_HOST | {"name": "sapdb1", "hostagent_port": 11128, "sapcontrol_port_offset": 10000}
 # Changing API calls with the session cookie need this header (see test_interface_api.py).
-HEADERS = {"X-LO-Request": "1"}
+HEADERS = {"X-OSLO-Request": "1"}
 
 
 @pytest.fixture
@@ -91,7 +91,7 @@ async def add_hosts(browser: httpx.AsyncClient) -> None:
 
 def boot_of(page: str) -> dict:
     """Start data of a React page."""
-    match = re.search(r'<script type="application/json" id="lo-boot">(.*?)</script>', page, re.S)
+    match = re.search(r'<script type="application/json" id="oslo-boot">(.*?)</script>', page, re.S)
     assert match, "no start data"
     return json.loads(match.group(1))
 
@@ -219,7 +219,7 @@ async def test_each_address_delivers_its_app(browser, path, app_name, page):
     assert response.status_code == 200, path
     assert f'src="/static/app/{app_name}.js?v=' in response.text
     assert 'href="/static/app/app.css?v=' in response.text
-    assert '<div id="lo-app">' in response.text
+    assert '<div id="oslo-app">' in response.text
     boot = boot_of(response.text)
     assert boot.get("page") == page and boot["user"] == {"name": "admin", "role": "admin"}
     assert boot["texts"]["nav.landscape"] == "Landscape"

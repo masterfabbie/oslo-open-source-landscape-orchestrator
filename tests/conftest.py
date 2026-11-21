@@ -6,8 +6,8 @@ import xml.etree.ElementTree as ET
 import pytest
 from fastapi.testclient import TestClient
 
-from landscape_orchestrator import users
-from landscape_orchestrator.mock.landscape import MockLandscape, default_landscape_config
+from oslo import users
+from oslo.mock.landscape import MockLandscape, default_landscape_config
 
 AUTH = ("devadm", "mock")
 PASSWORD = "correct horse battery"

@@ -52,7 +52,7 @@ function TemplateList({ onOpen }: { onOpen: (id: number | "new") => void }) {
   const { t } = useApp();
   const { data, isPending } = useQuery({ queryKey: ["templates"], queryFn: () => api<Template[]>("/templates") });
   return (
-    <div className="lo-templates">
+    <div className="oslo-templates">
       <div className="page-head">
         <h1>{t("tpl.title")}</h1>
         <span className="buttons">
@@ -73,14 +73,14 @@ function TemplateList({ onOpen }: { onOpen: (id: number | "new") => void }) {
           {t("tab.overview")}
         </a>
       </nav>
-      <p className="lo-muted">{t("tpl.intro")}</p>
+      <p className="oslo-muted">{t("tpl.intro")}</p>
       {isPending ? (
-        <p className="lo-muted">{t("ui.loading")}</p>
+        <p className="oslo-muted">{t("ui.loading")}</p>
       ) : !data?.length ? (
-        <p className="lo-empty">{t("tpl.empty")}</p>
+        <p className="oslo-empty">{t("tpl.empty")}</p>
       ) : (
-        <div className="lo-table-wrap">
-          <table className="lo-table">
+        <div className="oslo-table-wrap">
+          <table className="oslo-table">
             <thead>
               <tr>
                 <th>{t("field.name")}</th>
@@ -94,13 +94,13 @@ function TemplateList({ onOpen }: { onOpen: (id: number | "new") => void }) {
               {data.map((tpl) => (
                 <tr key={tpl.id}>
                   <td>
-                    <button type="button" className="lo-open" onClick={() => onOpen(tpl.id)}>
+                    <button type="button" className="oslo-open" onClick={() => onOpen(tpl.id)}>
                       {tpl.name}
                     </button>
-                    {!tpl.valid && <span className="lo-sub error-text">{t("tpl.invalid")}</span>}
-                    {tpl.description && <span className="lo-sub">{tpl.description}</span>}
+                    {!tpl.valid && <span className="oslo-sub error-text">{t("tpl.invalid")}</span>}
+                    {tpl.description && <span className="oslo-sub">{tpl.description}</span>}
                   </td>
-                  <td className="lo-mono">{tpl.key}</td>
+                  <td className="oslo-mono">{tpl.key}</td>
                   <td>{selectionText(tpl.selection, t)}</td>
                   <td>{tpl.steps.length}</td>
                   <td>{t(`role.${tpl.role}`)}</td>
@@ -222,7 +222,7 @@ function Editor({ id, onOpen }: { id: number | "new"; onOpen: (id: number | "new
     queries.setQueryData(["blocks"], saved);
   };
 
-  if (id !== "new" && loaded.isPending) return <p className="lo-muted">{t("ui.loading")}</p>;
+  if (id !== "new" && loaded.isPending) return <p className="oslo-muted">{t("ui.loading")}</p>;
   const tabs: [EditorTab, string][] = [
     ["general", t("tab.general")],
     ["steps", t("tpl.steps_tab", { count: draft.steps.length })],
@@ -230,7 +230,7 @@ function Editor({ id, onOpen }: { id: number | "new"; onOpen: (id: number | "new
   if (draft.id !== null) tabs.push(["schedules", t("sched.title")]);
 
   return (
-    <div className="lo-templates">
+    <div className="oslo-templates">
       <p className="crumbs">
         <a
           href="?"
@@ -244,19 +244,19 @@ function Editor({ id, onOpen }: { id: number | "new"; onOpen: (id: number | "new
       </p>
       <div className="page-head">
         <h1>{draft.name || t("tpl.new_title")}</h1>
-        <span className="lo-muted">{dirty ? t("tpl.unsaved") : draft.id !== null ? t("tpl.saved") : ""}</span>
+        <span className="oslo-muted">{dirty ? t("tpl.unsaved") : draft.id !== null ? t("tpl.saved") : ""}</span>
         <span className="buttons">
           {draft.id !== null && (
-            <button type="button" className="lo-danger-outline" onClick={destroy}>
+            <button type="button" className="oslo-danger-outline" onClick={destroy}>
               {t("tpl.delete")}
             </button>
           )}
           {draft.id !== null && selection === null && (
-            <button type="button" className="lo-secondary" disabled={dirty} onClick={() => setRunning(true)}>
+            <button type="button" className="oslo-secondary" disabled={dirty} onClick={() => setRunning(true)}>
               {t("tpl.run")}
             </button>
           )}
-          <button type="button" className="lo-primary" onClick={save} disabled={saving || !dirty}>
+          <button type="button" className="oslo-primary" onClick={save} disabled={saving || !dirty}>
             {t("action.save")}
           </button>
         </span>
@@ -286,7 +286,7 @@ function Editor({ id, onOpen }: { id: number | "new"; onOpen: (id: number | "new
           {notice}
         </p>
       )}
-      <p className="lo-muted lo-selection-note">
+      <p className="oslo-muted oslo-selection-note">
         {selection === "mixed" ? (
           <span className="error-text">{t("tpl.selection_mixed")}</span>
         ) : (
@@ -295,14 +295,14 @@ function Editor({ id, onOpen }: { id: number | "new"; onOpen: (id: number | "new
       </p>
 
       {tab === "general" && (
-        <section className="lo-card lo-fields-row">
+        <section className="oslo-card oslo-fields-row">
           <label>
             {t("field.name")}
             <input value={draft.name} maxLength={128} onChange={(e) => change({ name: e.target.value })} />
           </label>
           <label>
             {t("custom.key")}
-            <input value={draft.key} maxLength={64} pattern="[a-z][a-z0-9_]*" className="lo-mono" placeholder="kernel_update" onChange={(e) => change({ key: e.target.value })} />
+            <input value={draft.key} maxLength={64} pattern="[a-z][a-z0-9_]*" className="oslo-mono" placeholder="kernel_update" onChange={(e) => change({ key: e.target.value })} />
           </label>
           <label>
             {t("custom.role")}
@@ -314,7 +314,7 @@ function Editor({ id, onOpen }: { id: number | "new"; onOpen: (id: number | "new
               ))}
             </select>
           </label>
-          <label className="lo-wide">
+          <label className="oslo-wide">
             {t("field.description")}
             <input value={draft.description ?? ""} maxLength={1000} onChange={(e) => change({ description: e.target.value })} />
           </label>
@@ -389,17 +389,17 @@ function StepNode({ data }: NodeProps<Node<StepNodeData>>) {
   const { t } = useApp();
   const { step, title, target, selected, connecting, invalid } = data;
   return (
-    <div className={`lo-node${selected ? " lo-on" : ""}${connecting ? " lo-connecting" : ""}${invalid ? " lo-invalid" : ""}`}>
+    <div className={`oslo-node${selected ? " oslo-on" : ""}${connecting ? " oslo-connecting" : ""}${invalid ? " oslo-invalid" : ""}`}>
       <Handle type="target" position={Position.Top} />
-      <span className="lo-node-number" aria-label={t("tpl.step_number", { n: step.position })}>
+      <span className="oslo-node-number" aria-label={t("tpl.step_number", { n: step.position })}>
         {step.position}
       </span>
-      <span className="lo-node-title">{title}</span>
-      <span className="lo-node-target">{target}</span>
-      {step.on_error !== "stop" && <span className="lo-node-flag">{t(`tpl.on_error.${step.on_error}`)}</span>}
+      <span className="oslo-node-title">{title}</span>
+      <span className="oslo-node-target">{target}</span>
+      {step.on_error !== "stop" && <span className="oslo-node-flag">{t(`tpl.on_error.${step.on_error}`)}</span>}
       <Handle type="source" position={Position.Bottom} />
       {selected && (
-        <span className="lo-node-tools nodrag">
+        <span className="oslo-node-tools nodrag">
           <button type="button" aria-label={t("tpl.add_after")} title={t("tpl.add_after")} onClick={data.onAdd}>
             +
           </button>
@@ -506,10 +506,10 @@ function StepsEditor({ steps, operations, blocks, names, snapshot, current, onCu
 
   const step = steps.find((s) => s.position === current);
   return (
-    <div className="lo-graph-editor">
-      <div className="lo-graph" aria-label={t("tpl.steps")}>
+    <div className="oslo-graph-editor">
+      <div className="oslo-graph" aria-label={t("tpl.steps")}>
         {connectFrom !== null && (
-          <p className="lo-graph-hint" role="status">
+          <p className="oslo-graph-hint" role="status">
             {t("tpl.connect_hint", { n: connectFrom })}{" "}
             <button type="button" className="link" onClick={() => setConnectFrom(null)}>
               {t("mass.cancel")}
@@ -517,9 +517,9 @@ function StepsEditor({ steps, operations, blocks, names, snapshot, current, onCu
           </p>
         )}
         {!steps.length ? (
-          <div className="lo-graph-empty">
-            <p className="lo-muted">{t("tpl.graph_empty")}</p>
-            <button type="button" className="lo-primary" onClick={() => setPicking({ mode: "add", after: null })}>
+          <div className="oslo-graph-empty">
+            <p className="oslo-muted">{t("tpl.graph_empty")}</p>
+            <button type="button" className="oslo-primary" onClick={() => setPicking({ mode: "add", after: null })}>
               {t("tpl.add_first")}
             </button>
           </div>
@@ -553,15 +553,15 @@ function StepsEditor({ steps, operations, blocks, names, snapshot, current, onCu
           />
         )}
         {steps.length > 0 && (
-          <div className="lo-graph-actions">
-            <button type="button" className="lo-secondary" onClick={() => setPicking({ mode: "add", after: null })}>
+          <div className="oslo-graph-actions">
+            <button type="button" className="oslo-secondary" onClick={() => setPicking({ mode: "add", after: null })}>
               {t("tpl.add_parallel")}
             </button>
-            <span className="lo-muted">{t("tpl.graph_hint")}</span>
+            <span className="oslo-muted">{t("tpl.graph_hint")}</span>
           </div>
         )}
       </div>
-      <aside className="lo-step-editor" aria-label={t("tpl.step")}>
+      <aside className="oslo-step-editor" aria-label={t("tpl.step")}>
         {step ? (
           <StepPanel
             key={step.position}
@@ -575,7 +575,7 @@ function StepsEditor({ steps, operations, blocks, names, snapshot, current, onCu
             onChangeOperation={() => setPicking({ mode: "change", position: step.position })}
           />
         ) : (
-          <p className="lo-muted lo-card">{t("tpl.choose_step")}</p>
+          <p className="oslo-muted oslo-card">{t("tpl.choose_step")}</p>
         )}
       </aside>
       {picking && blocks && (
@@ -622,17 +622,17 @@ function StepPanel({ step, steps, operation, operations, snapshot, names, onChan
   }, [names, step.target_type, operation, snapshot, filter]);
 
   return (
-    <section className="lo-card lo-step-panel">
+    <section className="oslo-card oslo-step-panel">
       <h2>
-        <span className="lo-node-number">{step.position}</span> {stepTitle(step, operations, t)}
+        <span className="oslo-node-number">{step.position}</span> {stepTitle(step, operations, t)}
       </h2>
-      {operation?.description && <p className="lo-muted">{operation.description}</p>}
+      {operation?.description && <p className="oslo-muted">{operation.description}</p>}
       {!operation && <p className="error-text">{t("tpl.invalid")}</p>}
 
       <details open>
         <summary>{t("tpl.current_operation")}</summary>
-        <div className="lo-fields">
-          <button type="button" className="lo-secondary" onClick={onChangeOperation}>
+        <div className="oslo-fields">
+          <button type="button" className="oslo-secondary" onClick={onChangeOperation}>
             {t("tpl.change_operation")}
           </button>
           {operation && operation.targets.length > 1 && (
@@ -655,24 +655,24 @@ function StepPanel({ step, steps, operation, operations, snapshot, names, onChan
               {step.target_type !== "HOST" && <option value="stop_and_start">{t("tpl.on_error.stop_and_start")}</option>}
             </select>
           </label>
-          {operation?.locks === false && <p className="lo-muted">{t("tpl.locks_nothing")}</p>}
+          {operation?.locks === false && <p className="oslo-muted">{t("tpl.locks_nothing")}</p>}
         </div>
       </details>
 
       <details open>
         <summary>{t("tpl.parameters")}</summary>
-        <div className="lo-fields">
+        <div className="oslo-fields">
           {(operation?.parameters ?? []).map((p) => {
             const asked = step.ask.includes(p.name);
             const missing = p.required && !asked && !step.parameters[p.name] && !p.default;
             const value = step.parameters[p.name] ?? "";
             const setValue = (v: string) => set({ parameters: { ...step.parameters, [p.name]: v } });
             return (
-              <div key={p.name} className={`lo-param${missing ? " lo-invalid" : ""}`}>
+              <div key={p.name} className={`oslo-param${missing ? " oslo-invalid" : ""}`}>
                 <label>
                   <span>
                     {p.required ? "*" : ""}
-                    {p.label} <span className="lo-mono lo-muted">{p.name}</span>
+                    {p.label} <span className="oslo-mono oslo-muted">{p.name}</span>
                   </span>
                   {p.type === "BOOLEAN" ? (
                     <select value={value} onChange={(e) => setValue(e.target.value)}>
@@ -684,28 +684,28 @@ function StepPanel({ step, steps, operation, operations, snapshot, names, onChan
                     <input value={value} placeholder={p.default ?? (p.type === "INTEGER" ? t("custom.type.INTEGER") : "")} inputMode={p.type === "INTEGER" ? "numeric" : undefined} onChange={(e) => setValue(e.target.value)} />
                   )}
                 </label>
-                <label className="lo-inline lo-ask">
+                <label className="oslo-inline oslo-ask">
                   <input type="checkbox" checked={asked} onChange={(e) => set({ ask: e.target.checked ? [...step.ask, p.name] : step.ask.filter((a) => a !== p.name) })} />
                   {t("tpl.ask")}
                 </label>
                 {missing && <small className="error-text">{t("tpl.param_missing")}</small>}
-                {p.help && <small className="lo-muted">{p.help}</small>}
+                {p.help && <small className="oslo-muted">{p.help}</small>}
               </div>
             );
           })}
-          {!operation?.parameters.length && <p className="lo-muted">{t("tpl.no_parameters")}</p>}
+          {!operation?.parameters.length && <p className="oslo-muted">{t("tpl.no_parameters")}</p>}
         </div>
       </details>
 
       <details open>
         <summary>{t("tpl.entities")}</summary>
-        <div className="lo-fields">
-          <div className="lo-segmented" role="radiogroup" aria-label={t("tpl.entities")}>
+        <div className="oslo-fields">
+          <div className="oslo-segmented" role="radiogroup" aria-label={t("tpl.entities")}>
             <button
               type="button"
               role="radio"
               aria-checked={!fixedMode}
-              className={!fixedMode ? "lo-on" : undefined}
+              className={!fixedMode ? "oslo-on" : undefined}
               onClick={() => {
                 setFixedMode(false);
                 set({ targets: [] });
@@ -713,17 +713,17 @@ function StepPanel({ step, steps, operation, operations, snapshot, names, onChan
             >
               {t("tpl.selection_placeholder", { type: t(`target.${step.target_type}`) })}
             </button>
-            <button type="button" role="radio" aria-checked={fixedMode} className={fixedMode ? "lo-on" : undefined} onClick={() => setFixedMode(true)}>
+            <button type="button" role="radio" aria-checked={fixedMode} className={fixedMode ? "oslo-on" : undefined} onClick={() => setFixedMode(true)}>
               {t("tpl.fixed")}
             </button>
           </div>
-          <p className="lo-muted">{fixedMode ? t("tpl.fixed_step_hint") : t("tpl.selection_step_hint")}</p>
+          <p className="oslo-muted">{fixedMode ? t("tpl.fixed_step_hint") : t("tpl.selection_step_hint")}</p>
           {fixedMode && (
             <>
               <input type="search" value={filter} placeholder={t("tpl.filter_targets")} aria-label={t("tpl.filter_targets")} onChange={(e) => setFilter(e.target.value)} />
-              <div className="lo-target-list lo-target-scroll">
+              <div className="oslo-target-list oslo-target-scroll">
                 {choices.map((c) => (
-                  <label key={c.id} className="lo-inline">
+                  <label key={c.id} className="oslo-inline">
                     <input
                       type="checkbox"
                       checked={step.targets.includes(c.id)}
@@ -732,7 +732,7 @@ function StepPanel({ step, steps, operation, operations, snapshot, names, onChan
                     {c.label}
                   </label>
                 ))}
-                {!choices.length && <span className="lo-muted">{t("tpl.no_targets")}</span>}
+                {!choices.length && <span className="oslo-muted">{t("tpl.no_targets")}</span>}
               </div>
             </>
           )}
@@ -741,14 +741,14 @@ function StepPanel({ step, steps, operation, operations, snapshot, names, onChan
 
       <details open>
         <summary>{t("tpl.predecessors")}</summary>
-        <div className="lo-target-list">
+        <div className="oslo-target-list">
           {steps
             .filter((s) => s.position !== step.position)
             .map((s) => {
               const checked = step.after.includes(s.position);
               const allowed = checked || canConnect(steps, s.position, step.position);
               return (
-                <label key={s.position} className="lo-inline">
+                <label key={s.position} className="oslo-inline">
                   <input
                     type="checkbox"
                     checked={checked}
@@ -759,7 +759,7 @@ function StepPanel({ step, steps, operation, operations, snapshot, names, onChan
                 </label>
               );
             })}
-          {steps.length < 2 && <span className="lo-muted">{t("tpl.no_predecessors")}</span>}
+          {steps.length < 2 && <span className="oslo-muted">{t("tpl.no_predecessors")}</span>}
         </div>
       </details>
     </section>
@@ -807,8 +807,8 @@ function RunDialog({
   return (
     <dialog
       ref={dialog}
-      className="lo-dialog lo-run-dialog"
-      aria-labelledby="lo-run-title"
+      className="oslo-dialog oslo-run-dialog"
+      aria-labelledby="oslo-run-title"
       onCancel={(e) => {
         e.preventDefault();
         onClose();
@@ -820,9 +820,9 @@ function RunDialog({
           void start();
         }}
       >
-        <h2 id="lo-run-title">{t("tpl.run_title", { name: template.name })}</h2>
-        <p className="lo-muted">{t("tpl.run_hint")}</p>
-        <div className="lo-fields">
+        <h2 id="oslo-run-title">{t("tpl.run_title", { name: template.name })}</h2>
+        <p className="oslo-muted">{t("tpl.run_hint")}</p>
+        <div className="oslo-fields">
           {asked.map((a) => (
             <label key={a.name}>
               <span>
@@ -837,7 +837,7 @@ function RunDialog({
             {error}
           </p>
         )}
-        <div className="lo-dialog-buttons">
+        <div className="oslo-dialog-buttons">
           <button type="submit">{t("tpl.run")}</button>
           <button type="button" className="secondary" onClick={onClose}>
             {t("mass.cancel")}

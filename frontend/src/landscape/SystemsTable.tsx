@@ -59,11 +59,11 @@ export function SystemsTable({
       return next;
     });
 
-  if (!rows.length) return <p className="lo-empty">{t("filter.no_match")}</p>;
+  if (!rows.length) return <p className="oslo-empty">{t("filter.no_match")}</p>;
 
   return (
-    <div className="lo-table-wrap">
-      <div className="lo-tree-tools">
+    <div className="oslo-table-wrap">
+      <div className="oslo-tree-tools">
         <button type="button" className="link" onClick={() => setOpen(new Set(systemIds))}>
           {t("tree.expand_all")}
         </button>
@@ -71,10 +71,10 @@ export function SystemsTable({
           {t("tree.collapse_all")}
         </button>
       </div>
-      <table className="lo-table">
+      <table className="oslo-table">
         <thead>
           <tr>
-            <th className="lo-check">
+            <th className="oslo-check">
               <input
                 type="checkbox"
                 aria-label={t("ui.select_all_systems")}
@@ -95,9 +95,9 @@ export function SystemsTable({
           const isOpen = expandAll || open.has(system.id);
           const hosts = [...new Set(system.instances.map((i) => i.host.name))];
           return (
-            <tbody key={system.id} className={openId === system.id ? "lo-current" : undefined}>
-              <tr className={`lo-system${selection.kind === "SYSTEM" && selected.has(system.id) ? " lo-selected" : ""}`}>
-                <td className="lo-check">
+            <tbody key={system.id} className={openId === system.id ? "oslo-current" : undefined}>
+              <tr className={`oslo-system${selection.kind === "SYSTEM" && selected.has(system.id) ? " oslo-selected" : ""}`}>
+                <td className="oslo-check">
                   <input
                     type="checkbox"
                     aria-label={t("ui.select", { name: system.name })}
@@ -106,10 +106,10 @@ export function SystemsTable({
                   />
                 </td>
                 <td>
-                  <span className="lo-name-cell">
+                  <span className="oslo-name-cell">
                     <button
                       type="button"
-                      className="lo-toggle"
+                      className="oslo-toggle"
                       aria-expanded={isOpen}
                       aria-label={t("tree.toggle")}
                       disabled={expandAll}
@@ -119,31 +119,31 @@ export function SystemsTable({
                         <path d={isOpen ? "M2 4l4 4 4-4" : "M4 2l4 4-4 4"} fill="none" stroke="currentColor" strokeWidth="1.6" />
                       </svg>
                     </button>
-                    <button type="button" className="lo-open" onClick={() => onOpen(system.id)}>
+                    <button type="button" className="oslo-open" onClick={() => onOpen(system.id)}>
                       {system.name}
                     </button>
                   </span>
-                  {system.description && <span className="lo-sub">{system.description}</span>}
+                  {system.description && <span className="oslo-sub">{system.description}</span>}
                 </td>
                 <td>
                   <StatusBadge status={system.status} />
                 </td>
                 <td>
-                  <span className="lo-squares" aria-label={t("ui.instance_count", { count: system.instances.length })}>
+                  <span className="oslo-squares" aria-label={t("ui.instance_count", { count: system.instances.length })}>
                     {system.instances.map((i) => (
                       <StatusDot key={i.id} status={i.status} />
                     ))}
                   </span>
-                  <span className="lo-sub">{hosts.join(", ")}</span>
+                  <span className="oslo-sub">{hosts.join(", ")}</span>
                 </td>
                 <td>{system.pool?.name ?? ""}</td>
-                <td className="lo-mono">{system.depends_on.join(", ")}</td>
+                <td className="oslo-mono">{system.depends_on.join(", ")}</td>
                 <td>
                   <Tags tags={system.tags} />
                 </td>
                 <td>
                   {system.activity && (
-                    <a className="lo-badge lo-badge-running" href={`/activities/${system.activity.id}`}>
+                    <a className="oslo-badge oslo-badge-running" href={`/activities/${system.activity.id}`}>
                       {t(`kind.${system.activity.kind}`)} · {t(`activity.${system.activity.status}`)}
                     </a>
                   )}
@@ -155,9 +155,9 @@ export function SystemsTable({
                   return (
                     <tr
                       key={instance.id}
-                      className={`lo-instance${checked ? " lo-selected" : ""}${instance.agent ? " lo-agent" : ""}${openInstanceId === instance.id ? " lo-current-row" : ""}`}
+                      className={`oslo-instance${checked ? " oslo-selected" : ""}${instance.agent ? " oslo-agent" : ""}${openInstanceId === instance.id ? " oslo-current-row" : ""}`}
                     >
-                      <td className="lo-check">
+                      <td className="oslo-check">
                         <input
                           type="checkbox"
                           aria-label={t("ui.select", { name: instance.label })}
@@ -165,11 +165,11 @@ export function SystemsTable({
                           onChange={(e) => onSelect("INSTANCE", [instance.id], e.target.checked)}
                         />
                       </td>
-                      <td className="lo-indent">
-                        <button type="button" className="lo-open lo-mono" onClick={() => onOpenInstance(instance.id)}>
+                      <td className="oslo-indent">
+                        <button type="button" className="oslo-open oslo-mono" onClick={() => onOpenInstance(instance.id)}>
                           {instance.label}
                         </button>
-                        <span className="lo-sub">
+                        <span className="oslo-sub">
                           {instance.type ? t(`itype.${instance.type}`) : t(`ui.role.${instance.role}`)}
                         </span>
                       </td>
@@ -178,10 +178,10 @@ export function SystemsTable({
                       </td>
                       <td>
                         <a href={`/hosts/${instance.host.id}`}>{instance.host.name}</a>
-                        {instance.hostname !== instance.host.name && <span className="lo-sub">{instance.hostname}</span>}
+                        {instance.hostname !== instance.host.name && <span className="oslo-sub">{instance.hostname}</span>}
                       </td>
                       <td></td>
-                      <td className="lo-mono">{instance.depends_on.join(", ")}</td>
+                      <td className="oslo-mono">{instance.depends_on.join(", ")}</td>
                       <td></td>
                       <td></td>
                     </tr>
@@ -197,9 +197,9 @@ export function SystemsTable({
 
 export function Tags({ tags }: { tags: string[] }) {
   return (
-    <span className="lo-tags">
+    <span className="oslo-tags">
       {tags.map((tag) => (
-        <span key={tag} className="lo-tag">
+        <span key={tag} className="oslo-tag">
           {tag}
         </span>
       ))}

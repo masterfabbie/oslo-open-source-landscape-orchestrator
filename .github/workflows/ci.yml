@@ -35,5 +35,5 @@ jobs:
       - run: npm test
       # Builds into the Python package; the committed build must match the sources.
       - run: npm run build
-      - run: git diff --exit-code -- ../src/landscape_orchestrator/web/static/app
+      - run: git diff --exit-code -- ../src/oslo/web/static/app
       - run: npm audit --omit=dev --audit-level=high

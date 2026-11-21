@@ -8,7 +8,7 @@ export interface AppInfo {
   t: Translate;
   role: string;
   language: string;
-  /** Time zone of the server for times of day in schedules (LO_TIMEZONE). */
+  /** Time zone of the server for times of day in schedules (OSLO_TIMEZONE). */
   timezone?: string;
 }
 
@@ -26,11 +26,11 @@ const BADGE: Record<string, string> = {
 
 export function StatusBadge({ status, prefix = "status" }: { status: string; prefix?: string }) {
   const { t } = useApp();
-  return <span className={`lo-badge lo-badge-${BADGE[status] ?? "unknown"}`}>{t(`${prefix}.${status}`)}</span>;
+  return <span className={`oslo-badge oslo-badge-${BADGE[status] ?? "unknown"}`}>{t(`${prefix}.${status}`)}</span>;
 }
 
 export function StatusDot({ status, label }: { status: string; label?: string }) {
-  return <span className={`lo-dot lo-dot-${BADGE[status] ?? "unknown"}`} role={label ? "img" : undefined} aria-label={label} aria-hidden={label ? undefined : true} />;
+  return <span className={`oslo-dot oslo-dot-${BADGE[status] ?? "unknown"}`} role={label ? "img" : undefined} aria-label={label} aria-hidden={label ? undefined : true} />;
 }
 
 export function formatTime(value: string | null, language: string, seconds = false): string {

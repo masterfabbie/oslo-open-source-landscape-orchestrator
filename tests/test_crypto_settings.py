@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import pytest
 
-from landscape_orchestrator.crypto import (
+from oslo.crypto import (
     SecretBox,
     SecretError,
     generate_secret_key,
 )
-from landscape_orchestrator.settings import DEFAULT_DATABASE_URL, Settings, SettingsError
+from oslo.settings import DEFAULT_DATABASE_URL, Settings, SettingsError
 
 
 def test_encrypt_roundtrip():
@@ -34,14 +34,22 @@ def test_invalid_key_is_rejected():
 
 
 def test_settings_from_env():
-    env = {"LO_SECRET_KEY": generate_secret_key()}
+    env = {"OSLO_SECRET_KEY": generate_secret_key()}
     settings = Settings.from_env(env)
     assert settings.database_url == DEFAULT_DATABASE_URL
-    assert Settings.from_env(env | {"LO_DATABASE_URL": "sqlite+aiosqlite:///x.db"}).database_url
+    assert Settings.from_env(env | {"OSLO_DATABASE_URL": "sqlite+aiosqlite:///x.db"}).database_url
 
 
 def test_settings_require_secret_key():
-    with pytest.raises(SettingsError, match="LO_SECRET_KEY"):
+    with pytest.raises(SettingsError, match="OSLO_SECRET_KEY"):
         Settings.from_env({})
     # LO_API_TOKEN is no longer used.
-    assert Settings.from_env({"LO_SECRET_KEY": "k", "LO_API_TOKEN": "x"}).secret_key == "k"
+    assert Settings.from_env({"OSLO_SECRET_KEY": "k", "LO_API_TOKEN": "x"}).secret_key == "k"
+
+
+def test_old_variable_names_still_work(capsys):
+    settings = Settings.from_env({"LO_SECRET_KEY": "old", "LO_TIMEZONE": "UTC"})
+    assert settings.secret_key == "old" and settings.timezone == "UTC"
+    assert "rename it to OSLO_" in capsys.readouterr().err
+    # The new name wins over the old one.
+    assert Settings.from_env({"OSLO_SECRET_KEY": "new", "LO_SECRET_KEY": "old"}).secret_key == "new"

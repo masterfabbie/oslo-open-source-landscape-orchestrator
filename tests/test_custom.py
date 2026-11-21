@@ -8,9 +8,9 @@ import pytest
 
 import test_mass
 from conftest import hold_activities, make_user
-from landscape_orchestrator.customops import ParameterError, parameter_values
-from landscape_orchestrator.customspec import CustomSpec, ParameterSpec, service_subtype
-from landscape_orchestrator.models import Instance, System
+from oslo.customops import ParameterError, parameter_values
+from oslo.customspec import CustomSpec, ParameterSpec, service_subtype
+from oslo.models import Instance, System
 from test_mass import client, sign_in
 
 pytestmark = pytest.mark.anyio
@@ -18,10 +18,10 @@ pytestmark = pytest.mark.anyio
 # Same fixtures as the mass operations: systems A (DEV/01), B (DEV/00), C (HDV/02).
 app, api, transport = test_mass.app, test_mass.api, test_mass.transport
 
-LO_TEST = {
-    "key": "lo_test",
+OSLO_TEST = {
+    "key": "oslo_test",
     "name": "Test operation",
-    "agent_operation": "LO_TEST",
+    "agent_operation": "OSLO_TEST",
     "target": "INSTANCE",
     "role": "operator",
     "timeout_seconds": 60,
@@ -34,7 +34,7 @@ LO_TEST = {
 
 
 def spec(*parameters: ParameterSpec) -> CustomSpec:
-    return CustomSpec(1, "T", None, "LO_TEST", "HOST", (), "parallel", 60, parameters)
+    return CustomSpec(1, "T", None, "OSLO_TEST", "HOST", (), "parallel", 60, parameters)
 
 
 def log(activity: dict) -> list[str]:
@@ -84,7 +84,7 @@ def test_service_subtype():
 # --- API ------------------------------------------------------------------------------------
 
 
-async def create(api, body=LO_TEST) -> dict:
+async def create(api, body=OSLO_TEST) -> dict:
     response = await api.post("/api/custom-operations", json=body)
     assert response.status_code == 201, response.text
     return response.json()
@@ -93,37 +93,38 @@ async def create(api, body=LO_TEST) -> dict:
 async def test_define_custom_operations(app, api):
     operation = await create(api)
     assert [p["name"] for p in operation["parameters"]] == ["A", "SLEEP", "RC"]
-    assert (await api.post("/api/custom-operations", json=LO_TEST)).status_code == 409
-    builtin = LO_TEST | {"key": "start"}
+    assert (await api.post("/api/custom-operations", json=OSLO_TEST)).status_code == 409
+    builtin = OSLO_TEST | {"key": "start"}
     assert (await api.post("/api/custom-operations", json=builtin)).status_code == 422
-    bad_default = LO_TEST | {
+    bad_default = OSLO_TEST | {
         "key": "x",
         "parameters": [{"name": "N", "label": "N", "type": "INTEGER", "default": "a"}],
     }
     assert (await api.post("/api/custom-operations", json=bad_default)).status_code == 422
 
     listed = {op["key"]: op for op in (await api.get("/api/operations")).json()}
-    assert listed["lo_test"]["custom"] and listed["lo_test"]["targets"] == ["INSTANCE"]
-    assert listed["lo_test"]["parameters"][2]["required"]
+    assert listed["oslo_test"]["custom"] and listed["oslo_test"]["targets"] == ["INSTANCE"]
+    assert listed["oslo_test"]["parameters"][2]["required"]
 
-    changed = LO_TEST | {"name": "Renamed", "parameters": [{"name": "RC", "label": "RC"}]}
+    changed = OSLO_TEST | {"name": "Renamed", "parameters": [{"name": "RC", "label": "RC"}]}
     response = await api.put(f"/api/custom-operations/{operation['id']}", json=changed)
     assert response.json()["name"] == "Renamed" and len(response.json()["parameters"]) == 1
-    assert app.state.catalog.get("lo_test").custom.name == "Renamed"
+    assert app.state.catalog.get("oslo_test").custom.name == "Renamed"
 
     async with client(app, await make_user(app, "conf", "configurator")) as configurator:
         assert (await configurator.get("/api/custom-operations")).status_code == 403
-        assert (await configurator.post("/api/custom-operations", json=LO_TEST)).status_code == 403
+        response = await configurator.post("/api/custom-operations", json=OSLO_TEST)
+        assert response.status_code == 403
 
     assert (await api.delete(f"/api/custom-operations/{operation['id']}")).status_code == 204
-    assert app.state.catalog.get("lo_test") is None
+    assert app.state.catalog.get("oslo_test") is None
 
 
 async def test_run_on_instance(app, api, landscape):
     await create(api)
     async with client(app, await make_user(app, "op", "operator")) as operator:
         body = {"parameters": {"A": "hello", "RC": 0}}
-        response = await operator.post("/api/instances/2/operations/lo_test", json=body)
+        response = await operator.post("/api/instances/2/operations/oslo_test", json=body)
         assert response.status_code == 202, response.text
         result = await finished(app, api, response.json()["id"])
     assert result["status"] == "SUCCEEDED" and result["kind"] == "CUSTOM"
@@ -135,15 +136,16 @@ async def test_run_on_instance(app, api, landscape):
     # In the order of Command: SAPSYSTEMNAME SAPSYSTEM SERVICE_SUBTYPE PARAM-A -SLEEP -RC
     assert run.arguments == ["DEV", "00", "Instance_Application_Server/ABAP", "hello", "2", "0"]
 
-    missing = await api.post("/api/instances/2/operations/lo_test", json={"parameters": {}})
+    missing = await api.post("/api/instances/2/operations/oslo_test", json={"parameters": {}})
     assert missing.status_code == 422 and "RC: required" in missing.text
-    assert (await api.post("/api/systems/1/operations/lo_test", json={})).status_code == 404
+    assert (await api.post("/api/systems/1/operations/oslo_test", json={})).status_code == 404
     assert (await api.post("/api/instances/2/operations/nothing", json={})).status_code == 404
 
 
 async def test_failed_script(app, api):
     await create(api)
-    response = await api.post("/api/instances/2/operations/lo_test", json={"parameters": {"RC": 3}})
+    body = {"parameters": {"RC": 3}}
+    response = await api.post("/api/instances/2/operations/oslo_test", json=body)
     result = await finished(app, api, response.json()["id"])
     assert result["status"] == "FAILED"
     assert "exit code = 3" in result["error"]
@@ -152,21 +154,22 @@ async def test_failed_script(app, api):
 async def test_timeout_cancels_on_the_host(app, api, landscape):
     await create(api)
     body = {"parameters": {"RC": 0, "SLEEP": 500}}
-    response = await api.post("/api/instances/2/operations/lo_test?timeout=10", json=body)
+    response = await api.post("/api/instances/2/operations/oslo_test?timeout=10", json=body)
     result = await finished(app, api, response.json()["id"])
     assert result["status"] == "FAILED"
     assert not landscape.operation_runs  # cancelled and forgotten by the host agent
 
 
 async def test_role_of_the_operation(app, api):
-    await create(api, LO_TEST | {"role": "admin"})
+    await create(api, OSLO_TEST | {"role": "admin"})
     async with client(app, await make_user(app, "op", "operator")) as operator:
         body = {"parameters": {"RC": 0}}
-        response = await operator.post("/api/instances/2/operations/lo_test", json=body)
+        response = await operator.post("/api/instances/2/operations/oslo_test", json=body)
         assert response.status_code == 403
-        assert all(op["key"] != "lo_test" for op in (await operator.get("/api/operations")).json())
+        operations = (await operator.get("/api/operations")).json()
+        assert all(op["key"] != "oslo_test" for op in operations)
     async with client(app, await make_user(app, "view", "viewer")) as viewer:
-        response = await viewer.post("/api/instances/2/operations/lo_test", json=body)
+        response = await viewer.post("/api/instances/2/operations/oslo_test", json=body)
         assert response.status_code == 403
 
 
@@ -178,9 +181,9 @@ async def test_run_on_system_by_roles(app, api, landscape):
     await api.post(
         "/api/systems/3/instances", json={"instance_ids": [ids["DEV/00"], ids["DEV/01"]]}
     )
-    await create(api, LO_TEST | {"target": "SYSTEM", "ordering": "roles"})
+    await create(api, OSLO_TEST | {"target": "SYSTEM", "ordering": "roles"})
     body = {"parameters": {"RC": 0, "SLEEP": 1}}
-    response = await api.post("/api/systems/3/operations/lo_test", json=body)
+    response = await api.post("/api/systems/3/operations/oslo_test", json=body)
     assert response.status_code == 202, response.text
     result = await finished(app, api, response.json()["id"])
     assert result["status"] == "SUCCEEDED"
@@ -191,8 +194,8 @@ async def test_run_on_system_by_roles(app, api, landscape):
 
 
 async def test_run_on_host(app, api, landscape):
-    await create(api, LO_TEST | {"target": "HOST", "parameters": []})
-    response = await api.post("/api/hosts/2/operations/lo_test", json={})
+    await create(api, OSLO_TEST | {"target": "HOST", "parameters": []})
+    response = await api.post("/api/hosts/2/operations/oslo_test", json={})
     result = await finished(app, api, response.json()["id"])
     assert result["status"] == "SUCCEEDED", log(result)
     run = next(iter(landscape.operation_runs.values()))
@@ -201,12 +204,12 @@ async def test_run_on_host(app, api, landscape):
 
 async def test_operation_that_locks_nothing(app, api):
     """A read-only script runs beside a running stop and does not block other activities."""
-    await create(api, LO_TEST | {"locks": False})
+    await create(api, OSLO_TEST | {"locks": False})
     gate = hold_activities(app)
     stop = (await api.post("/api/systems/2/stop")).json()["id"]
     await asyncio.sleep(0.05)
     body = {"parameters": {"RC": 0, "SLEEP": 5}}
-    reading = await api.post("/api/instances/2/operations/lo_test", json=body)
+    reading = await api.post("/api/instances/2/operations/oslo_test", json=body)
     assert reading.status_code == 202, reading.text
     await asyncio.sleep(0.05)
     gate.set()
@@ -217,18 +220,18 @@ async def test_operation_that_locks_nothing(app, api):
     for activity in (reading.json()["id"], start.json()["id"]):
         assert (await finished(app, api, activity))["status"] == "SUCCEEDED"
     operations = {o["key"]: o for o in (await api.get("/api/operations")).json()}
-    assert operations["lo_test"]["locks"] is False
+    assert operations["oslo_test"]["locks"] is False
 
 
 async def test_operation_only_for_templates(app, api):
-    await create(api, LO_TEST | {"standalone": False})
-    assert (await api.post("/api/instances/2/operations/lo_test", json={})).status_code == 404
-    mass = {"operation": "lo_test", "target_type": "INSTANCE", "target_ids": [2]}
+    await create(api, OSLO_TEST | {"standalone": False})
+    assert (await api.post("/api/instances/2/operations/oslo_test", json={})).status_code == 404
+    mass = {"operation": "oslo_test", "target_type": "INSTANCE", "target_ids": [2]}
     assert (await api.post("/api/mass-operations", json=mass)).status_code == 422
     landscape = (await api.get("/api/landscape")).json()
-    assert "lo_test" not in {o["key"] for o in landscape["operations"]}
+    assert "oslo_test" not in {o["key"] for o in landscape["operations"]}
     # As a step of a template it runs.
-    step = {"operation": "lo_test", "target_type": "INSTANCE", "parameters": {"RC": "0"}}
+    step = {"operation": "oslo_test", "target_type": "INSTANCE", "parameters": {"RC": "0"}}
     body = {"key": "only", "name": "Only", "steps": [step]}
     assert (await api.post("/api/templates", json=body)).status_code == 201
     response = await api.post("/api/instances/2/operations/only", json={})
@@ -240,7 +243,7 @@ async def test_cancel_custom_operation(app, api, landscape):
     await create(api)
     gate = hold_activities(app)
     body = {"parameters": {"RC": 0, "SLEEP": 30}}
-    response = await api.post("/api/instances/2/operations/lo_test", json=body)
+    response = await api.post("/api/instances/2/operations/oslo_test", json=body)
     activity_id = response.json()["id"]
     await asyncio.sleep(0.05)
     async with client(app, await make_user(app, "op", "operator")) as operator:
@@ -272,7 +275,7 @@ async def test_cancel_mass_operation(app, api):
     await create(api)
     gate = hold_activities(app)
     body = {
-        "operation": "lo_test",
+        "operation": "oslo_test",
         "target_type": "INSTANCE",
         "target_ids": [1, 2, 3],
         "parallel": 1,
@@ -297,10 +300,10 @@ async def test_cancel_mass_operation(app, api):
 
 async def test_custom_operations_in_the_browser(app, api, landscape):
     """The pages of custom operations use the API with the session cookie."""
-    headers = {"X-LO-Request": "1"}
+    headers = {"X-OSLO-Request": "1"}
     async with sign_in(app) as browser:
         assert (await browser.get("/operations/custom")).status_code == 200
-        body = LO_TEST | {"instance_types": ["abap"]}
+        body = OSLO_TEST | {"instance_types": ["abap"]}
         created = await browser.post("/api/custom-operations", json=body, headers=headers)
         assert created.status_code == 201, created.text
         assert (await browser.get(f"/operations/custom/{created.json()['id']}")).status_code == 200
@@ -309,11 +312,11 @@ async def test_custom_operations_in_the_browser(app, api, landscape):
 
         # Only the ABAP application server (instance 2) gets the operation.
         refused = await browser.post(
-            "/api/instances/1/operations/lo_test", json={"parameters": {"RC": 0}}, headers=headers
+            "/api/instances/1/operations/oslo_test", json={"parameters": {"RC": 0}}, headers=headers
         )
         assert refused.status_code == 422
         started = await browser.post(
-            "/api/instances/2/operations/lo_test", json={"parameters": {"RC": 0}}, headers=headers
+            "/api/instances/2/operations/oslo_test", json={"parameters": {"RC": 0}}, headers=headers
         )
         assert started.status_code == 202
         await app.state.runner.wait(started.json()["id"])
@@ -322,7 +325,7 @@ async def test_custom_operations_in_the_browser(app, api, landscape):
         assert activity["options"]["parameters"] == {"PARAM-SLEEP": "2", "PARAM-RC": "0"}
         data = (await browser.get("/api/landscape")).json()
         offered = {op["key"]: op for op in data["operations"]}
-        assert offered["lo_test"]["instance_types"] == ["abap"]
+        assert offered["oslo_test"]["instance_types"] == ["abap"]
 
     await make_user(app, "conf", "configurator")
     async with sign_in(app, "conf") as configurator:
@@ -336,7 +339,7 @@ async def test_cancel_in_the_browser(app, api):
     gate = hold_activities(app)
     activity_id = (await api.post("/api/systems/1/start")).json()["id"]
     await asyncio.sleep(0.05)
-    headers = {"X-LO-Request": "1"}
+    headers = {"X-OSLO-Request": "1"}
     async with sign_in(app) as browser:
         # The activity page cancels through the API with the session cookie.
         response = await browser.post(f"/api/activities/{activity_id}/cancel", headers=headers)

@@ -10,7 +10,7 @@ import { ActivityPage } from "./ActivityPage";
 
 const boot = readBoot() as ReturnType<typeof readBoot> & { activity_id: number };
 const queries = new QueryClient({ defaultOptions: { queries: { retry: 1, staleTime: 1_000 } } });
-const root = document.getElementById("lo-app");
+const root = document.getElementById("oslo-app");
 if (root) {
   root.textContent = "";
   createRoot(root).render(

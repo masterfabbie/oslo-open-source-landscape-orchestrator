@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from landscape_orchestrator.roles import Role, instance_role
+from oslo.roles import Role, instance_role
 
 
 def test_roles_from_features():

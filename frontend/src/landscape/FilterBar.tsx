@@ -33,7 +33,7 @@ export function FilterBar({ kind, filter, onChange, snapshot, summary }: Props) 
     };
     // A click outside closes the open filter lists.
     const onClick = (event: MouseEvent) => {
-      document.querySelectorAll<HTMLDetailsElement>("details.lo-chip[open]").forEach((chip) => {
+      document.querySelectorAll<HTMLDetailsElement>("details.oslo-chip[open]").forEach((chip) => {
         if (!chip.contains(event.target as Node)) chip.open = false;
       });
     };
@@ -78,9 +78,9 @@ export function FilterBar({ kind, filter, onChange, snapshot, summary }: Props) 
   const set = (key: string, list: string[]) => onChange({ ...filter, [key]: list } as SystemFilter | HostFilter);
 
   return (
-    <div className="lo-filters">
-      <label className="lo-search">
-        <span className="lo-visually-hidden">{t("ui.search")}</span>
+    <div className="oslo-filters">
+      <label className="oslo-search">
+        <span className="oslo-visually-hidden">{t("ui.search")}</span>
         <input
           ref={search}
           type="search"
@@ -93,12 +93,12 @@ export function FilterBar({ kind, filter, onChange, snapshot, summary }: Props) 
         const chosen = values[chip.key];
         const names = chip.options.filter((o) => chosen.includes(o.value)).map((o) => o.label);
         return (
-          <details key={chip.key} className={`lo-chip${chosen.length ? " lo-chip-on" : ""}`}>
+          <details key={chip.key} className={`oslo-chip${chosen.length ? " oslo-chip-on" : ""}`}>
             <summary>
               {chip.label}
               {names.length ? `: ${names.join(", ")}` : ""}
             </summary>
-            <div className="lo-chip-menu">
+            <div className="oslo-chip-menu">
               {chip.options.length ? (
                 chip.options.map((option) => (
                   <label key={option.value}>
@@ -113,7 +113,7 @@ export function FilterBar({ kind, filter, onChange, snapshot, summary }: Props) 
                   </label>
                 ))
               ) : (
-                <span className="lo-muted">{t("filter.no_values")}</span>
+                <span className="oslo-muted">{t("filter.no_values")}</span>
               )}
             </div>
           </details>
@@ -128,7 +128,7 @@ export function FilterBar({ kind, filter, onChange, snapshot, summary }: Props) 
           {t("filter.reset")}
         </button>
       )}
-      <span className="lo-summary">{summary}</span>
+      <span className="oslo-summary">{summary}</span>
     </div>
   );
 }

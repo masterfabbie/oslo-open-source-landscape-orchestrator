@@ -36,11 +36,11 @@ export function ActionBar({ selection, operations, instances, onRun, onClear }: 
   const several = count > 1;
 
   return (
-    <div className="lo-actionbar" role="region" aria-label={t("ui.selection")}>
-      <span className="lo-actionbar-count">
+    <div className="oslo-actionbar" role="region" aria-label={t("ui.selection")}>
+      <span className="oslo-actionbar-count">
         {t(`ui.selected_${selection.kind.toLowerCase()}`, { count })}
       </span>
-      <div className="lo-actionbar-ops">
+      <div className="oslo-actionbar-ops">
         {available.length ? (
           available.map((op) => {
             const label = operationLabel(op, selection.kind, t);
@@ -49,7 +49,7 @@ export function ActionBar({ selection, operations, instances, onRun, onClear }: 
               <button
                 key={op.key}
                 type="button"
-                className={`${op.danger ? "lo-danger" : ""}${isArmed ? " lo-armed" : ""}`}
+                className={`${op.danger ? "oslo-danger" : ""}${isArmed ? " oslo-armed" : ""}`}
                 onClick={() => {
                   if (op.danger && !isArmed) {
                     setArmed(op.key);
@@ -65,11 +65,11 @@ export function ActionBar({ selection, operations, instances, onRun, onClear }: 
             );
           })
         ) : (
-          <span className="lo-muted">{t("ui.no_operations")}</span>
+          <span className="oslo-muted">{t("ui.no_operations")}</span>
         )}
       </div>
       {several && available.length > 0 && (
-        <div className="lo-actionbar-options">
+        <div className="oslo-actionbar-options">
           <label>
             {t("mass.parallel")}
             <select value={parallel} onChange={(e) => setParallel(Number(e.target.value))}>
@@ -86,7 +86,7 @@ export function ActionBar({ selection, operations, instances, onRun, onClear }: 
           </label>
         </div>
       )}
-      <button type="button" className="lo-clear" onClick={onClear} aria-label={t("ui.clear_selection")}>
+      <button type="button" className="oslo-clear" onClick={onClear} aria-label={t("ui.clear_selection")}>
         {t("ui.clear_selection")}
       </button>
     </div>

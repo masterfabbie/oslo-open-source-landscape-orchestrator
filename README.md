@@ -1,10 +1,25 @@
-# Landscape Orchestrator
+# OSLO – Open Source Landscape Orchestrator
 
 Ein Werkzeug zur zentralen Verwaltung von SAP-Systemlandschaften. Es spricht mit dem
 **SAP Host Agent** (Webservice SAPHostControl, Port 1128/1129) und dem **SAP Start Service**
 (`sapstartsrv`, Webservice SAPControl, Port 5NN13/5NN14) auf den verwalteten Hosts.
 
 Dies ist ein unabhängiges Projekt und kein SAP-Produkt.
+
+### Umbenennung von LO in OSLO (2026-11-21)
+
+Das Werkzeug hieß bisher „Landscape Orchestrator“ (LO). Bei einer bestehenden Installation
+ändert sich:
+
+- Befehle: `lo-server`, `lo-user`, `lo-db`, `lo-keygen`, `lo-mock` heißen `oslo-…`. Startskripte
+  und Dienste anpassen und das Paket neu installieren (`pip install -e .`).
+- Umgebungsvariablen: `OSLO_SECRET_KEY`, `OSLO_DATABASE_URL`, `OSLO_TIMEZONE`. Die alten
+  `LO_*` werden vorerst weiter gelesen; der Server meldet dann, dass sie umbenannt werden
+  sollen. Ist beides gesetzt, gilt `OSLO_*`.
+- Das Sitzungs-Cookie heißt `oslo_session`: Alle Benutzer melden sich einmal neu an.
+- Eigene Skripte, die die API mit Sitzungs-Cookie aufrufen, senden `X-OSLO-Request: 1` statt
+  `X-LO-Request`. Aufrufe mit API-Token sind nicht betroffen.
+- Datenbank, gespeicherte Passwörter und API-Tokens bleiben unverändert.
 
 ## Stand
 
@@ -126,7 +141,7 @@ python3 -m venv .venv
 ```
 
 Die Landscape-Seite ist eine React-Anwendung (TypeScript, Vite) in `frontend/`. Gebaut wird
-sie nach `src/landscape_orchestrator/web/static/app/`; die gebauten Dateien sind eingecheckt,
+sie nach `src/oslo/web/static/app/`; die gebauten Dateien sind eingecheckt,
 damit der Server ohne Node.js läuft. Nach Änderungen in `frontend/` neu bauen und mit
 einchecken (braucht Node.js 22):
 
@@ -150,30 +165,30 @@ Die CI prüft, dass der eingecheckte Build zu den Quellen passt, und meldet Sich
 
 ## Server starten
 
-Der Server braucht einen Schlüssel aus einer Umgebungsvariable. `lo-keygen` erzeugt ihn:
+Der Server braucht einen Schlüssel aus einer Umgebungsvariable. `oslo-keygen` erzeugt ihn:
 
 ```bash
-.venv/bin/lo-keygen
+.venv/bin/oslo-keygen
 ```
 
 | Variable | Bedeutung |
 |---|---|
-| `LO_SECRET_KEY` | Schlüssel, mit dem gespeicherte Passwörter verschlüsselt werden |
-| `LO_DATABASE_URL` | optional, Standard `sqlite+aiosqlite:///./landscape.db` |
-| `LO_TIMEZONE` | optional, Standard `Europe/Berlin`: Zeitzone für Uhrzeiten in Einplanungen (IANA-Name) |
+| `OSLO_SECRET_KEY` | Schlüssel, mit dem gespeicherte Passwörter verschlüsselt werden |
+| `OSLO_DATABASE_URL` | optional, Standard `sqlite+aiosqlite:///./landscape.db` |
+| `OSLO_TIMEZONE` | optional, Standard `Europe/Berlin`: Zeitzone für Uhrzeiten in Einplanungen (IANA-Name) |
 
-**Den `LO_SECRET_KEY` sicher aufbewahren.** Geht er verloren oder wird er geändert, lassen sich
+**Den `OSLO_SECRET_KEY` sicher aufbewahren.** Geht er verloren oder wird er geändert, lassen sich
 die gespeicherten Passwörter nicht mehr entschlüsseln und müssen neu eingegeben werden.
 
 ```bash
-.venv/bin/lo-server
+.venv/bin/oslo-server
 ```
 
 Der Server lauscht standardmäßig nur auf `127.0.0.1:8000`. Mit `--mock` spricht er statt echter
 Hosts die eingebaute simulierte Landschaft an:
 
 ```bash
-.venv/bin/lo-server --mock
+.venv/bin/oslo-server --mock
 ```
 
 ### Datenbank und Migrationen
@@ -192,19 +207,19 @@ Bevor bestehende Daten migriert werden, legt der Server eine Kopie der SQLite-Da
 (`landscape.db.bak-<Zeitstempel>`, UTC). Die letzten 5 Kopien bleiben erhalten, ältere werden
 gelöscht. Der Server meldet die Kopie beim Start.
 
-Der Befehl `lo-db` zeigt und migriert das Schema ohne den Server, für die Datenbank aus
-`LO_DATABASE_URL`:
+Der Befehl `oslo-db` zeigt und migriert das Schema ohne den Server, für die Datenbank aus
+`OSLO_DATABASE_URL`:
 
 ```bash
-.venv/bin/lo-db current
+.venv/bin/oslo-db current
 ```
 
 ```bash
-.venv/bin/lo-db upgrade
+.venv/bin/oslo-db upgrade
 ```
 
 ```bash
-.venv/bin/lo-db history
+.venv/bin/oslo-db history
 ```
 
 `LO_API_TOKEN` gibt es nicht mehr; ist es noch gesetzt, meldet der Server, dass er es
@@ -248,19 +263,19 @@ abgelehnt.
 - **Nachvollziehbarkeit:** Jede Aktivität vermerkt, wer sie angefordert hat.
 - **Filterauswahl** in der Landscape wird pro Benutzer gespeichert.
 
-Ohne Oberfläche, z. B. wenn kein Admin mehr anmelden kann, hilft `lo-user` (fragt das Passwort
+Ohne Oberfläche, z. B. wenn kein Admin mehr anmelden kann, hilft `oslo-user` (fragt das Passwort
 ab; `passwd` entsperrt und aktiviert das Konto auch):
 
 ```bash
-.venv/bin/lo-user add chief --role admin
+.venv/bin/oslo-user add chief --role admin
 ```
 
 ```bash
-.venv/bin/lo-user passwd chief
+.venv/bin/oslo-user passwd chief
 ```
 
 ```bash
-.venv/bin/lo-user list
+.venv/bin/oslo-user list
 ```
 
 ## Web-Oberfläche
@@ -439,7 +454,7 @@ Mehrere Ziele laufen als Massenoperation, bei einer Dialog-Vorlage als ein Lauf 
 Zielen als Auswahl; eine Vorlage mit festen Zielen wird ohne Ziele eingeplant. Der Lauf geschieht mit den Rechten des Benutzers,
 der ihn eingeplant hat; sie werden beim Start erneut geprüft (gesperrter Benutzer oder fehlende
 Rolle: kein Lauf, der Grund steht bei der Einplanung). Uhrzeiten gelten in der Zeitzone
-`LO_TIMEZONE` des Servers. Der Server prüft alle 30 Sekunden, was fällig ist; war er zur
+`OSLO_TIMEZONE` des Servers. Der Server prüft alle 30 Sekunden, was fällig ist; war er zur
 fälligen Zeit aus, läuft ein Lauf beim nächsten Prüfen nach, verpasste Wiederholungen werden
 nicht nachgeholt. Die Aktivität nennt als Auftraggeber „<Benutzer> (schedule <Nr.>)“.
 
@@ -478,7 +493,7 @@ Schritt einer Vorlage). Sie laufen über den Host Agent (`RegisterInstanceServic
 
 | Operation | Ablauf |
 |---|---|
-| Instanz-Agent registrieren | `sapstartsrv -reg`, dann `StartService`; LO wartet, bis der sapstartsrv antwortet |
+| Instanz-Agent registrieren | `sapstartsrv -reg`, dann `StartService`; OSLO wartet, bis der sapstartsrv antwortet |
 | Instanz-Agent abmelden | `StopService`, dann `sapstartsrv -unreg`; die Instanz selbst wird nicht gestoppt |
 | Instanz-Agent neu registrieren | abmelden, dann registrieren |
 
@@ -593,7 +608,7 @@ lässt es sich nicht ändern.
   `static/app/THIRD-PARTY-LICENSES.txt`); eine strikte Content-Security-Policy erlaubt nur
   eigene Dateien.
 - **Sitzung:** Ein signiertes Sitzungs-Cookie, 8 Stunden gültig, `HttpOnly` und
-  `SameSite=Strict`. Wird `LO_SECRET_KEY` geändert, sind alle Sitzungen ungültig.
+  `SameSite=Strict`. Wird `OSLO_SECRET_KEY` geändert, sind alle Sitzungen ungültig.
   Formulare von fremden Websites werden abgelehnt.
 
 Einschränkungen:
@@ -614,7 +629,7 @@ Alle Aufrufe unter `/api` verlangen ein persönliches API-Token im Header
 `Authorization: Bearer <token>`. Tokens legt man unter „Mein Konto“ an; sie haben die Rechte
 der Rolle ihres Benutzers und können ein Ablaufdatum haben. Gespeichert wird nur ein Hash.
 Die Oberfläche im Browser ruft die API mit dem Sitzungs-Cookie auf; Aufrufe, die etwas
-ändern, brauchen dann zusätzlich den Header `X-LO-Request: 1`. Andere Websites können ihn
+ändern, brauchen dann zusätzlich den Header `X-OSLO-Request: 1`. Andere Websites können ihn
 nicht mitschicken (kein CORS) und so nicht im Namen des angemeldeten Benutzers handeln.
 Alle Antworten tragen eine strikte Content-Security-Policy: Skripte, Stile, Schriften und
 Verbindungen nur vom Server selbst, keine Inline-Skripte, keine Einbettung in fremde Seiten.
@@ -683,16 +698,16 @@ keine Inventardaten.
 | POST | `/api/activities/{id}/cancel` | laufende Aktivität abbrechen (Operator); HTTP 409, wenn sie schon beendet ist |
 | POST | `/api/mass-operations` | Massenoperation (`{"operation": "stop", "target_type": "SYSTEM", "target_ids": [1, 2], "parallel": 5, "stop_on_error": false}`); `target_type` ist `SYSTEM`, `INSTANCE` oder `HOST`; für eigene Operationen zusätzlich `parameters`; Antwort ist die Sammelaktivität (HTTP 202) |
 
-Beispiel mit der simulierten Landschaft (`LO_TOKEN` enthält ein persönliches API-Token):
+Beispiel mit der simulierten Landschaft (`OSLO_TOKEN` enthält ein persönliches API-Token):
 
 ```bash
-curl -H "Authorization: Bearer $LO_TOKEN" -H "Content-Type: application/json" \
+curl -H "Authorization: Bearer $OSLO_TOKEN" -H "Content-Type: application/json" \
   -d '{"name": "sapapp1", "address": "127.0.0.1", "username": "devadm", "password": "mock"}' \
   http://127.0.0.1:8000/api/hosts
 ```
 
 ```bash
-curl -X POST -H "Authorization: Bearer $LO_TOKEN" http://127.0.0.1:8000/api/hosts/1/discover
+curl -X POST -H "Authorization: Bearer $OSLO_TOKEN" http://127.0.0.1:8000/api/hosts/1/discover
 ```
 
 Verhalten:
@@ -731,7 +746,7 @@ Jede Operation läuft als Aktivität im Hintergrund. Der Aufruf antwortet sofort
 der Aktivität; den Fortschritt liest man über `/api/activities/{id}`.
 
 ```bash
-curl -X POST -H "Authorization: Bearer $LO_TOKEN" http://127.0.0.1:8000/api/systems/1/stop
+curl -X POST -H "Authorization: Bearer $OSLO_TOKEN" http://127.0.0.1:8000/api/systems/1/stop
 ```
 
 | Ziel | Weg | Fertig, wenn |
@@ -802,10 +817,10 @@ Einschränkungen:
 
 ## SOAP-Clients
 
-Die Clients sind asynchron und liegen in `landscape_orchestrator.clients`.
+Die Clients sind asynchron und liegen in `oslo.clients`.
 
 ```python
-from landscape_orchestrator.clients import HostAgentClient, SapControlClient
+from oslo.clients import HostAgentClient, SapControlClient
 
 async with HostAgentClient("sapapp1", auth=("sapadm", "...")) as agent:
     instances = await agent.list_instances()
@@ -854,7 +869,7 @@ und getestet werden kann. Sie startet pro Host einen Host-Agent-Endpunkt und pro
 sapstartsrv-Endpunkt.
 
 ```bash
-.venv/bin/lo-mock
+.venv/bin/oslo-mock
 ```
 
 Die Standardlandschaft enthält das ABAP-System `DEV` und, wie in echten Landschaften, ein
@@ -879,7 +894,7 @@ Methoden: `devadm` und `sapadm`, Passwort jeweils `mock`.
 Eine eigene Landschaft lässt sich als JSON-Datei übergeben:
 
 ```bash
-.venv/bin/lo-mock --config landschaft.json
+.venv/bin/oslo-mock --config landschaft.json
 ```
 
 ```json
@@ -918,7 +933,7 @@ Verhalten:
 - `StartSystem` startet nach Instanzpriorität (HDB, dann ASCS, dann Anwendungsserver),
   `StopSystem` in umgekehrter Reihenfolge.
 - Eigene Operationen stehen unter `custom_operations` (Name, Beschreibung, Befehl als Liste
-  von Argumentnamen). Die Standardlandschaft hat `LO_TEST`, das sich wie ein Testskript
+  von Argumentnamen). Die Standardlandschaft hat `OSLO_TEST`, das sich wie ein Testskript
   verhält: Es gibt seine Argumente aus, läuft `PARAM-SLEEP` Sekunden (Standard 2) und endet
   mit dem Exit-Code `PARAM-RC`. Faults und Meldungen entsprechen denen eines echten Host Agents.
 - Zustandsändernde Methoden verlangen HTTP Basic Auth. Ohne Anmeldedaten kommt HTTP 401,

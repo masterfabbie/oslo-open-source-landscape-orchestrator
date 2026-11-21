@@ -29,19 +29,19 @@ export function GeneralPage() {
     queryFn: () => api<{ version: string; database: string; session_hours: number; timezone: string }>("/platform"),
   });
   return (
-    <div className="lo-page">
+    <div className="oslo-page">
       <PageHead title={t("tab.general")} tabs={[{ href: "/administration", label: t("tab.overview"), current: true }]} />
       <Section hint={t("admin.planned")}>
         {data && (
-          <dl className="lo-facts">
+          <dl className="oslo-facts">
             <dt>{t("admin.version")}</dt>
-            <dd className="lo-mono">{data.version}</dd>
+            <dd className="oslo-mono">{data.version}</dd>
             <dt>{t("admin.database")}</dt>
-            <dd className="lo-mono">{data.database}</dd>
+            <dd className="oslo-mono">{data.database}</dd>
             <dt>{t("admin.session")}</dt>
             <dd>{t("admin.session_hours", { hours: data.session_hours })}</dd>
             <dt>{t("admin.timezone")}</dt>
-            <dd className="lo-mono">{data.timezone}</dd>
+            <dd className="oslo-mono">{data.timezone}</dd>
           </dl>
         )}
       </Section>
@@ -53,14 +53,14 @@ export function UsersPage() {
   const { t, language } = useApp();
   const { data, isPending } = useQuery({ queryKey: ["users"], queryFn: () => api<UserRow[]>("/users") });
   return (
-    <div className="lo-page">
+    <div className="oslo-page">
       <PageHead title={t("tab.users")} action={{ href: "/administration/users/new", label: t("users.add") }} tabs={[{ href: "/administration/users", label: t("tab.overview"), current: true }]} />
-      <p className="lo-muted">{t("users.roles_hint")}</p>
+      <p className="oslo-muted">{t("users.roles_hint")}</p>
       {isPending ? (
-        <p className="lo-muted">{t("ui.loading")}</p>
+        <p className="oslo-muted">{t("ui.loading")}</p>
       ) : (
-        <div className="lo-table-wrap">
-          <table className="lo-table">
+        <div className="oslo-table-wrap">
+          <table className="oslo-table">
             <thead>
               <tr>
                 <th>{t("field.username")}</th>
@@ -74,7 +74,7 @@ export function UsersPage() {
               {data?.map((u) => (
                 <tr key={u.id}>
                   <td>
-                    <a className="lo-strong lo-mono" href={`/administration/users/${u.id}`}>
+                    <a className="oslo-strong oslo-mono" href={`/administration/users/${u.id}`}>
                       {u.username}
                     </a>
                   </td>
@@ -82,9 +82,9 @@ export function UsersPage() {
                   <td>{t(`role.${u.role}`)}</td>
                   <td>
                     <StatusBadge status={u.active ? "GREEN" : "GRAY"} prefix="userstate" />
-                    {u.must_change_password && <span className="lo-sub">{t("users.must_change")}</span>}
+                    {u.must_change_password && <span className="oslo-sub">{t("users.must_change")}</span>}
                   </td>
-                  <td className="lo-muted">{u.last_login_at ? formatTime(u.last_login_at, language) : t("hosts.never")}</td>
+                  <td className="oslo-muted">{u.last_login_at ? formatTime(u.last_login_at, language) : t("hosts.never")}</td>
                 </tr>
               ))}
             </tbody>
@@ -102,7 +102,7 @@ export function UserNewPage() {
   const [role, setRole] = useState("viewer");
   const [password, setPassword] = useState("");
   return (
-    <div className="lo-page">
+    <div className="oslo-page">
       <PageHead title={t("users.add")} crumbs={[{ href: "/administration/users", label: t("tab.users") }]} />
       <Section>
         <ActionForm
@@ -112,16 +112,16 @@ export function UserNewPage() {
             go(`/administration/users/${user.id}`, "user_created");
           }}
         >
-          <div className="lo-form-grid">
-            <label className="lo-field">
+          <div className="oslo-form-grid">
+            <label className="oslo-field">
               {t("field.username")}
               <input value={username} required maxLength={64} autoComplete="off" onChange={(e) => setUsername(e.target.value)} />
             </label>
-            <label className="lo-field">
+            <label className="oslo-field">
               {t("field.display_name")}
               <input value={displayName} maxLength={255} onChange={(e) => setDisplayName(e.target.value)} />
             </label>
-            <label className="lo-field">
+            <label className="oslo-field">
               {t("field.role")}
               <select value={role} onChange={(e) => setRole(e.target.value)}>
                 {ROLES.map((r) => (
@@ -131,12 +131,12 @@ export function UserNewPage() {
                 ))}
               </select>
             </label>
-            <label className="lo-field">
+            <label className="oslo-field">
               {t("users.start_password")}
               <input type="password" value={password} required minLength={12} autoComplete="new-password" onChange={(e) => setPassword(e.target.value)} />
             </label>
           </div>
-          <p className="lo-muted">{t("users.start_password_hint")}</p>
+          <p className="oslo-muted">{t("users.start_password_hint")}</p>
         </ActionForm>
       </Section>
     </div>
@@ -147,7 +147,7 @@ export function UserPage({ id }: { id: number }) {
   const { t } = useApp();
   const { data, isPending } = useQuery({ queryKey: ["users"], queryFn: () => api<UserRow[]>("/users") });
   const user = data?.find((u) => u.id === id);
-  if (isPending) return <p className="lo-muted">{t("ui.loading")}</p>;
+  if (isPending) return <p className="oslo-muted">{t("ui.loading")}</p>;
   if (!user) return <p className="flash error">404</p>;
   return <UserEditor user={user} />;
 }
@@ -159,17 +159,17 @@ function UserEditor({ user }: { user: UserRow }) {
   const [active, setActive] = useState(user.active);
   const [password, setPassword] = useState("");
   return (
-    <div className="lo-page">
+    <div className="oslo-page">
       <PageHead title={`${t("users.user")} ${user.username}`} crumbs={[{ href: "/administration/users", label: t("tab.users") }]} />
-      <div className="lo-two">
+      <div className="oslo-two">
         <Section title={t("system.general")}>
           <ActionForm submit={t("action.save")} onSubmit={() => api(`/users/${user.id}`, { method: "PATCH", body: { display_name: displayName || null, role, active } })}>
-            <div className="lo-form-grid">
-              <label className="lo-field">
+            <div className="oslo-form-grid">
+              <label className="oslo-field">
                 {t("field.display_name")}
                 <input value={displayName} maxLength={255} onChange={(e) => setDisplayName(e.target.value)} />
               </label>
-              <label className="lo-field">
+              <label className="oslo-field">
                 {t("field.role")}
                 <select value={role} onChange={(e) => setRole(e.target.value)}>
                   {ROLES.map((r) => (
@@ -180,19 +180,19 @@ function UserEditor({ user }: { user: UserRow }) {
                 </select>
               </label>
             </div>
-            <label className="lo-inline">
+            <label className="oslo-inline">
               <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} /> {t("users.active")}
             </label>
-            <p className="lo-muted">{t("users.save_hint")}</p>
+            <p className="oslo-muted">{t("users.save_hint")}</p>
           </ActionForm>
         </Section>
         <Section title={t("users.reset_password")}>
           <ActionForm submit={t("users.reset_password")} onSubmit={() => api(`/users/${user.id}/password`, { method: "PUT", body: { password } })}>
-            <label className="lo-field">
+            <label className="oslo-field">
               {t("users.start_password")}
               <input type="password" value={password} required minLength={12} autoComplete="new-password" onChange={(e) => setPassword(e.target.value)} />
             </label>
-            <p className="lo-muted">{t("users.start_password_hint")}</p>
+            <p className="oslo-muted">{t("users.start_password_hint")}</p>
           </ActionForm>
         </Section>
       </div>
@@ -228,7 +228,7 @@ export function AttentionPage() {
   const { t } = useApp();
   const loaded = useQuery({ queryKey: ["rules"], queryFn: () => api<{ rules: Rules }>("/attention-rules") });
   const operations = useQuery({ queryKey: ["operations"], queryFn: () => api<{ key: string; name: string | null }[]>("/operations") });
-  if (loaded.isPending) return <p className="lo-muted">{t("ui.loading")}</p>;
+  if (loaded.isPending) return <p className="oslo-muted">{t("ui.loading")}</p>;
   if (!loaded.data) return <p className="flash error">{(loaded.error as Error)?.message}</p>;
   return <RulesEditor initial={loaded.data.rules} operations={operations.data ?? []} />;
 }
@@ -244,28 +244,28 @@ function RulesEditor({ initial, operations }: { initial: Rules; operations: { ke
   const opName = (op: { key: string; name: string | null }) => op.name ?? t(`op.${op.key}`);
 
   return (
-    <div className="lo-page">
+    <div className="oslo-page">
       <PageHead title={t("ov.attention")} tabs={[{ href: "/administration/attention", label: t("tab.overview"), current: true }]} />
-      <p className="lo-muted">{t("att.rules_intro")}</p>
+      <p className="oslo-muted">{t("att.rules_intro")}</p>
       <ActionForm submit={t("action.save")} onSubmit={() => api("/attention-rules", { method: "PUT", body: { rules } })}>
-        <div className="lo-two">
+        <div className="oslo-two">
           {Object.entries(SETTINGS).map(([rule, settings]) => (
             <Section key={rule} title={t(`att.rule.${rule}`)} hint={t(`att.hint.${rule}`)}>
-              <label className="lo-inline">
+              <label className="oslo-inline">
                 <input type="checkbox" checked={rules[rule].enabled as boolean} onChange={(e) => set(rule, "enabled", e.target.checked)} /> {t("att.enabled")}
               </label>
               {settings.map(([key, kind]) => {
                 const value = rules[rule][key];
                 if (kind === "number")
                   return (
-                    <label key={key} className="lo-field">
+                    <label key={key} className="oslo-field">
                       {t(`att.setting.${key}`)}
                       <input type="number" min={0} max={100000} value={value as number} disabled={!rules[rule].enabled} onChange={(e) => set(rule, key, Number(e.target.value))} />
                     </label>
                   );
                 if (kind === "bool")
                   return (
-                    <label key={key} className="lo-inline">
+                    <label key={key} className="oslo-inline">
                       <input type="checkbox" checked={value as boolean} disabled={!rules[rule].enabled} onChange={(e) => set(rule, key, e.target.checked)} /> {t(`att.setting.${key}`)}
                     </label>
                   );
@@ -276,10 +276,10 @@ function RulesEditor({ initial, operations }: { initial: Rules; operations: { ke
                       ? STATUSES.map((s) => [s, t(`status.${s}`)])
                       : operations.map((op) => [op.key, opName(op)]);
                 return (
-                  <fieldset key={key} className="lo-checks" disabled={!rules[rule].enabled}>
+                  <fieldset key={key} className="oslo-checks" disabled={!rules[rule].enabled}>
                     <legend>{t(`att.setting.${key}`)}</legend>
                     {items.map(([item, label]) => (
-                      <label key={item} className="lo-inline">
+                      <label key={item} className="oslo-inline">
                         <input type="checkbox" checked={(value as string[]).includes(item)} onChange={(e) => toggleIn(rule, key, item, e.target.checked)} />
                         {label}
                       </label>

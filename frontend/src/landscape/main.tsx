@@ -11,7 +11,7 @@ const boot = readBoot();
 const queries = new QueryClient({
   defaultOptions: { queries: { refetchOnWindowFocus: true, retry: 1, staleTime: 5_000 } },
 });
-const root = document.getElementById("lo-app");
+const root = document.getElementById("oslo-app");
 if (root) {
   root.textContent = "";
   createRoot(root).render(

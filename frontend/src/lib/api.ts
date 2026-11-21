@@ -1,5 +1,5 @@
 // Calls to the REST API with the session cookie. Calls that change something carry the
-// header X-LO-Request, which the server demands for cookie sign-ins (protection against
+// header X-OSLO-Request, which the server demands for cookie sign-ins (protection against
 // requests from other sites).
 
 export class ApiError extends Error {
@@ -16,7 +16,7 @@ export class ApiError extends Error {
 export async function api<T>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
   const method = init.method ?? "GET";
   const headers: Record<string, string> = { Accept: "application/json" };
-  if (method !== "GET") headers["X-LO-Request"] = "1";
+  if (method !== "GET") headers["X-OSLO-Request"] = "1";
   if (init.body !== undefined) headers["Content-Type"] = "application/json";
   const response = await fetch(`/api${path}`, {
     method,

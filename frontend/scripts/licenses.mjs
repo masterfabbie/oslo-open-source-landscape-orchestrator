@@ -18,6 +18,6 @@ function visit(name) {
 }
 
 for (const name of Object.keys(pkg.dependencies ?? {}).sort()) visit(name);
-const out = "../src/landscape_orchestrator/web/static/app/THIRD-PARTY-LICENSES.txt";
+const out = "../src/oslo/web/static/app/THIRD-PARTY-LICENSES.txt";
 writeFileSync(out, parts.join("\n\n" + "-".repeat(78) + "\n\n") + "\n");
 console.log(`licenses of ${parts.length} packages written to ${out}`);

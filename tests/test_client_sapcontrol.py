@@ -4,18 +4,18 @@ import httpx
 import pytest
 
 from conftest import AUTH
-from landscape_orchestrator.clients import (
+from oslo.clients import (
     AuthenticationRequiredError,
     InvalidCredentialsError,
     SapControlClient,
     SoapFaultError,
 )
-from landscape_orchestrator.clients.sapcontrol import (
+from oslo.clients.sapcontrol import (
     StartStopOption,
     StateColor,
     sapcontrol_port,
 )
-from landscape_orchestrator.mock.apps import create_sapcontrol_app
+from oslo.mock.apps import create_sapcontrol_app
 
 pytestmark = pytest.mark.anyio
 

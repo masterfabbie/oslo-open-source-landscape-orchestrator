@@ -113,14 +113,14 @@ export function CommandPalette(props: Props) {
 
   let lastGroup = "";
   return (
-    <dialog ref={dialog} className="lo-palette" onClose={onClose} aria-label={t("ui.palette")}>
+    <dialog ref={dialog} className="oslo-palette" onClose={onClose} aria-label={t("ui.palette")}>
       <input
         autoFocus
         value={query}
         placeholder={t("ui.palette_placeholder")}
         aria-label={t("ui.palette_placeholder")}
-        aria-controls="lo-palette-list"
-        aria-activedescendant={entries[active] ? `lo-entry-${entries[active].id}` : undefined}
+        aria-controls="oslo-palette-list"
+        aria-activedescendant={entries[active] ? `oslo-entry-${entries[active].id}` : undefined}
         onChange={(e) => {
           setQuery(e.target.value);
           setActive(0);
@@ -138,30 +138,30 @@ export function CommandPalette(props: Props) {
           }
         }}
       />
-      <ul id="lo-palette-list" role="listbox" className="lo-palette-list">
+      <ul id="oslo-palette-list" role="listbox" className="oslo-palette-list">
         {entries.map((entry, index) => {
           const header = entry.group !== lastGroup ? entry.group : null;
           lastGroup = entry.group;
           return (
             <li key={entry.id} role="presentation">
-              {header && <div className="lo-palette-group">{header}</div>}
+              {header && <div className="oslo-palette-group">{header}</div>}
               <div
-                id={`lo-entry-${entry.id}`}
+                id={`oslo-entry-${entry.id}`}
                 role="option"
                 aria-selected={index === active}
-                className="lo-palette-entry"
+                className="oslo-palette-entry"
                 onMouseEnter={() => setActive(index)}
                 onClick={() => choose(entry)}
               >
                 <span>{entry.label}</span>
-                {entry.hint && <span className="lo-muted">{entry.hint}</span>}
+                {entry.hint && <span className="oslo-muted">{entry.hint}</span>}
               </div>
             </li>
           );
         })}
-        {!entries.length && <li className="lo-muted lo-palette-empty">{t("filter.no_match")}</li>}
+        {!entries.length && <li className="oslo-muted oslo-palette-empty">{t("filter.no_match")}</li>}
       </ul>
-      <div className="lo-palette-keys lo-muted">{t("ui.palette_keys")}</div>
+      <div className="oslo-palette-keys oslo-muted">{t("ui.palette_keys")}</div>
     </dialog>
   );
 }

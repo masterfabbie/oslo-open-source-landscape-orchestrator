@@ -8,7 +8,7 @@ export default defineConfig({
   plugins: [react()],
   base: "/static/app/",
   build: {
-    outDir: "../src/landscape_orchestrator/web/static/app",
+    outDir: "../src/oslo/web/static/app",
     emptyOutDir: true,
     sourcemap: false,
     // One style sheet for all pages (app.css), linked by app_page.html.

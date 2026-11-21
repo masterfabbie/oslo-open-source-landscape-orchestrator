@@ -6,7 +6,7 @@ import pytest
 
 import test_mass
 from conftest import make_user
-from test_custom import LO_TEST
+from test_custom import OSLO_TEST
 from test_mass import client
 
 pytestmark = pytest.mark.anyio
@@ -58,8 +58,8 @@ async def test_attention_rules(app, api):
     assert data["attention"][0]["link"] == "/landscape?system=2"
 
     # A failed custom operation shows up, until a later run of it on the same target succeeds.
-    await api.post("/api/custom-operations", json=LO_TEST)
-    failed = await api.post("/api/instances/2/operations/lo_test", json={"parameters": {"RC": 3}})
+    await api.post("/api/custom-operations", json=OSLO_TEST)
+    failed = await api.post("/api/instances/2/operations/oslo_test", json={"parameters": {"RC": 3}})
     await app.state.runner.wait(failed.json()["id"])
     data = await overview(api)
     assert rules_of(data)[0] == "failed_activities"
@@ -68,14 +68,14 @@ async def test_attention_rules(app, api):
 
     rules = (await api.get("/api/attention-rules")).json()
     assert rules["rules"]["failed_activities"]["hours"] == 24
-    hidden = {"failed_activities": {"hide_operations": ["lo_test"]}}
+    hidden = {"failed_activities": {"hide_operations": ["oslo_test"]}}
     assert (await api.put("/api/attention-rules", json={"rules": hidden})).status_code == 200
     assert "failed_activities" not in rules_of(await overview(api))
     await api.put("/api/attention-rules", json={"rules": {}})
     assert "failed_activities" in rules_of(await overview(api))
 
     succeeded = await api.post(
-        "/api/instances/2/operations/lo_test", json={"parameters": {"RC": 0}}
+        "/api/instances/2/operations/oslo_test", json={"parameters": {"RC": 0}}
     )
     await app.state.runner.wait(succeeded.json()["id"])
     assert "failed_activities" not in rules_of(await overview(api))
@@ -94,9 +94,9 @@ async def test_attention_rules(app, api):
 
 
 async def test_failures_of_frequent_schedules_are_hidden(app, api):
-    await api.post("/api/custom-operations", json=LO_TEST)
+    await api.post("/api/custom-operations", json=OSLO_TEST)
     body = {
-        "operation": "lo_test",
+        "operation": "oslo_test",
         "target_type": "INSTANCE",
         "target_ids": [2],
         "parameters": {"RC": 3},

@@ -1,9 +1,9 @@
 {
-  "name": "landscape-orchestrator-frontend",
+  "name": "oslo-frontend",
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Browser interface of the Landscape Orchestrator; built into src/landscape_orchestrator/web/static/app",
+  "description": "Browser interface of the OSLO; built into src/oslo/web/static/app",
   "scripts": {
     "build": "tsc --noEmit && vite build && node scripts/licenses.mjs",
     "typecheck": "tsc --noEmit",

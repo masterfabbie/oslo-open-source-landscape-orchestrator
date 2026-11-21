@@ -72,7 +72,7 @@ export function OverviewPage() {
   const { data, isPending, error } = useQuery({ queryKey: ["overview"], queryFn: () => api<Overview>("/overview") });
   const [customizing, setCustomizing] = useState(false);
 
-  if (isPending) return <p className="lo-muted">{t("ui.loading")}</p>;
+  if (isPending) return <p className="oslo-muted">{t("ui.loading")}</p>;
   if (error || !data) return <p className="flash error">{(error as Error)?.message}</p>;
 
   const saveExceptions = async (next: Exceptions) => {
@@ -90,21 +90,21 @@ export function OverviewPage() {
   const rows = matrixRows(data);
 
   return (
-    <div className="lo-overview">
+    <div className="oslo-overview">
       <h1>{t("nav.overview")}</h1>
-      <section className="lo-kpis" aria-label={t("ov.kpis")}>
+      <section className="oslo-kpis" aria-label={t("ov.kpis")}>
         {(["systems", "instances", "hosts", "activities"] as const).map((key) => {
           const kpi = data.kpis[key];
           return (
-            <a key={key} className="lo-kpi" href={KPI_LINK[key]}>
-              <span className="lo-kpi-label">{t(`overview.${key === "activities" ? "activities_24h" : key}`)}</span>
-              <span className="lo-kpi-value">{kpi.total}</span>
-              <span className="lo-kpi-bar" aria-hidden>
+            <a key={key} className="oslo-kpi" href={KPI_LINK[key]}>
+              <span className="oslo-kpi-label">{t(`overview.${key === "activities" ? "activities_24h" : key}`)}</span>
+              <span className="oslo-kpi-value">{kpi.total}</span>
+              <span className="oslo-kpi-bar" aria-hidden>
                 {KPI_ORDER[key].map((s) =>
-                  kpi.by[s] ? <span key={s} className={`lo-kpi-part lo-kpi-${s.toLowerCase()}`} style={{ flexGrow: kpi.by[s] }} /> : null,
+                  kpi.by[s] ? <span key={s} className={`oslo-kpi-part oslo-kpi-${s.toLowerCase()}`} style={{ flexGrow: kpi.by[s] }} /> : null,
                 )}
               </span>
-              <span className="lo-kpi-legend">
+              <span className="oslo-kpi-legend">
                 {KPI_ORDER[key]
                   .filter((s) => kpi.by[s])
                   .map((s) => `${kpi.by[s]} ${t(`${key === "hosts" ? "reach" : key === "activities" ? "activity" : "status"}.${s}`)}`)
@@ -115,14 +115,14 @@ export function OverviewPage() {
         })}
       </section>
 
-      <div className="lo-overview-grid">
-        <section className="lo-card lo-matrix-card" aria-label={t("ov.matrix")}>
+      <div className="oslo-overview-grid">
+        <section className="oslo-card oslo-matrix-card" aria-label={t("ov.matrix")}>
           <h2>{t("ov.matrix")}</h2>
           {!data.systems.length ? (
-            <p className="lo-muted">{t("config.no_systems")}</p>
+            <p className="oslo-muted">{t("config.no_systems")}</p>
           ) : (
-            <div className="lo-table-wrap">
-              <table className="lo-matrix">
+            <div className="oslo-table-wrap">
+              <table className="oslo-matrix">
                 <thead>
                   <tr>
                     <th scope="col">{t("ov.product")}</th>
@@ -136,18 +136,18 @@ export function OverviewPage() {
                 <tbody>
                   {rows.map((row) => (
                     <tr key={row.id ?? "none"}>
-                      <th scope="row">{row.name ?? <span className="lo-muted">{t("pool.none")}</span>}</th>
+                      <th scope="row">{row.name ?? <span className="oslo-muted">{t("pool.none")}</span>}</th>
                       {data.columns.map((column) => {
                         const cell = data.systems.filter((s) => s.pool_id === row.id && (s.stage ?? "") === column);
                         return (
                           <td key={column}>
                             {cell.map((s) => (
-                              <a key={s.id} className={`lo-cell lo-cell-${s.status.toLowerCase()}`} href={`/landscape?system=${s.id}`} title={t(`status.${s.status}`)}>
-                                <span className="lo-cell-name">
+                              <a key={s.id} className={`oslo-cell oslo-cell-${s.status.toLowerCase()}`} href={`/landscape?system=${s.id}`} title={t(`status.${s.status}`)}>
+                                <span className="oslo-cell-name">
                                   {s.name}
-                                  {s.activity && <span className="lo-cell-running" title={t(`kind.${s.activity.kind}`)} aria-label={t("activity.RUNNING")} />}
+                                  {s.activity && <span className="oslo-cell-running" title={t(`kind.${s.activity.kind}`)} aria-label={t("activity.RUNNING")} />}
                                 </span>
-                                <span className="lo-cell-squares">
+                                <span className="oslo-cell-squares">
                                   {s.instances.map((i) => (
                                     <StatusDot key={i.id} status={i.status} label={`${i.label}: ${t(`status.${i.status}`)}`} />
                                   ))}
@@ -163,13 +163,13 @@ export function OverviewPage() {
               </table>
             </div>
           )}
-          <p className="lo-muted lo-matrix-hint">{t("ov.matrix_hint")}</p>
+          <p className="oslo-muted oslo-matrix-hint">{t("ov.matrix_hint")}</p>
         </section>
 
-        <section className="lo-card lo-attention" aria-label={t("ov.attention")}>
-          <div className="lo-attention-head">
+        <section className="oslo-card oslo-attention" aria-label={t("ov.attention")}>
+          <div className="oslo-attention-head">
             <h2>
-              {t("ov.attention")} <span className="lo-count">{data.attention.length}</span>
+              {t("ov.attention")} <span className="oslo-count">{data.attention.length}</span>
             </h2>
             <button type="button" className="link" onClick={() => setCustomizing(!customizing)} aria-expanded={customizing}>
               {t("ov.customize")}
@@ -177,12 +177,12 @@ export function OverviewPage() {
             </button>
           </div>
           {customizing && (
-            <div className="lo-attention-custom">
-              <p className="lo-muted">{t("ov.customize_hint")}</p>
+            <div className="oslo-attention-custom">
+              <p className="oslo-muted">{t("ov.customize_hint")}</p>
               <fieldset>
                 <legend>{t("ov.rules_for_me")}</legend>
                 {Object.entries(data.rules).map(([rule, enabled]) => (
-                  <label key={rule} className="lo-inline">
+                  <label key={rule} className="oslo-inline">
                     <input
                       type="checkbox"
                       disabled={!enabled}
@@ -197,7 +197,7 @@ export function OverviewPage() {
                       }
                     />
                     {t(`att.rule.${rule}`)}
-                    {!enabled && <span className="lo-muted"> · {t("ov.rule_off_globally")}</span>}
+                    {!enabled && <span className="oslo-muted"> · {t("ov.rule_off_globally")}</span>}
                   </label>
                 ))}
               </fieldset>
@@ -205,7 +205,7 @@ export function OverviewPage() {
                 <fieldset>
                   <legend>{t("ov.hidden")}</legend>
                   {data.exceptions.hidden_systems.map((id) => (
-                    <span key={`s${id}`} className="lo-hidden-chip">
+                    <span key={`s${id}`} className="oslo-hidden-chip">
                       {systemName.get(id) ?? `#${id}`}
                       <button type="button" aria-label={t("ov.show_again")} onClick={() => void saveExceptions({ ...data.exceptions, hidden_systems: data.exceptions.hidden_systems.filter((x) => x !== id) })}>
                         ×
@@ -213,7 +213,7 @@ export function OverviewPage() {
                     </span>
                   ))}
                   {data.exceptions.hidden_pools.map((id) => (
-                    <span key={`p${id}`} className="lo-hidden-chip">
+                    <span key={`p${id}`} className="oslo-hidden-chip">
                       {t("field.pool")} {poolName.get(id) ?? `#${id}`}
                       <button type="button" aria-label={t("ov.show_again")} onClick={() => void saveExceptions({ ...data.exceptions, hidden_pools: data.exceptions.hidden_pools.filter((x) => x !== id) })}>
                         ×
@@ -244,20 +244,20 @@ export function OverviewPage() {
             </div>
           )}
           {!data.attention.length ? (
-            <p className="lo-empty">{t("ov.all_fine")}</p>
+            <p className="oslo-empty">{t("ov.all_fine")}</p>
           ) : (
-            <ul className="lo-attention-list">
+            <ul className="oslo-attention-list">
               {data.attention.map((item, index) => (
-                <li key={`${item.rule}-${index}`} className={`lo-attention-${item.severity}`}>
+                <li key={`${item.rule}-${index}`} className={`oslo-attention-${item.severity}`}>
                   <a href={item.link}>
-                    <span className="lo-attention-text">{t(item.key, translatedValues(item, t))}</span>
-                    {item.values.error && <span className="lo-attention-detail">{item.values.error}</span>}
-                    <span className="lo-muted lo-attention-meta">
+                    <span className="oslo-attention-text">{t(item.key, translatedValues(item, t))}</span>
+                    {item.values.error && <span className="oslo-attention-detail">{item.values.error}</span>}
+                    <span className="oslo-muted oslo-attention-meta">
                       {t(`att.rule.${item.rule}`)}
                       {item.at ? ` · ${formatTime(item.at, language)}` : ""}
                     </span>
                   </a>
-                  <span className="lo-attention-tools">
+                  <span className="oslo-attention-tools">
                     {item.system_id !== null && (
                       <button type="button" className="link" onClick={() => void hideSystem(item.system_id as number)}>
                         {t("ov.hide_system")}

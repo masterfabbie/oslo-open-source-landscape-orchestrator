@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from landscape_orchestrator.mock.landscape import MockLandscape, Status
+from oslo.mock.landscape import MockLandscape, Status
 
 
 def statuses(landscape: MockLandscape) -> dict[str, Status]:
