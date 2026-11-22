@@ -225,3 +225,12 @@ async def test_trusted_certificates_are_loaded_at_start(tmp_path, landscape, clo
     second = create_app(settings)
     async with second.router.lifespan_context(second):
         assert [p.strip() for p in second.state.clients.trusted] == [pem.strip()]
+
+
+def test_https_of_a_host_is_for_the_host_agent_only():
+    factory = ClientFactory(SecretBox(generate_secret_key()))
+    host = Host(name="sapapp1", address="sapapp1", https=True, verify_tls=True)
+    host.sapcontrol_port_offset = 0
+    host.verify_hostname = True
+    assert factory.hostagent(host).base_url.startswith("https://sapapp1:1129")
+    assert factory.sapcontrol(host, 1).base_url == "http://sapapp1:50113"

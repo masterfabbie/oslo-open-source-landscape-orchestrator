@@ -76,13 +76,15 @@ class ClientFactory:
     def sapcontrol(
         self, host: Host, instance_number: int, sid: Sid | None = None
     ) -> SapControlClient:
-        port = sapcontrol_port(instance_number, host.https) + host.sapcontrol_port_offset
+        # The host's HTTPS setting is for the host agent only (owner's decision, 2026-11-22):
+        # instance agents show certificates of their own. sapstartsrv is reached over HTTP
+        # (5NN13) until HTTPS gets its own setting per system or instance.
+        port = sapcontrol_port(instance_number) + host.sapcontrol_port_offset
         return SapControlClient(
             host.address,
             instance_number,
             port=port,
-            https=host.https,
-            verify=self._verify(host),
+            https=False,
             auth=self._auth(sid, host),
             timeout=self._timeout,
             transport=self._transport,

@@ -185,8 +185,13 @@ Wichtige Entwurfsentscheidungen:
   `verify_tls` ist `verify` False. Ein selbst signiertes Zertifikat ohne CA-Merkmal wird von
   OpenSSL direkt als Vertrauensanker angenommen (in den Tests mit echten TLS-Servern auf
   127.0.0.1 geprüft). `POST /api/hosts/{id}/certificate` liest das Zertifikat ungeprüft
-  (`app.state.fetch_certificate`), nur das Blatt, nicht die Kette (Python 3.11). Annahme:
-  echte Host-Agent-Zertifikate bestehen `VERIFY_X509_STRICT` von Python 3.13.
+  (`app.state.fetch_certificate`), nur das Blatt, nicht die Kette (Python 3.11). Mit dem
+  selbst signierten Zertifikat eines echten Host Agents geprüft (2026-11-22).
+- **HTTPS am Host gilt nur für den Host Agent** (Entscheidung des Eigentümers, 2026-11-22):
+  `ClientFactory.sapcontrol` nutzt immer HTTP und Port 5NN13 (plus Verschiebung), weil die
+  Instanz-Agents eigene Zertifikate zeigen; am Host scheiterte die Prüfung dort mit
+  „self-signed certificate“ bzw. „unable to get local issuer certificate“. HTTPS zum
+  sapstartsrv soll später eine eigene Einstellung je System oder Instanz bekommen (ToDo 13).
 - **Seite eines Hosts:** zwei Spalten (`oslo-columns`), links Systeminformationen,
   Zugangsdaten, Tags, rechts Verbindung und Zertifikat; darunter Instanzen und Datenbanken.
 - **Verbindungsdaten eines Hosts** lassen sich ändern (`hosts.update_connection`), nicht aber
@@ -528,9 +533,12 @@ Aktuelle WSDLs lassen sich von einem Host abrufen:
   bei einem nicht antwortenden sapstartsrv. Ausführlicher Test durch den Eigentümer steht aus,
   Korrektur vorgeschlagen (ToDo 11).
 - **HTTPS zum Host Agent** (2026-11-21): OSLO erreicht einen Host Agent über Port 1129 mit
-  abgeschalteter Zertifikatsprüfung (selbst signiertes Zertifikat). Noch nicht getestet:
-  HTTPS mit Zertifikatsprüfung gegen ein Zertifikat aus Administration → Zertifikate, das
-  Abrufen des Zertifikats von einem echten Host Agent und HTTPS zum sapstartsrv (Port 5NN14).
+  abgeschalteter Zertifikatsprüfung (selbst signiertes Zertifikat). Mit Zertifikatsprüfung
+  (2026-11-22): Das über „Zertifikat abrufen“ übernommene selbst signierte Zertifikat des Host
+  Agents wird akzeptiert, die Verbindung geht, wenn „Hostnamen prüfen“ aus ist (Zugriff über
+  die IP-Adresse); damit besteht es auch `VERIFY_X509_STRICT`. Die sapstartsrv-Instanzen auf
+  Port 5NN14 zeigen andere Zertifikate (selbst signiert bzw. mit unbekanntem Aussteller) und
+  wurden abgelehnt; deshalb gilt HTTPS seither nur für den Host Agent.
 
 ## Offene Annahmen, die ein Test mit einer echten Instanz klären muss
 
@@ -547,9 +555,8 @@ Aktuelle WSDLs lassen sich von einem Host abrufen:
 5. **Datenbanken:** Der Schlüssel `Database/Vendor` ist angenommen.
 6. **Verschachtelung bei `GetComputerSystem`:** Der Client sucht Klassen in jeder Tiefe. Die
    echte Struktur ist nicht mit der des Mocks verglichen.
-7. **HTTPS:** Geklärt für den Host Agent (Port 1129) ohne Zertifikatsprüfung. Offen sind die
-   Prüfung gegen ein vertrauenswürdiges Zertifikat (Administration → Zertifikate; besteht das
-   Zertifikat eines echten Host Agents `VERIFY_X509_STRICT`?) und HTTPS zum sapstartsrv.
+7. **HTTPS:** Geklärt für den Host Agent (Port 1129), mit und ohne Zertifikatsprüfung. Offen
+   ist HTTPS zum sapstartsrv (ToDo 13).
 8. **`GetSystemInstanceList` bei getrennter Datenbank-SID:** Dass die Liste eines
    ABAP-Systems die HANA-Instanz nicht enthält, ist aus den getrennten SIDs abgeleitet, aber
    nicht direkt beobachtet.
@@ -581,6 +588,8 @@ und freigeben lassen:
     laufender Prozesse durch. Vorschlag: nur bei abgelehnter Verbindung weitermachen, sonst
     abbrechen; zusätzlich `ListInstances` mit `S-RUNNING` am Host Agent prüfen.
 12. Pools bearbeiten (Name, Beschreibung; heute nur anlegen und löschen; gewünscht 2026-11-21).
+13. HTTPS zum Instanz-Agent (sapstartsrv, Port 5NN14) als Einstellung je System oder Instanz,
+    mit eigener Zertifikatsprüfung (gewünscht 2026-11-22).
 
 ## Bekannte Lücken
 

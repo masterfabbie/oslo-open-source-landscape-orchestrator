@@ -423,12 +423,14 @@ TEXTS: dict[str, tuple[str, str]] = {
         "Dieser Host wird über HTTP erreicht. Schalte HTTPS ein, um ein Zertifikat zu nutzen.",
     ),
     "host.verify_hint": (
-        "“Verify certificate”: the host must show a certificate the operating system or "
+        "Only for the host agent (port 1129); instance agents are reached over HTTP. "
+        "“Verify certificate”: the host agent must show a certificate the operating system or "
         "Administration → Certificates trusts. “Check host name”: the name in the certificate "
         "must also match the address.",
-        "„Zertifikat prüfen“: Der Host muss ein Zertifikat zeigen, dem das Betriebssystem oder "
-        "Administration → Zertifikate vertraut. „Hostnamen prüfen“: Zusätzlich muss der Name im "
-        "Zertifikat zur Adresse passen.",
+        "Nur für den Host Agent (Port 1129); Instanz-Agents werden über HTTP angesprochen. "
+        "„Zertifikat prüfen“: Der Host Agent muss ein Zertifikat zeigen, dem das Betriebssystem "
+        "oder Administration → Zertifikate vertraut. „Hostnamen prüfen“: Zusätzlich muss der "
+        "Name im Zertifikat zur Adresse passen.",
     ),
     "field.verify_hostname": ("Check host name", "Hostnamen prüfen"),
     "field.subject": ("Subject", "Inhaber"),
@@ -492,7 +494,7 @@ TEXTS: dict[str, tuple[str, str]] = {
     "field.hostagent_port": ("Host agent port", "Host-Agent-Port"),
     "field.port_offset": ("sapstartsrv port offset", "Port-Verschiebung sapstartsrv"),
     "field.port_offset_hint": ("only for test setups", "nur für Testaufbauten"),
-    "field.https": ("Use HTTPS", "HTTPS verwenden"),
+    "field.https": ("HTTPS to the host agent", "HTTPS zum Host Agent"),
     "field.verify_tls": ("Verify certificate", "Zertifikat prüfen"),
     "field.username": ("User", "Benutzer"),
     "field.password": ("Password", "Passwort"),

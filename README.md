@@ -117,13 +117,11 @@ Bestätigt mit einem echten Host, auf dem ein ABAP-System und eine HANA-Datenban
     (`GetOperationResults`: Fault-Code -20 „Operation ID not found“).
 
 - **HTTPS zum Host Agent** (Port 1129) funktioniert mit abgeschalteter Zertifikatsprüfung
-  (selbst signiertes Zertifikat).
+  (selbst signiertes Zertifikat) und mit Zertifikatsprüfung gegen das unter Administration →
+  Zertifikate hinterlegte Zertifikat des Host Agents (über die IP-Adresse ohne Hostnamen-Prüfung).
 
 Noch nicht gegen echte Hosts getestet:
 
-- HTTPS mit Zertifikatsprüfung gegen ein Zertifikat aus Administration → Zertifikate (im Test
-  mit einem selbst signierten Zertifikat ohne CA-Merkmal geprüft, nicht mit dem eines echten
-  Host Agents)
 - HTTPS zum sapstartsrv (Port 5NN14)
 
 Nicht Teil der ersten Version: Verschieben von Instanzen (Adaptive Computing) und Hooks.
@@ -553,8 +551,10 @@ auf und liest die Ausgabe laufend ins Protokoll.
 
 ### HTTPS und vertrauenswürdige Zertifikate
 
-Je Host gibt es drei Schalter: **HTTPS verwenden** (Port 1129 bzw. 5NN14), **Zertifikat prüfen**
-und **Hostnamen prüfen**. Mit „Zertifikat prüfen“ muss der Host ein Zertifikat zeigen, dem das
+Je Host gibt es drei Schalter: **HTTPS zum Host Agent** (Port 1129), **Zertifikat prüfen**
+und **Hostnamen prüfen**. Sie gelten nur für den Host Agent: Den sapstartsrv (Instanz-Agent)
+spricht OSLO immer über HTTP an (Port 5NN13), weil die Instanz-Agents eigene Zertifikate
+zeigen. HTTPS zum sapstartsrv ist als ToDo vorgemerkt. Mit „Zertifikat prüfen“ muss der Host ein Zertifikat zeigen, dem das
 Betriebssystem des OSLO-Servers oder die Liste unter **Administration → Zertifikate** vertraut.
 „Hostnamen prüfen“ verlangt zusätzlich, dass der Name im Zertifikat zur Adresse des Hosts passt;
 ausschalten, wenn der Host z. B. über seine IP-Adresse erreicht wird, das Zertifikat aber nur
@@ -569,9 +569,10 @@ den Hostnamen nennt.
   der Host Agent an seinem HTTPS-Port zeigt, ohne es zu prüfen, und sagt, ob es schon
   vertrauenswürdig ist. Admins können ihm dort nach dem Vergleich des Fingerabdrucks direkt
   vertrauen. Gelesen wird nur das Zertifikat des Hosts, nicht der Rest seiner Kette.
-- Annahme: Die Zertifikate echter Host Agents erfüllen die strengeren Prüfungen von Python 3.13
-  (`VERIFY_X509_STRICT`). Schlägt die Prüfung trotz hinterlegtem Zertifikat fehl, steht der
-  Grund im Fehler der Discovery.
+- Am echten Host Agent geprüft (2026-11-22): Sein selbst signiertes Zertifikat, über
+  „Zertifikat abrufen“ übernommen, wird akzeptiert; über die IP-Adresse nur mit
+  ausgeschaltetem „Hostnamen prüfen“. Schlägt die Prüfung fehl, steht der Grund im Fehler der
+  Discovery.
 
 ### Tags
 
