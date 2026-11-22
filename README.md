@@ -119,6 +119,7 @@ Bestätigt mit einem echten Host, auf dem ein ABAP-System und eine HANA-Datenban
 - **HTTPS zum Host Agent** (Port 1129) funktioniert mit abgeschalteter Zertifikatsprüfung
   (selbst signiertes Zertifikat) und mit Zertifikatsprüfung gegen das unter Administration →
   Zertifikate hinterlegte Zertifikat des Host Agents (über die IP-Adresse ohne Hostnamen-Prüfung).
+  Die Discovery läuft so ohne Warnungen; den sapstartsrv erreicht OSLO dabei über HTTP.
 
 Noch nicht gegen echte Hosts getestet:
 

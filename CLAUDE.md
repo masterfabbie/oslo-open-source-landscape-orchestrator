@@ -538,7 +538,8 @@ Aktuelle WSDLs lassen sich von einem Host abrufen:
   Agents wird akzeptiert, die Verbindung geht, wenn „Hostnamen prüfen“ aus ist (Zugriff über
   die IP-Adresse); damit besteht es auch `VERIFY_X509_STRICT`. Die sapstartsrv-Instanzen auf
   Port 5NN14 zeigen andere Zertifikate (selbst signiert bzw. mit unbekanntem Aussteller) und
-  wurden abgelehnt; deshalb gilt HTTPS seither nur für den Host Agent.
+  wurden abgelehnt; deshalb gilt HTTPS seither nur für den Host Agent. Danach läuft die
+  Discovery (Host Agent über HTTPS mit Zertifikatsprüfung, sapstartsrv über HTTP) ohne Warnungen.
 
 ## Offene Annahmen, die ein Test mit einer echten Instanz klären muss
 
