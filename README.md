@@ -264,7 +264,10 @@ abgelehnt.
   gesperrt. Ändern sich Passwort oder Rolle oder wird der Benutzer deaktiviert, enden seine
   Sitzungen.
 - **Mein Konto** (Name oben rechts): eigenes Passwort ändern (eigene, servergerenderte Seite,
-  auch bei der ersten Anmeldung mit Startpasswort), persönliche API-Tokens anlegen und löschen.
+  auch bei der ersten Anmeldung mit Startpasswort), Darstellung (Sprache: wie im Browser,
+  Englisch oder Deutsch; Farbschema: wie im Betriebssystem, hell oder dunkel; gilt auf jedem
+  Gerät), persönliche API-Tokens anlegen und löschen. Die gewählte Sprache hat Vorrang vor
+  Cookie und Browser; der Umschalter EN/DE oben speichert sie für angemeldete Benutzer mit.
 - **Nachvollziehbarkeit:** Jede Aktivität vermerkt, wer sie angefordert hat.
 - **Filterauswahl** in der Landscape wird pro Benutzer gespeichert.
 
@@ -308,7 +311,14 @@ Operations und Administration, auf Deutsch Übersicht, Landschaft, Aktivitäten,
 Operationen und Administration. Alte Adressen wie `/configuration?tab=systems` leiten weiter.
 
 **Pools** fassen Systeme zusammen, die zusammengehören, z. B. Entwicklungs-, Test- und
-Produktivsystem eines Produkts. Ein System gehört zu höchstens einem Pool.
+Produktivsystem eines Produkts. Ein System gehört zu höchstens einem Pool. Auf der Seite eines
+Pools (Klick auf den Namen in der Liste) lassen sich Name und Beschreibung ändern; die Systeme
+ordnet man auf der Seite des Systems zu.
+
+**Mehrere Hosts auf einmal:** Unter „Host anlegen“ nimmt das Feld „Name“ mehrere Namen durch
+Kommas getrennt (`sapapp1, sapapp2, sapdb1`). Alle bekommen dieselben Einstellungen und
+Zugangsdaten, die Adresse ist jeweils der Name. Angelegt werden alle oder keiner: Existiert
+ein Name schon oder steht er doppelt in der Liste, wird nichts angelegt.
 
 ### Übersicht
 
@@ -672,12 +682,14 @@ keine Inventardaten.
 | GET | `/api/me` | eigener Benutzer |
 | GET, POST | `/api/me/tokens` | eigene API-Tokens auflisten bzw. anlegen (`{"name": "...", "expires_at": "..."}`; der Wert steht nur in der Antwort) |
 | DELETE | `/api/me/tokens/{id}` | eigenes Token löschen |
+| GET, PUT | `/api/me/preferences` | eigene Darstellung: `{"language": "" \| "en" \| "de", "theme": "system" \| "light" \| "dark"}`; PUT ändert nur, was angegeben ist |
 | GET, POST | `/api/users` | Benutzer auflisten bzw. anlegen (nur Admin; Startpasswort muss geändert werden) |
 | PATCH | `/api/users/{id}` | Anzeigename, Rolle, aktiv ändern (nur Admin) |
 | PUT | `/api/users/{id}/password` | Startpasswort setzen (nur Admin) |
 | GET | `/api/hosts` | Hosts auflisten; `?tag=` filtert |
 | PUT | `/api/hosts/{id}/tags` | Tags eines Hosts ersetzen |
 | POST | `/api/hosts` | Host anlegen |
+| POST | `/api/hosts/batch` | mehrere Hosts mit denselben Einstellungen anlegen (`names`, sonst wie `/api/hosts` ohne `name` und `address`), alle oder keiner; vorhanden: HTTP 409 |
 | GET | `/api/hosts/{id}` | Host mit Instanzen und Datenbanken |
 | PATCH | `/api/hosts/{id}` | Verbindungsdaten ändern (Name, Adresse, `hostagent_port`, `https`, `verify_tls`, `verify_hostname`, `sapcontrol_port_offset`); nicht angegebene Felder bleiben, Port 0 heißt Standardport. Während einer Aktivität auf dem Host: HTTP 409 |
 | POST | `/api/hosts/{id}/certificate` | Zertifikat lesen, das der Host Agent zeigt (ungeprüft), mit `trusted_id`, falls es schon vertrauenswürdig ist; nicht erreichbar: HTTP 502 |
@@ -704,6 +716,8 @@ keine Inventardaten.
 | PUT | `/api/systems/{id}/pool` | System einem Pool zuordnen (`{"pool_id": id}`, `null` entfernt) |
 | GET | `/api/pools` | Pools mit ihren Systemen |
 | POST | `/api/pools` | Pool anlegen (`{"name": "...", "description": "..."}`) |
+| GET | `/api/pools/{id}` | ein Pool mit seinen Systemen |
+| PATCH | `/api/pools/{id}` | Name und/oder Beschreibung ändern (leere Beschreibung entfernt sie); Name vergeben: HTTP 409 |
 | DELETE | `/api/pools/{id}` | Pool löschen; seine Systeme bleiben erhalten |
 | POST | `/api/instances/{id}/start`, `/stop`, `/restart` | Operation für eine Instanz anstoßen; nur für Instanzen eines Systems, sonst HTTP 409 |
 | POST | `/api/systems/{id}/start`, `/stop`, `/restart` | Operation für ein ganzes System anstoßen |

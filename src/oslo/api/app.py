@@ -18,7 +18,7 @@ import httpx
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response, status
 from fastapi.responses import StreamingResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -102,10 +102,12 @@ from ..users import (
     UserError,
     create_token,
     create_user,
+    get_preferences,
     get_setting,
     has_role,
     session_user,
     set_password,
+    set_preferences,
     set_setting,
     token_user,
     update_user,
@@ -126,6 +128,7 @@ from .schemas import (
     DependenciesIn,
     DiscoveryOut,
     FavoritesIn,
+    HostBatchCreate,
     HostCertificateOut,
     HostCreate,
     HostDetail,
@@ -141,6 +144,9 @@ from .schemas import (
     PoolAssignment,
     PoolCreate,
     PoolOut,
+    PoolUpdate,
+    PreferencesIn,
+    PreferencesOut,
     RefreshOut,
     RunIn,
     ScheduleIn,
@@ -405,6 +411,51 @@ def create_app(
             ) from exc
         return host
 
+    @api.post(
+        "/hosts/batch", response_model=list[HostOut], status_code=status.HTTP_201_CREATED
+    )
+    async def create_hosts(body: HostBatchCreate, session: Session) -> list[Host]:
+        """Create several hosts at once (names separated by commas in the interface), all or
+        none. Each host is reached under its name."""
+        if (body.username is None) != (body.password is None):
+            raise HTTPException(422, "username and password must be given together")
+        names = [n.strip() for n in body.names if n.strip()]
+        if not names:
+            raise HTTPException(422, "No host name given")
+        if any(len(n) > 255 or any(c.isspace() for c in n) for n in names):
+            raise HTTPException(422, "Host names must not contain spaces")
+        twice = sorted({n for n in names if [m.lower() for m in names].count(n.lower()) > 1})
+        if twice:
+            raise HTTPException(422, f"Given more than once: {', '.join(twice)}")
+        existing = list(
+            await session.scalars(
+                select(Host.name).where(func.lower(Host.name).in_([n.lower() for n in names]))
+            )
+        )
+        if existing:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT, f"Hosts already exist: {', '.join(sorted(existing))}"
+            )
+        hosts = []
+        for name in names:
+            host = Host(
+                name=name,
+                address=name,
+                hostagent_port=body.hostagent_port,
+                https=body.https,
+                verify_tls=body.verify_tls,
+                verify_hostname=body.verify_hostname,
+                sapcontrol_port_offset=body.sapcontrol_port_offset,
+                username=body.username,
+                password_encrypted=secret_box.encrypt(body.password) if body.password else None,
+            )
+            host.agent_info = None
+            host.tags = []
+            session.add(host)
+            hosts.append(host)
+        await session.commit()
+        return hosts
+
     @api.get("/hosts/{host_id}", response_model=HostDetail)
     async def get_host(host_id: int, session: Session) -> Host:
         return await load_host(session, host_id)
@@ -641,6 +692,37 @@ def create_app(
                 status.HTTP_409_CONFLICT, f"Pool '{body.name}' already exists"
             ) from exc
         return pool
+
+    async def load_pool(session: AsyncSession, pool_id: int) -> Pool:
+        pool = await session.scalar(
+            select(Pool).where(Pool.id == pool_id).options(selectinload(Pool.systems))
+        )
+        if pool is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Pool not found")
+        return pool
+
+    @api.get("/pools/{pool_id}", response_model=PoolOut)
+    async def get_pool(pool_id: int, session: Session) -> Pool:
+        return await load_pool(session, pool_id)
+
+    @api.patch("/pools/{pool_id}", response_model=PoolOut)
+    async def update_pool(pool_id: int, body: PoolUpdate, session: Session) -> Pool:
+        """Rename a pool or change its description; its systems stay."""
+        pool = await load_pool(session, pool_id)
+        if body.name is not None:
+            name = body.name.strip()
+            if not name:
+                raise HTTPException(422, "The name must not be empty")
+            taken = await session.scalar(
+                select(Pool.id).where(Pool.name == name, Pool.id != pool_id)
+            )
+            if taken is not None:
+                raise HTTPException(status.HTTP_409_CONFLICT, f"Pool '{name}' already exists")
+            pool.name = name
+        if "description" in body.model_fields_set:
+            pool.description = (body.description or "").strip() or None
+        await session.commit()
+        return await load_pool(session, pool_id)
 
     @api.delete("/pools/{pool_id}", status_code=status.HTTP_204_NO_CONTENT)
     async def delete_pool(pool_id: int, session: Session) -> Response:
@@ -1051,6 +1133,19 @@ def create_app(
             "operations": [operation_row(op) for op in catalog.steps()],
         }
 
+    @api.get("/me/preferences", response_model=PreferencesOut)
+    async def get_my_preferences(session: Session, user: CurrentUser) -> dict[str, str]:
+        return await get_preferences(session, user)
+
+    @api.put("/me/preferences", response_model=PreferencesOut)
+    async def set_my_preferences(
+        body: PreferencesIn, session: Session, user: CurrentUser
+    ) -> dict[str, str]:
+        """Language and color scheme of the interface ("My account")."""
+        await set_preferences(session, user, language=body.language, theme=body.theme)
+        await session.commit()
+        return await get_preferences(session, user)
+
     @api.put("/me/favorites", response_model=BuildingBlocksOut)
     async def save_favorites(
         body: FavoritesIn, session: Session, user: CurrentUser
@@ -1217,10 +1312,12 @@ def create_app(
         )
 
     @api.get("/i18n")
-    async def texts(request: Request, user: CurrentUser) -> dict[str, object]:
+    async def texts(request: Request, session: Session, user: CurrentUser) -> dict[str, object]:
         """All texts of the interface in the user's language."""
+        chosen = (await get_preferences(session, user))["language"]
         language = pick_language(
-            request.cookies.get(LANGUAGE_COOKIE), request.headers.get("accept-language")
+            chosen or request.cookies.get(LANGUAGE_COOKIE),
+            request.headers.get("accept-language"),
         )
         return {"language": language, "texts": all_texts(language)}
 

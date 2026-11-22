@@ -12,10 +12,13 @@
   --red-bg: #fbdcd9; --red-fg: #9a1c14;
   --gray-bg: #e6e9ee; --gray-fg: #3f4b5b;
   --blue-bg: #dbe8fb; --blue-fg: #174a94;
+  color-scheme: light;
 }
 
+/* Dark colors: by the operating system unless the user chose light ("My account"), or
+   always when the user chose dark. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #12161c;
     --surface: #1b212a;
     --text: #e6eaf0;
@@ -29,7 +32,25 @@
     --red-bg: #4a1a17; --red-fg: #f5a59f;
     --gray-bg: #2a323d; --gray-fg: #c1cad6;
     --blue-bg: #17305a; --blue-fg: #a9c9fb;
+    color-scheme: dark;
   }
+}
+
+:root[data-theme="dark"] {
+  --bg: #12161c;
+  --surface: #1b212a;
+  --text: #e6eaf0;
+  --muted: #9aa7b8;
+  --border: #2f3946;
+  --accent: #6aa5f5;
+  --accent-text: #0d1520;
+  --danger: #f08b84;
+  --green-bg: #173a22; --green-fg: #8fdc9f;
+  --yellow-bg: #453608; --yellow-fg: #f2cf66;
+  --red-bg: #4a1a17; --red-fg: #f5a59f;
+  --gray-bg: #2a323d; --gray-fg: #c1cad6;
+  --blue-bg: #17305a; --blue-fg: #a9c9fb;
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }

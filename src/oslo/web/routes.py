@@ -25,7 +25,7 @@ from ..catalog import Catalog
 from ..connections import ClientFactory
 from ..crypto import SecretBox
 from ..filters import PARAMS as FILTER_PARAMS
-from ..models import Activity, CustomOperation, Host, System, User
+from ..models import Activity, CustomOperation, Host, Pool, System, User
 from ..operations import OperationRunner
 from ..permissions import required_role
 from ..settings import Settings
@@ -37,9 +37,11 @@ from ..users import (
     authenticate,
     create_session,
     create_user,
+    get_preferences,
     has_role,
     session_user,
     set_password,
+    set_preferences,
     user_count,
     verify_password,
 )
@@ -107,6 +109,7 @@ async def require_login(request: Request, session: DbSessionDep) -> User:
     if not has_role(user, needed):
         raise HTTPException(403, f"Requires the role {needed}")
     request.state.user = user
+    request.state.preferences = await get_preferences(session, user)
     return user
 
 
@@ -131,9 +134,15 @@ pages = APIRouter(
 # --- rendering --------------------------------------------------------------------------
 
 
+def _preferences(request: Request) -> dict[str, str]:
+    return getattr(request.state, "preferences", None) or {}
+
+
 def _language(request: Request) -> str:
+    """The user's chosen language, else the language cookie, else the browser's."""
     return pick_language(
-        request.cookies.get(LANGUAGE_COOKIE), request.headers.get("accept-language")
+        _preferences(request).get("language") or request.cookies.get(LANGUAGE_COOKIE),
+        request.headers.get("accept-language"),
     )
 
 
@@ -199,6 +208,8 @@ def render(request: Request, name: str, status_code: int = 200, **context: Any) 
         "can": lambda role: user is not None and has_role(user, Role(role)),
         "language": language,
         "languages": LANGUAGES,
+        # "light" or "dark" fixes the color scheme; "system" follows the operating system.
+        "theme": _preferences(request).get("theme", "system"),
         "path": request.url.path,
         "section": _section(request.url.path),
         # Current page for the language switch, without one-off notices.
@@ -368,10 +379,20 @@ async def setup(
 
 
 @public.get("/language/{code}")
-async def set_language(code: str, next: str = "/") -> Response:
+async def set_language(
+    request: Request, code: str, session: DbSession, context: Context, next: str = "/"
+) -> Response:
+    """Switch the language. For a signed-in user it also becomes the language in
+    "My account", which otherwise would win over the cookie."""
     response = RedirectResponse(_safe_next(next), status_code=303)
     if code in LANGUAGES:
         response.set_cookie(LANGUAGE_COOKIE, code, max_age=365 * 24 * 3600, samesite="lax")
+        user = await session_user(
+            session, context.settings.secret_key, request.cookies.get(SESSION_COOKIE)
+        )
+        if user is not None:
+            await set_preferences(session, user, language=code)
+            await session.commit()
     return response
 
 
@@ -488,6 +509,14 @@ async def configuration_pools(request: Request, user: CurrentUser) -> HTMLRespon
 @pages.get("/configuration/pools/new")
 async def new_pool(request: Request, user: CurrentUser) -> HTMLResponse:
     return _configuration(request, user, "pool_new")
+
+
+@pages.get("/configuration/pools/{pool_id}")
+async def configure_pool(
+    request: Request, pool_id: int, session: DbSession, user: CurrentUser
+) -> HTMLResponse:
+    await _exists(session, Pool, pool_id)
+    return _configuration(request, user, "pool", id=pool_id)
 
 
 @pages.get("/operations")

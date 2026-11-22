@@ -1,4 +1,4 @@
-// Configuration → Pools: list with the systems of each pool, create, delete.
+// Configuration → Pools: list with the systems of each pool, create, edit, delete.
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -37,7 +37,11 @@ export function PoolsPage() {
             <tbody>
               {pools.data.map((p) => (
                 <tr key={p.id}>
-                  <td className="oslo-strong">{p.name}</td>
+                  <td>
+                    <a className="oslo-strong" href={`${LIST}/${p.id}`}>
+                      {p.name}
+                    </a>
+                  </td>
                   <td>{p.description ?? ""}</td>
                   <td>
                     {p.system_ids.length ? (
@@ -98,6 +102,74 @@ export function PoolNewPage() {
           </div>
         </ActionForm>
       </Section>
+    </div>
+  );
+}
+
+export function PoolPage({ id }: { id: number }) {
+  const { t } = useApp();
+  const pool = useQuery({ queryKey: ["pool", id], queryFn: () => api<PoolInfo>(`/pools/${id}`) });
+  const systems = useQuery({ queryKey: ["systems"], queryFn: () => api<SystemInfo[]>("/systems") });
+  if (pool.isPending) return <p className="oslo-muted">{t("ui.loading")}</p>;
+  if (!pool.data) return <p className="flash error">{(pool.error as Error)?.message}</p>;
+  return <PoolEditor pool={pool.data} systems={systems.data ?? []} />;
+}
+
+function PoolEditor({ pool, systems }: { pool: PoolInfo; systems: SystemInfo[] }) {
+  const { t } = useApp();
+  const queries = useQueryClient();
+  const [name, setName] = useState(pool.name);
+  const [description, setDescription] = useState(pool.description ?? "");
+  const members = systems.filter((s) => pool.system_ids.includes(s.id));
+  return (
+    <div className="oslo-page">
+      <PageHead
+        title={t("pool.title", { name: pool.name })}
+        crumbs={[{ href: LIST, label: t("tab.pools") }]}
+        extra={
+          <ConfirmButton
+            label={t("pool.delete")}
+            confirm={t("pool.delete_confirm")}
+            onConfirm={async () => {
+              await api(`/pools/${pool.id}`, { method: "DELETE" });
+              go(LIST, "pool_deleted");
+            }}
+          />
+        }
+      />
+      <div className="oslo-two">
+        <Section title={t("system.general")}>
+          <ActionForm
+            submit={t("action.save")}
+            onSubmit={async () => {
+              await api(`/pools/${pool.id}`, { method: "PATCH", body: { name: name.trim(), description } });
+              await queries.invalidateQueries();
+            }}
+          >
+            <label className="oslo-field">
+              {t("field.name")}
+              <input value={name} required maxLength={64} onChange={(e) => setName(e.target.value)} />
+            </label>
+            <label className="oslo-field">
+              {t("field.description")}
+              <input value={description} maxLength={1000} onChange={(e) => setDescription(e.target.value)} />
+            </label>
+          </ActionForm>
+        </Section>
+        <Section title={t("tab.systems")} hint={t("pool.systems_hint")}>
+          {members.length ? (
+            <ul className="oslo-plain-list">
+              {members.map((s) => (
+                <li key={s.id}>
+                  <a href={`/configuration/systems/${s.id}`}>{s.name}</a>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="oslo-muted">{t("deps.none")}</p>
+          )}
+        </Section>
+      </div>
     </div>
   );
 }

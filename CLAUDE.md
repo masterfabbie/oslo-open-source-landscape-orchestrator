@@ -122,7 +122,7 @@ und Graph-Editor unter `/operations/templates`), `graph.ts` (Anordnung, Vorgäng
 `OperationPicker.tsx`, `Schedules.tsx` (Einplanen). `src/overview/` (Übersicht),
 `src/activities/` (Liste und Protokolle), `src/configuration/` (Hosts, Systeme, Pools),
 `src/operations/` (eigene Operationen), `src/administration/` (Allgemein, Benutzer, Regeln),
-`src/account/` (Mein Konto). `src/lib/` API-Aufrufe, Texte, Typen, `mount.tsx` (Start einer
+`src/account/` (Mein Konto mit Darstellung). `src/lib/` API-Aufrufe, Texte, Typen, `mount.tsx` (Start einer
 Seite), `forms.tsx` und `forms.css` (Seitenkopf, Formulare, Tags, Zugangsdaten). Ein Stylesheet
 für alle Seiten (`app.css`), gemeinsamer Code in `shared-*.js`.
 
@@ -417,7 +417,20 @@ Wichtige Entwurfsentscheidungen:
   (`/account/password`, auch für Startpasswörter). Die alten Jinja-Seiten, ihre POST-Routen und
   Tests sind entfernt; Tests prüfen die API und in `test_web.py` die Hüllen der Seiten.
 - **Pools** gruppieren zusammengehörige Systeme (z. B. Entwicklung, Test, Produktion eines
-  Produkts). Ein System gehört zu höchstens einem Pool (Tabelle `pool_systems`).
+  Produkts). Ein System gehört zu höchstens einem Pool (Tabelle `pool_systems`). Name und
+  Beschreibung lassen sich ändern (`PATCH /api/pools/{id}`, Seite `/configuration/pools/{id}`).
+- **Mehrere Hosts auf einmal** (`POST /api/hosts/batch`, Wunsch des Eigentümers): Namen durch
+  Kommas im Feld „Name“ (`hostNames` in `Hosts.tsx`), gleiche Einstellungen und Zugangsdaten,
+  Adresse = Name, alle oder keiner (vorhandene oder doppelte Namen, auch in anderer
+  Schreibweise, lehnen den ganzen Auftrag ab).
+- **Darstellung je Benutzer** (Wunsch des Eigentümers): `user_settings` `ui.language` (""
+  folgt Cookie bzw. Browser) und `ui.theme` (`system`, `light`, `dark`), `users.get_preferences`
+  bzw. `set_preferences`, `/api/me/preferences`. `require_login` legt sie in
+  `request.state.preferences` ab; `_language` nimmt zuerst die gewählte Sprache, dann Cookie,
+  dann `Accept-Language`. `base.html` setzt `data-theme` auf `<html>`; `style.css` nutzt die
+  dunklen Farben bei `prefers-color-scheme: dark` außer mit `data-theme="light"` und immer mit
+  `data-theme="dark"`. `/language/{code}` speichert die Sprache für angemeldete Benutzer mit,
+  sonst hätte der Umschalter oben keine Wirkung.
 - In `api/app.py` steht bewusst kein `from __future__ import annotations`: FastAPI löst die
   Typangaben der Routen zur Laufzeit auf, und sie verweisen auf lokale Namen.
 
@@ -440,6 +453,8 @@ Wichtige Entwurfsentscheidungen:
   ohne es kann die Aktivität mit der falschen Uhr schon fertig sein (wackelige Tests).
 - Zeit wird über eine falsche Uhr gesteuert (`FakeClock` in `tests/conftest.py`). Tests, die
   Operationen ausführen, übergeben `sleep` und `clock` an `create_app`.
+- Pools bearbeiten, mehrere Hosts anlegen und die Darstellung je Benutzer testet
+  `tests/test_settings_pages.py` (Fixtures von `test_web.py`).
 - Zertifikate testet `tests/test_certificates.py` mit echten TLS-Servern auf 127.0.0.1 und
   selbst erzeugten Zertifikaten (`self_signed`, `TlsServer`).
 - Die neuen API-Teile für die Oberfläche (Cookie, Landscape-Daten, Prozesse, Ereignisse,
@@ -570,9 +585,9 @@ Abschnitt „Teststand gegen echte Hosts“ hier und im README aktualisieren.
 Gewünscht (2026-11-20), noch nicht umgesetzt; vor der Umsetzung jeweils einen Vorschlag machen
 und freigeben lassen:
 
-1. Mehrere Hosts auf einmal anlegen, Namen durch Komma getrennt.
+1. ~~Mehrere Hosts auf einmal anlegen, Namen durch Komma getrennt.~~ Erledigt 2026-11-22.
 2. Zwei-Faktor-Anmeldung mit YubiKey (z. B. WebAuthn/FIDO2).
-3. Sprache und Dark Mode als Benutzereinstellung (in „Mein Konto“).
+3. ~~Sprache und Dark Mode als Benutzereinstellung (in „Mein Konto“).~~ Erledigt 2026-11-22.
 4. Kernel-Repository (Ablage der Kernel-Versionen für Kernel-Tausch-Skripte).
 5. Zertifikatsbasierte Anmeldung am Host Agent (mTLS, Client-Zertifikat statt Passwort).
 6. Docker-Container für OSLO.
@@ -588,7 +603,7 @@ und freigeben lassen:
     Prozess der Instanz läuft; gewünscht 2026-11-21). Am Host lief Neu registrieren trotz
     laufender Prozesse durch. Vorschlag: nur bei abgelehnter Verbindung weitermachen, sonst
     abbrechen; zusätzlich `ListInstances` mit `S-RUNNING` am Host Agent prüfen.
-12. Pools bearbeiten (Name, Beschreibung; heute nur anlegen und löschen; gewünscht 2026-11-21).
+12. ~~Pools bearbeiten (Name, Beschreibung).~~ Erledigt 2026-11-22.
 13. HTTPS zum Instanz-Agent (sapstartsrv, Port 5NN14) als Einstellung je System oder Instanz,
     mit eigener Zertifikatsprüfung (gewünscht 2026-11-22).
 

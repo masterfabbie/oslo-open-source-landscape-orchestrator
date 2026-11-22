@@ -6,7 +6,7 @@ import "../activity/activity.css";
 import "../templates/templates.css";
 import "../lib/forms.css";
 import { HostNewPage, HostPage, HostsPage } from "./Hosts";
-import { PoolNewPage, PoolsPage } from "./Pools";
+import { PoolNewPage, PoolPage, PoolsPage } from "./Pools";
 import { SystemNewPage, SystemPage, SystemsPage, UnassignedPage } from "./Systems";
 
 mount((boot) => {
@@ -28,6 +28,8 @@ mount((boot) => {
       return <PoolsPage />;
     case "pool_new":
       return <PoolNewPage />;
+    case "pool":
+      return <PoolPage id={id} />;
     default:
       return <HostsPage />;
   }

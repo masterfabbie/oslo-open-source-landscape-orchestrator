@@ -81,19 +81,34 @@ interface ConnectionValues {
   verify_hostname: boolean;
 }
 
-function ConnectionFields({ values, onChange }: { values: ConnectionValues; onChange: (v: ConnectionValues) => void }) {
+/** Names separated by commas, without empty ones. */
+export function hostNames(text: string): string[] {
+  return text
+    .split(",")
+    .map((name) => name.trim())
+    .filter(Boolean);
+}
+
+function ConnectionFields({ values, onChange, several = false }: { values: ConnectionValues; onChange: (v: ConnectionValues) => void; several?: boolean }) {
   const { t } = useApp();
   const set = (next: Partial<ConnectionValues>) => onChange({ ...values, ...next });
+  const many = several && hostNames(values.name).length > 1;
   return (
     <>
       <div className="oslo-form-grid">
         <label className="oslo-field">
           {t("field.name")}
-          <input value={values.name} required maxLength={255} onChange={(e) => set({ name: e.target.value })} />
+          <input value={values.name} required maxLength={several ? 10000 : 255} onChange={(e) => set({ name: e.target.value })} />
         </label>
         <label className="oslo-field">
           {t("field.address")}
-          <input value={values.address} maxLength={255} placeholder={t("field.address_hint")} onChange={(e) => set({ address: e.target.value })} />
+          <input
+            value={many ? "" : values.address}
+            maxLength={255}
+            disabled={many}
+            placeholder={many ? t("hosts.address_from_names") : t("field.address_hint")}
+            onChange={(e) => set({ address: e.target.value })}
+          />
         </label>
         <label className="oslo-field">
           {t("field.hostagent_port")}
@@ -136,12 +151,30 @@ export function HostNewPage() {
       <PageHead title={t("hosts.add")} crumbs={[{ href: LIST, label: t("tab.hosts") }]} />
       <Section>
         <ActionForm
-          submit={t("hosts.add")}
+          submit={hostNames(values.name).length > 1 ? t("hosts.add_many", { count: hostNames(values.name).length }) : t("hosts.add")}
           onSubmit={async () => {
+            const names = hostNames(values.name);
+            if (names.length > 1) {
+              const hosts = await api<HostInfo[]>("/hosts/batch", {
+                method: "POST",
+                body: {
+                  names,
+                  hostagent_port: values.hostagent_port ? Number(values.hostagent_port) : null,
+                  sapcontrol_port_offset: values.sapcontrol_port_offset ? Number(values.sapcontrol_port_offset) : 0,
+                  https: values.https,
+                  verify_tls: values.verify_tls,
+                  verify_hostname: values.verify_hostname,
+                  username: username.trim() || null,
+                  password: password || null,
+                },
+              });
+              go(`${LIST}?n_count=${hosts.length}`, "hosts_created");
+              return;
+            }
             const host = await api<HostInfo>("/hosts", {
               method: "POST",
               body: {
-                name: values.name.trim(),
+                name: names[0] ?? values.name.trim(),
                 address: values.address.trim() || null,
                 hostagent_port: values.hostagent_port ? Number(values.hostagent_port) : null,
                 sapcontrol_port_offset: values.sapcontrol_port_offset ? Number(values.sapcontrol_port_offset) : 0,
@@ -155,7 +188,8 @@ export function HostNewPage() {
             go(`${LIST}/${host.id}`, "host_created");
           }}
         >
-          <ConnectionFields values={values} onChange={setValues} />
+          <ConnectionFields values={values} onChange={setValues} several />
+          <p className="oslo-muted">{t("hosts.names_hint")}</p>
           <div className="oslo-form-grid">
             <label className="oslo-field">
               {t("field.username")}

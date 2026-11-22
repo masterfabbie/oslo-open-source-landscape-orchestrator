@@ -80,13 +80,15 @@ async def browser(anonymous):
 
 async def add_hosts(browser: httpx.AsyncClient) -> None:
     """Through the API like the pages: hosts 1 (sapapp1) and 2 (sapdb1), systems 1 (DEV:
-    instances 1, 2) and 2 (HDV: instance 3)."""
+    instances 1, 2) and 2 (HDV: instance 3), pool 1 (ERP)."""
     for body in (APP_HOST, DB_HOST):
         host = (await browser.post("/api/hosts", json=body, headers=HEADERS)).json()
         await browser.post(f"/api/hosts/{host['id']}/discover", headers=HEADERS)
     for name, ids in (("DEV", [1, 2]), ("HDV", [3])):
         body = {"name": name, "instance_ids": ids}
         assert (await browser.post("/api/systems", json=body, headers=HEADERS)).status_code == 201
+    pool = await browser.post("/api/pools", json={"name": "ERP"}, headers=HEADERS)
+    assert pool.status_code == 201
 
 
 def boot_of(page: str) -> dict:
@@ -142,6 +144,7 @@ APP_PAGES = [
     ("/configuration/systems/1", "configuration", "system"),
     ("/configuration/pools", "configuration", "pools"),
     ("/configuration/pools/new", "configuration", "pool_new"),
+    ("/configuration/pools/1", "configuration", "pool"),
     ("/operations/custom", "operations", "customs"),
     ("/operations/custom/new", "operations", "custom_new"),
     ("/operations/templates", "templates", None),
@@ -250,6 +253,7 @@ async def test_activity_page(browser, app):
         "/activities/99",
         "/configuration/hosts/99",
         "/configuration/systems/99",
+        "/configuration/pools/99",
         "/operations/custom/99",
         "/administration/users/99",
     ],

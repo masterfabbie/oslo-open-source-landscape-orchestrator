@@ -26,6 +26,19 @@ class HostCreate(BaseModel):
     password: str | None = Field(default=None, min_length=1)
 
 
+class HostBatchCreate(BaseModel):
+    """Several hosts with the same connection data; each host's address is its name."""
+
+    names: list[str] = Field(min_length=1, max_length=100)
+    hostagent_port: int | None = Field(default=None, ge=1, le=65535)
+    https: bool = False
+    verify_tls: bool = True
+    verify_hostname: bool = True
+    sapcontrol_port_offset: int = Field(default=0, ge=0, le=15000)
+    username: str | None = Field(default=None, min_length=1, max_length=255)
+    password: str | None = Field(default=None, min_length=1)
+
+
 class HostUpdate(BaseModel):
     """Connection data; omitted fields stay unchanged. hostagent_port 0 means the default."""
 
@@ -344,6 +357,13 @@ class PoolCreate(BaseModel):
     description: str | None = Field(default=None, max_length=1000)
 
 
+class PoolUpdate(BaseModel):
+    """Omitted fields stay; an empty description removes it."""
+
+    name: str | None = Field(default=None, min_length=1, max_length=64)
+    description: str | None = Field(default=None, max_length=1000)
+
+
 class PoolOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -510,6 +530,18 @@ class BuildingBlocksOut(BaseModel):
 
 class FavoritesIn(BaseModel):
     operations: list[str] = Field(default=[], max_length=100)
+
+
+class PreferencesIn(BaseModel):
+    """Display preferences; omitted ones stay. language "" follows the browser."""
+
+    language: Literal["", "en", "de"] | None = None
+    theme: Literal["system", "light", "dark"] | None = None
+
+
+class PreferencesOut(BaseModel):
+    language: str
+    theme: str
 
 
 class AttentionRulesIn(BaseModel):

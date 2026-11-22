@@ -48,6 +48,11 @@ TEXTS: dict[str, tuple[str, str]] = {
         "Diesen Pool löschen? Seine Systeme bleiben erhalten und gehören dann zu keinem Pool.",
     ),
     "pool.empty": ("No pools yet.", "Noch keine Pools."),
+    "pool.title": ("Pool {name}", "Pool {name}"),
+    "pool.systems_hint": (
+        "Systems are put into a pool on the page of the system.",
+        "Systeme ordnest du auf der Seite des Systems einem Pool zu.",
+    ),
     "pool.none_defined": ("No pools are defined yet.", "Es sind noch keine Pools angelegt."),
     "pool.explanation": (
         "A pool groups systems that belong together, for example the development, test and "
@@ -315,6 +320,17 @@ TEXTS: dict[str, tuple[str, str]] = {
         "Der letzte aktive Admin muss aktiver Admin bleiben.",
     ),
     "account.title": ("My account", "Mein Konto"),
+    "account.display": ("Display", "Darstellung"),
+    "account.display_hint": (
+        "Applies to you on every device. The EN/DE switch at the top changes the language too.",
+        "Gilt für dich auf jedem Gerät. Der Umschalter EN/DE oben ändert die Sprache ebenfalls.",
+    ),
+    "account.language": ("Language", "Sprache"),
+    "account.language_auto": ("Like the browser", "Wie im Browser"),
+    "account.theme": ("Color scheme", "Farbschema"),
+    "theme.system": ("Like the operating system", "Wie im Betriebssystem"),
+    "theme.light": ("Light", "Hell"),
+    "theme.dark": ("Dark", "Dunkel"),
     "account.password": ("Change password", "Passwort ändern"),
     "account.current_password": ("Current password", "Aktuelles Passwort"),
     "account.new_password": ("New password", "Neues Passwort"),
@@ -643,6 +659,19 @@ TEXTS: dict[str, tuple[str, str]] = {
     "itype.java": ("Java application server", "Java-Anwendungsserver"),
     "itype.dual": ("ABAP+Java application server", "ABAP+Java-Anwendungsserver"),
     "notice.host_created": ("Host created.", "Host angelegt."),
+    "notice.hosts_created": ("{count} hosts created.", "{count} Hosts angelegt."),
+    "hosts.names_hint": (
+        "Several hosts at once: names separated by commas, e.g. sapapp1, sapapp2. They get the "
+        "same settings and credentials, and each is reached under its name.",
+        "Mehrere Hosts auf einmal: Namen durch Kommas getrennt, z. B. sapapp1, sapapp2. Sie "
+        "bekommen dieselben Einstellungen und Zugangsdaten und werden unter ihrem Namen "
+        "erreicht.",
+    ),
+    "hosts.add_many": ("Create {count} hosts", "{count} Hosts anlegen"),
+    "hosts.address_from_names": (
+        "With several hosts, each name is its address.",
+        "Bei mehreren Hosts ist der Name jeweils die Adresse.",
+    ),
     "notice.host_deleted": ("Host deleted.", "Host gelöscht."),
     "notice.credentials_saved": ("Credentials saved.", "Zugangsdaten gespeichert."),
     "notice.discovered": (

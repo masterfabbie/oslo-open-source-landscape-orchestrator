@@ -341,3 +341,34 @@ async def set_setting(session: AsyncSession, user: User, key: str, value: str) -
         session.add(UserSetting(user_id=user.id, key=key, value=value))
     else:
         setting.value = value
+
+
+# Display preferences of a user ("Mein Konto"): language ("" follows the browser) and color
+# scheme ("system" follows the operating system).
+PREFERENCE_LANGUAGE = "ui.language"
+PREFERENCE_THEME = "ui.theme"
+PREFERENCE_LANGUAGES = ("", "en", "de")
+THEMES = ("system", "light", "dark")
+
+
+async def get_preferences(session: AsyncSession, user: User) -> dict[str, str]:
+    language = await get_setting(session, user, PREFERENCE_LANGUAGE) or ""
+    theme = await get_setting(session, user, PREFERENCE_THEME) or "system"
+    return {
+        "language": language if language in PREFERENCE_LANGUAGES else "",
+        "theme": theme if theme in THEMES else "system",
+    }
+
+
+async def set_preferences(
+    session: AsyncSession, user: User, *, language: str | None = None, theme: str | None = None
+) -> None:
+    """Change the given preferences; the caller commits. Raises ValueError for unknown ones."""
+    if language is not None:
+        if language not in PREFERENCE_LANGUAGES:
+            raise ValueError(f"Unknown language {language!r}")
+        await set_setting(session, user, PREFERENCE_LANGUAGE, language)
+    if theme is not None:
+        if theme not in THEMES:
+            raise ValueError(f"Unknown color scheme {theme!r}")
+        await set_setting(session, user, PREFERENCE_THEME, theme)
