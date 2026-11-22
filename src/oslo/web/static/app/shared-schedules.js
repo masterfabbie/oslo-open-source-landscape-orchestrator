@@ -1,0 +1,1 @@
+import{i as e}from"./shared-landscape.js";function t(t,n,r){if(t.recurrence===`once`)return n(`sched.once_at`,{time:e(t.run_at,r)});if(t.recurrence===`interval`)return n(`sched.every`,{minutes:t.interval_minutes??0});let i=t.weekdays.split(``).map(e=>n(`sched.day.${e}`)).join(`, `);return n(`sched.daily_at`,{time:t.time_of_day??``,days:i})}export{t};

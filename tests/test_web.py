@@ -145,6 +145,8 @@ APP_PAGES = [
     ("/configuration/pools", "configuration", "pools"),
     ("/configuration/pools/new", "configuration", "pool_new"),
     ("/configuration/pools/1", "configuration", "pool"),
+    ("/activities?tab=schedules", "activities", "schedules"),
+    ("/activities/schedules/new", "activities", "schedule_new"),
     ("/operations/custom", "operations", "customs"),
     ("/operations/custom/new", "operations", "custom_new"),
     ("/operations/templates", "templates", None),
@@ -254,6 +256,7 @@ async def test_activity_page(browser, app):
         "/configuration/hosts/99",
         "/configuration/systems/99",
         "/configuration/pools/99",
+        "/activities/schedules/99",
         "/operations/custom/99",
         "/administration/users/99",
     ],
@@ -321,10 +324,16 @@ async def test_navigation_names_in_german(browser):
         assert f">{item}</a>" in page
 
 
-async def test_language_switch_keeps_the_tab(browser):
+async def test_language_switch_only_before_signing_in(anonymous):
+    login = (await anonymous.get("/login")).text
+    assert 'href="/language/de?next=/login"' in login
+    await sign_in(anonymous)
+    browser = anonymous
     page = (await browser.get("/activities?tab=logs&notice=pool_created")).text
-    assert 'href="/language/de?next=/activities%3Ftab%3Dlogs"' in page
+    # Signed in, the language is chosen in "My account".
+    assert 'href="/language/' not in page
     assert "Pool created." in page  # notices of the address are shown above the app
+    # Without a chosen language, the cookie still decides.
     response = await browser.get("/language/de?next=/activities?tab=logs")
     assert response.headers["location"] == "/activities?tab=logs"
     assert boot_of((await browser.get("/")).text).get("language") == "de"

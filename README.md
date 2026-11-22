@@ -267,7 +267,8 @@ abgelehnt.
   auch bei der ersten Anmeldung mit Startpasswort), Darstellung (Sprache: wie im Browser,
   Englisch oder Deutsch; Farbschema: wie im Betriebssystem, hell oder dunkel; gilt auf jedem
   Gerät), persönliche API-Tokens anlegen und löschen. Die gewählte Sprache hat Vorrang vor
-  Cookie und Browser; der Umschalter EN/DE oben speichert sie für angemeldete Benutzer mit.
+  Cookie und Browser. Den Umschalter EN/DE in der Kopfzeile gibt es nur vor der Anmeldung
+  (Anmeldung, Einrichtung).
 - **Nachvollziehbarkeit:** Jede Aktivität vermerkt, wer sie angefordert hat.
 - **Filterauswahl** in der Landscape wird pro Benutzer gespeichert.
 
@@ -301,7 +302,7 @@ eigenen Seite, danach geht es zur Seite des neuen Eintrags (bei Pools zur Liste)
 |---|---|
 | Übersicht | Kennzahlen, Statusmatrix Produkte × Stufen und „Braucht Aufmerksamkeit“ (siehe unten) |
 | Landscape | Tabelle der Systeme mit aufklappbaren Instanzen und Tabelle der Hosts, Mehrfachauswahl mit Leiste für Operationen, Filter, Detailleiste rechts für System, Instanz (mit den Prozessen) und Host (Systeminformationen, Instanzen), Befehlspalette (siehe unten). Instanzen ohne System erscheinen hier nicht |
-| Activities | Tab „Aktivitäten“ mit Filtern (Status, Suche, Teilaktivitäten) und Live-Ansicht je Aktivität; Tab „Protokolle“ mit den letzten 200 Protokolleinträgen |
+| Activities | Tab „Aktivitäten“ mit Filtern (Status, Suche, Teilaktivitäten) und Live-Ansicht je Aktivität; Tab „Protokolle“ mit den letzten 200 Protokolleinträgen; Tab „Einplanungen“ mit allen geplanten Läufen (siehe unten) |
 | Configuration | „Hosts“ (`/configuration/hosts`): anlegen, Verbindung ändern, Discovery, Zugangsdaten, Tags, Instanzen, Datenbanken, löschen. „Systeme“: Reiter „Übersicht“ mit den Systemen, aufklappbar mit ihren Instanzen, und Reiter „Nicht zugeordnete Instanzen“ zum Zuordnen; „System anlegen“ wählt die Instanzen aus allen nicht zugeordneten und schlägt den Namen vor; Seite eines Systems mit Name, Stufe, Beschreibung, Pool, Tags, Abhängigkeiten, Instanzen, Zugangsdaten je SID, Löschen. „Pools“: anlegen und löschen |
 | Operations | Nur Admins. „Eigene Operationen“ (`/operations/custom`) und „Operationsvorlagen“ (`/operations/templates`), siehe unten |
 | Administration | „Allgemein“: Version und Einstellungen; „Benutzer“: anlegen, bearbeiten, Passwort zurücksetzen; „Braucht Aufmerksamkeit“: die Regeln der Übersicht; „Zertifikate“: vertrauenswürdige Zertifikate für HTTPS zu den Hosts (siehe unten) |
@@ -472,6 +473,18 @@ Rolle: kein Lauf, der Grund steht bei der Einplanung). Uhrzeiten gelten in der Z
 `OSLO_TIMEZONE` des Servers. Der Server prüft alle 30 Sekunden, was fällig ist; war er zur
 fälligen Zeit aus, läuft ein Lauf beim nächsten Prüfen nach, verpasste Wiederholungen werden
 nicht nachgeholt. Die Aktivität nennt als Auftraggeber „<Benutzer> (schedule <Nr.>)“.
+
+### Einplanungen
+
+**Aktivitäten → Einplanungen** zeigt alle geplanten Läufe aller Operationen und Vorlagen:
+Operation, Ziele, Wiederholung, nächster und letzter Lauf (mit Link zur Aktivität und dem
+Fehler, falls der Start scheiterte), wer eingeplant hat und ob die Einplanung aktiv oder
+pausiert ist. Sehen dürfen alle Rollen; einplanen, ändern, pausieren und löschen ab Operator.
+„Operation einplanen“ plant jede Operation des Katalogs (eingebaute, eigene und Vorlagen, nicht
+die nur für Vorlagen gedachten): Zieltyp und Ziele aus der Landschaft, Werte der Parameter
+eigener Operationen, einmalig, täglich zu einer Uhrzeit an gewählten Wochentagen oder alle N
+Minuten. Mehrere Ziele laufen als Massenoperation, nur wenn die Operation das erlaubt. Werte,
+nach denen eine Vorlage beim Start fragt, plant man weiter im Editor der Vorlage.
 
 ### Massenoperationen
 
@@ -743,7 +756,7 @@ keine Inventardaten.
 | GET | `/api/templates-blocks` | Für den Editor (nur Admin): alle Operationen, die ein Schritt nutzen kann, die 5 meistgenutzten (`top`) und die Favoriten des Benutzers |
 | PUT | `/api/me/favorites` | Favoriten des Editors speichern: `{"operations": ["stop", "copy_kernel"]}` |
 | GET, POST | `/api/schedules` | Einplanungen (`?operation=`) bzw. einplanen (ab Operator, Rolle der Operation nötig): `{"operation", "target_type", "target_ids", "parameters", "recurrence": "once"|"daily"|"interval", "run_at", "time_of_day", "weekdays", "interval_minutes"}` |
-| PUT, DELETE | `/api/schedules/{id}` | Einplanung ändern (z. B. `enabled`) bzw. löschen |
+| GET, PUT, DELETE | `/api/schedules/{id}` | eine Einplanung lesen, ändern (z. B. `enabled`) bzw. löschen |
 | POST | `/api/activities/{id}/cancel` | laufende Aktivität abbrechen (Operator); HTTP 409, wenn sie schon beendet ist |
 | POST | `/api/mass-operations` | Massenoperation (`{"operation": "stop", "target_type": "SYSTEM", "target_ids": [1, 2], "parallel": 5, "stop_on_error": false}`); `target_type` ist `SYSTEM`, `INSTANCE` oder `HOST`; für eigene Operationen zusätzlich `parameters`; Antwort ist die Sammelaktivität (HTTP 202) |
 

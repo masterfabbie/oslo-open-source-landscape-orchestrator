@@ -40,3 +40,4 @@ td.oslo-fingerprint { min-width: 220px; max-width: 300px; white-space: normal; w
 .oslo-cert-tag { margin-left: 8px; }
 .oslo-field textarea.oslo-pem { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; min-height: 180px; }
 .oslo-plain-list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+tr.oslo-disabled-row > td { opacity: 0.6; }

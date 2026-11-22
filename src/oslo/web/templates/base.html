@@ -23,11 +23,15 @@
   </nav>
   {% endblock %}
   <div class="topbar-end">
+    {# Signed in, the language is chosen in "My account"; the switch is only for the
+       pages before signing in. #}
+    {% if not user %}
     <span class="languages" aria-label="Language">
       {% for code in languages %}
         {% if code == language %}<strong>{{ code | upper }}</strong>{% else %}<a href="/language/{{ code }}?next={{ here | urlencode }}">{{ code | upper }}</a>{% endif %}
       {% endfor %}
     </span>
+    {% endif %}
     {% block session %}
     {% if user %}<a href="/account" {% if path.startswith("/account") %}aria-current="page"{% endif %} title="{{ t('role.' ~ user.role) }}">{{ user.label }}</a>{% endif %}
     <form method="post" action="/logout"><button class="link" type="submit">{{ t("nav.logout") }}</button></form>

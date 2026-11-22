@@ -58,6 +58,9 @@ def required_role(method: str, path: str) -> Role:
         return Role.VIEWER
     if path.startswith("/configuration"):
         return Role.CONFIGURATOR
+    if path.startswith("/activities/schedules"):
+        # Planning needs at least an operator, like the API (/schedules).
+        return Role.OPERATOR
     if path == "/run/{kind}/{target_id}/{key}":
         return Role.OPERATOR
     if method in ("GET", "HEAD"):

@@ -22,6 +22,7 @@ TEXTS: dict[str, tuple[str, str]] = {
     "tab.hosts": ("Hosts", "Hosts"),
     "tab.activities": ("Activities", "Aktivitäten"),
     "tab.logs": ("Logs", "Protokolle"),
+    "tab.schedules": ("Schedules", "Einplanungen"),
     "tab.pools": ("Pools", "Pools"),
     "tab.overview": ("Overview", "Übersicht"),
     "tab.custom_operations": ("Custom operations", "Eigene Operationen"),
@@ -322,8 +323,8 @@ TEXTS: dict[str, tuple[str, str]] = {
     "account.title": ("My account", "Mein Konto"),
     "account.display": ("Display", "Darstellung"),
     "account.display_hint": (
-        "Applies to you on every device. The EN/DE switch at the top changes the language too.",
-        "Gilt für dich auf jedem Gerät. Der Umschalter EN/DE oben ändert die Sprache ebenfalls.",
+        "Applies to you on every device. “Like the browser” uses the language of the browser.",
+        "Gilt für dich auf jedem Gerät. „Wie im Browser“ nimmt die Sprache des Browsers.",
     ),
     "account.language": ("Language", "Sprache"),
     "account.language_auto": ("Like the browser", "Wie im Browser"),
@@ -1252,6 +1253,42 @@ TEXTS: dict[str, tuple[str, str]] = {
     "sched.resume": ("Resume", "Fortsetzen"),
     "sched.delete": ("Delete", "Löschen"),
     "sched.delete_confirm": ("Delete this schedule?", "Diese Einplanung löschen?"),
+    "sched.new": ("Plan an operation", "Operation einplanen"),
+    "sched.edit": ("Edit schedule", "Einplanung bearbeiten"),
+    "sched.intro": (
+        "Planned runs of all operations and templates. Each runs with the rights of the user "
+        "who planned it, checked again when it is due.",
+        "Geplante Läufe aller Operationen und Vorlagen. Jeder läuft mit den Rechten des "
+        "Benutzers, der ihn eingeplant hat, beim Start erneut geprüft.",
+    ),
+    "sched.list_empty": ("Nothing is planned.", "Nichts eingeplant."),
+    "sched.next_run": ("Next run", "Nächster Lauf"),
+    "sched.last_run": ("Last run", "Letzter Lauf"),
+    "sched.operation": ("Operation", "Operation"),
+    "sched.targets": ("Targets", "Ziele"),
+    "sched.planned_by": ("Planned by", "Eingeplant von"),
+    "sched.state": ("State", "Zustand"),
+    "sched.active": ("active", "aktiv"),
+    "sched.paused": ("paused", "pausiert"),
+    "sched.choose_operation": ("Choose an operation", "Operation wählen"),
+    "sched.choose_targets": ("Choose at least one target.", "Mindestens ein Ziel wählen."),
+    "sched.one_target": (
+        "This operation runs on one target at a time; choose one.",
+        "Diese Operation läuft nur auf einem Ziel; wähle eines.",
+    ),
+    "sched.fixed": (
+        "This template has fixed targets; nothing to choose.",
+        "Diese Vorlage hat feste Ziele; hier ist nichts zu wählen.",
+    ),
+    "sched.template_values": (
+        "Values a template asks for at the start are planned in the template editor "
+        "(Operations → Operation templates).",
+        "Werte, nach denen eine Vorlage beim Start fragt, plant man im Editor der Vorlage "
+        "(Operationen → Operationsvorlagen).",
+    ),
+    "sched.enabled": ("Active", "Aktiv"),
+    "notice.schedule_saved": ("Schedule saved.", "Einplanung gespeichert."),
+    "notice.schedule_deleted": ("Schedule deleted.", "Einplanung gelöscht."),
     "sched.day.1": ("Mon", "Mo"),
     "sched.day.2": ("Tue", "Di"),
     "sched.day.3": ("Wed", "Mi"),

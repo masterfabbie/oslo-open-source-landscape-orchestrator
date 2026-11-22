@@ -1215,6 +1215,12 @@ def create_app(
             query = query.where(Schedule.operation == operation)
         return [schedule_out(s) for s in await session.scalars(query)]
 
+    @api.get("/schedules/{schedule_id}", response_model=ScheduleOut)
+    async def get_schedule(
+        schedule_id: int, session: Session, user: CurrentUser
+    ) -> dict[str, object]:
+        return schedule_out(await load_schedule(session, schedule_id, user))
+
     @api.post("/schedules", response_model=ScheduleOut, status_code=status.HTTP_201_CREATED)
     async def create_schedule(
         body: ScheduleIn, session: Session, user: CurrentUser

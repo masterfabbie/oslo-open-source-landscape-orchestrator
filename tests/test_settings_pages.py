@@ -104,10 +104,11 @@ async def test_preferences_shape_the_pages(browser):  # noqa: F811
     page = (await browser.get("/account", headers={"accept-language": "en"})).text
     assert '<html lang="de" data-theme="dark">' in page
 
-    # The switch in the header changes the chosen language too.
-    await browser.get("/language/en")
-    assert (await browser.get("/api/me/preferences")).json()["language"] == "en"
-    await browser.put("/api/me/preferences", json={"theme": "system"}, headers=HEADERS)
+    # Signed in, there is no language switch in the header; "My account" decides.
+    assert 'href="/language/' not in page
+    await browser.put(
+        "/api/me/preferences", json={"language": "en", "theme": "system"}, headers=HEADERS
+    )
     assert '<html lang="en">' in (await browser.get("/account")).text
 
 
@@ -118,3 +119,31 @@ async def test_language_switch_without_sign_in(anonymous):  # noqa: F811
     # Nothing was stored for the user before; the cookie decides.
     assert (await anonymous.get("/api/me/preferences")).json()["language"] == ""
     assert '<html lang="de">' in (await anonymous.get("/account")).text
+
+
+async def test_schedules_area(browser, app):  # noqa: F811
+    from test_web import add_hosts
+
+    await add_hosts(browser)
+    body = {
+        "operation": "start",
+        "target_type": "SYSTEM",
+        "target_ids": [1],
+        "recurrence": "daily",
+        "time_of_day": "06:30",
+        "weekdays": "12345",
+    }
+    created = await browser.post("/api/schedules", json=body, headers=HEADERS)
+    assert created.status_code == 201, created.text
+    schedule = created.json()
+    one = await browser.get(f"/api/schedules/{schedule['id']}")
+    assert one.status_code == 200 and one.json()["time_of_day"] == "06:30"
+    assert (await browser.get("/api/schedules/99")).status_code == 404
+
+    page = await browser.get(f"/activities/schedules/{schedule['id']}")
+    assert page.status_code == 200 and '"page": "schedule"' in page.text
+
+    # Viewers see the list, but planning pages need an operator.
+    async with client(app, await make_user(app, "view", "viewer")) as viewer:
+        assert (await viewer.get("/api/schedules")).status_code == 200
+        assert (await viewer.post("/api/schedules", json=body)).status_code == 403

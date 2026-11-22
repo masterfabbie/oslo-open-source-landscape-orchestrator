@@ -5,6 +5,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useState } from "react";
 import { ApiError, api } from "../lib/api";
+import { describeSchedule } from "../lib/schedules";
 import type { ScheduleRow, Snapshot, TargetType } from "../lib/types";
 import { formatTime, useApp } from "../landscape/ui";
 
@@ -41,12 +42,7 @@ export function Schedules({ operation, selection, snapshot, disabled }: Props) {
   const [interval, setIntervalMinutes] = useState(60);
   const [error, setError] = useState<string | null>(null);
 
-  const describe = (s: ScheduleRow) => {
-    if (s.recurrence === "once") return t("sched.once_at", { time: formatTime(s.run_at, language) });
-    if (s.recurrence === "interval") return t("sched.every", { minutes: s.interval_minutes ?? 0 });
-    const days = s.weekdays.split("").map((d) => t(`sched.day.${d}`)).join(", ");
-    return t("sched.daily_at", { time: s.time_of_day ?? "", days });
-  };
+  const describe = (s: ScheduleRow) => describeSchedule(s, t, language);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();

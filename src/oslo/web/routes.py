@@ -25,7 +25,7 @@ from ..catalog import Catalog
 from ..connections import ClientFactory
 from ..crypto import SecretBox
 from ..filters import PARAMS as FILTER_PARAMS
-from ..models import Activity, CustomOperation, Host, Pool, System, User
+from ..models import Activity, CustomOperation, Host, Pool, Schedule, System, User
 from ..operations import OperationRunner
 from ..permissions import required_role
 from ..settings import Settings
@@ -41,7 +41,6 @@ from ..users import (
     has_role,
     session_user,
     set_password,
-    set_preferences,
     user_count,
     verify_password,
 )
@@ -379,20 +378,12 @@ async def setup(
 
 
 @public.get("/language/{code}")
-async def set_language(
-    request: Request, code: str, session: DbSession, context: Context, next: str = "/"
-) -> Response:
-    """Switch the language. For a signed-in user it also becomes the language in
-    "My account", which otherwise would win over the cookie."""
+async def set_language(code: str, next: str = "/") -> Response:
+    """Language of the pages before signing in (cookie). Signed in, the language chosen in
+    "My account" wins; the header shows the switch only to signed-out visitors."""
     response = RedirectResponse(_safe_next(next), status_code=303)
     if code in LANGUAGES:
         response.set_cookie(LANGUAGE_COOKIE, code, max_age=365 * 24 * 3600, samesite="lax")
-        user = await session_user(
-            session, context.settings.secret_key, request.cookies.get(SESSION_COOKIE)
-        )
-        if user is not None:
-            await set_preferences(session, user, language=code)
-            await session.commit()
     return response
 
 
@@ -435,8 +426,21 @@ async def system_redirect(system_id: int, session: DbSession) -> Response:
 
 @pages.get("/activities")
 async def activities(request: Request, user: CurrentUser, tab: str | None = None) -> HTMLResponse:
-    page = "logs" if tab == "logs" else "activities"
+    page = tab if tab in ("logs", "schedules") else "activities"
     return app_page(request, user, "activities", "nav.activities", page=page)
+
+
+@pages.get("/activities/schedules/new")
+async def schedule_new(request: Request, user: CurrentUser) -> HTMLResponse:
+    return app_page(request, user, "activities", "tab.schedules", page="schedule_new")
+
+
+@pages.get("/activities/schedules/{schedule_id}")
+async def schedule_page(
+    request: Request, schedule_id: int, session: DbSession, user: CurrentUser
+) -> HTMLResponse:
+    await _exists(session, Schedule, schedule_id)
+    return app_page(request, user, "activities", "tab.schedules", page="schedule", id=schedule_id)
 
 
 @pages.get("/activities/{activity_id}")
