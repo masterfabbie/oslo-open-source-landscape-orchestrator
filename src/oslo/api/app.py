@@ -1148,7 +1148,9 @@ def create_app(
         body: PreferencesIn, session: Session, user: CurrentUser
     ) -> dict[str, str]:
         """Language and color scheme of the interface ("My account")."""
-        await set_preferences(session, user, language=body.language, theme=body.theme)
+        await set_preferences(
+            session, user, language=body.language, theme=body.theme, time=body.time
+        )
         await session.commit()
         return await get_preferences(session, user)
 

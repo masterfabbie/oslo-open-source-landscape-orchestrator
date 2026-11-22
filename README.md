@@ -265,8 +265,10 @@ abgelehnt.
   Sitzungen.
 - **Mein Konto** (Name oben rechts): eigenes Passwort ändern (eigene, servergerenderte Seite,
   auch bei der ersten Anmeldung mit Startpasswort), Darstellung (Sprache: wie im Browser,
-  Englisch oder Deutsch; Farbschema: wie im Betriebssystem, hell oder dunkel; gilt auf jedem
-  Gerät), persönliche API-Tokens anlegen und löschen. Die gewählte Sprache hat Vorrang vor
+  Englisch oder Deutsch; Farbschema: wie im Betriebssystem, hell oder dunkel; Zeitangaben:
+  Ortszeit des Browsers oder UTC, dann mit dem Zusatz „UTC“, auch für Eingaben; gilt auf jedem
+  Gerät). OSLO speichert und rechnet alle Zeiten in UTC, die API liefert sie mit Zeitzone
+  (`+00:00`), persönliche API-Tokens anlegen und löschen. Die gewählte Sprache hat Vorrang vor
   Cookie und Browser. Den Umschalter EN/DE in der Kopfzeile gibt es nur vor der Anmeldung
   (Anmeldung, Einrichtung).
 - **Nachvollziehbarkeit:** Jede Aktivität vermerkt, wer sie angefordert hat.
@@ -698,7 +700,7 @@ keine Inventardaten.
 | GET | `/api/me` | eigener Benutzer |
 | GET, POST | `/api/me/tokens` | eigene API-Tokens auflisten bzw. anlegen (`{"name": "...", "expires_at": "..."}`; der Wert steht nur in der Antwort) |
 | DELETE | `/api/me/tokens/{id}` | eigenes Token löschen |
-| GET, PUT | `/api/me/preferences` | eigene Darstellung: `{"language": "" \| "en" \| "de", "theme": "system" \| "light" \| "dark"}`; PUT ändert nur, was angegeben ist |
+| GET, PUT | `/api/me/preferences` | eigene Darstellung: `{"language": "" \| "en" \| "de", "theme": "system" \| "light" \| "dark", "time": "browser" \| "utc"}`; PUT ändert nur, was angegeben ist |
 | GET, POST | `/api/users` | Benutzer auflisten bzw. anlegen (nur Admin; Startpasswort muss geändert werden) |
 | PATCH | `/api/users/{id}` | Anzeigename, Rolle, aktiv ändern (nur Admin) |
 | PUT | `/api/users/{id}/password` | Startpasswort setzen (nur Admin) |

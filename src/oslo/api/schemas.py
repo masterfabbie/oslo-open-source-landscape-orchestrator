@@ -541,11 +541,14 @@ class PreferencesIn(BaseModel):
 
     language: Literal["", "en", "de"] | None = None
     theme: Literal["system", "light", "dark"] | None = None
+    # Zone times are shown in; stored and sent are they always in UTC.
+    time: Literal["browser", "utc"] | None = None
 
 
 class PreferencesOut(BaseModel):
     language: str
     theme: str
+    time: str
 
 
 class AttentionRulesIn(BaseModel):

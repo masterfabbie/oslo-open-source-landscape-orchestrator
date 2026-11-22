@@ -446,8 +446,17 @@ Wichtige Entwurfsentscheidungen:
   eigener Operationen aus `/api/operations`; Werte von Vorlagen (`ask`) bleiben im Editor der
   Vorlage, beim Ändern bleiben vorhandene Werte erhalten. `/activities?tab=schedules` leitet
   auf die neue Adresse. Gemeinsame Beschreibung der Wiederholung in
-  `frontend/src/lib/schedules.ts`. Zeiten der Einplanungen gibt die API mit Zeitzone aus
-  (`_aware`), sonst liest der Browser sie als Ortszeit.
+  `frontend/src/lib/schedules.ts`.
+- **Zeiten immer in UTC** (2026-11-22): Alle Zeitspalten nutzen `models.UTCDateTime`; es
+  schreibt UTC ohne Zone (SQLite kennt keine) und liest UTC mit Zone zurück, so trägt jede Zeit
+  der API ihr `+00:00`. Vorher kamen Zeiten ohne Zone an, und der Browser zeigte sie als
+  Ortszeit (in Berlin eine Stunde zu früh). Naive Werte gelten beim Schreiben als UTC. Neue
+  Zeitspalten nehmen `UTCDateTime()`, nicht `DateTime`.
+- **Anzeige der Zeiten je Benutzer** (Wunsch des Eigentümers, wie in der AWS-Konsole):
+  `user_settings` `ui.time` (`browser` Standard, `utc`) in „Mein Konto → Darstellung“, in den
+  Startdaten als `time_display`. `formatTime` in `frontend/src/landscape/ui.tsx` zeigt UTC mit
+  dem Zusatz „UTC“; Eingaben (`datetime-local`) rechnen `toInputValue`/`fromInputValue` in
+  der gewählten Zone um. Tägliche Einplanungen bleiben in `OSLO_TIMEZONE`.
 - In `api/app.py` steht bewusst kein `from __future__ import annotations`: FastAPI löst die
   Typangaben der Routen zur Laufzeit auf, und sie verweisen auf lokale Namen.
 
@@ -633,9 +642,6 @@ und freigeben lassen:
 - kein Probelauf für Operationsvorlagen
 - Werte, nach denen eine Vorlage beim Start fragt, lassen sich nur im Editor der Vorlage
   einplanen, nicht unter Operationen → Einplanungen
-- Zeiten der übrigen API (Aktivitäten, Discovery, Status) kommen ohne Zeitzone (SQLite liefert
-  sie so); der Browser zeigt sie als Ortszeit, in Berlin also eine Stunde zu früh (Korrektur
-  vorgeschlagen, 2026-11-22)
 - Instanz-Agent neu starten (normal und forciert) fehlt noch; offen ist, wie OSLO die nötigen
   Dateien in `operations.d` verteilt und prüft
 - keine Kernel-Repositories (Ablage der Kernel-Versionen für Kernel-Tausch-Skripte)

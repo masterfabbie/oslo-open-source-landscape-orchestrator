@@ -270,6 +270,8 @@ def _boot(request: Request, user: User, **extra: Any) -> dict[str, Any]:
         "texts": all_texts(language),
         "user": {"name": user.username, "role": user.role},
         "timezone": get_context(request).settings.timezone,
+        # "utc" shows times in UTC, otherwise in the browser's local time.
+        "time_display": _preferences(request).get("time", "browser"),
     } | extra
 
 

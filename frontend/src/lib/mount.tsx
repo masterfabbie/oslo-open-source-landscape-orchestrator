@@ -4,12 +4,13 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { type ReactNode, StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { AppContext } from "../landscape/ui";
+import { AppContext, setTimeDisplay } from "../landscape/ui";
 import { type Boot, readBoot } from "./boot";
 import { makeTranslate } from "./i18n";
 
 export function mount(render: (boot: Boot & Record<string, unknown>) => ReactNode): void {
   const boot = readBoot() as Boot & Record<string, unknown>;
+  setTimeDisplay(boot.time_display);
   const queries = new QueryClient({ defaultOptions: { queries: { retry: 1, staleTime: 2_000, refetchOnWindowFocus: false } } });
   const root = document.getElementById("oslo-app");
   if (!root) return;

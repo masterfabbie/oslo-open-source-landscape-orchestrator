@@ -77,12 +77,16 @@ async def test_preferences_in_the_api(app):  # noqa: F811
         assert (await admin.get("/api/me/preferences")).json() == {
             "language": "",
             "theme": "system",
+            "time": "browser",
         }
         saved = await admin.put("/api/me/preferences", json={"language": "de", "theme": "dark"})
-        assert saved.json() == {"language": "de", "theme": "dark"}
+        assert saved.json() == {"language": "de", "theme": "dark", "time": "browser"}
         # Only what is given changes.
         saved = await admin.put("/api/me/preferences", json={"theme": "light"})
-        assert saved.json() == {"language": "de", "theme": "light"}
+        assert saved.json() == {"language": "de", "theme": "light", "time": "browser"}
+        saved = await admin.put("/api/me/preferences", json={"time": "utc"})
+        assert saved.json()["time"] == "utc"
+        assert (await admin.put("/api/me/preferences", json={"time": "cet"})).status_code == 422
         assert (await admin.get("/api/i18n")).json()["language"] == "de"
         bad = await admin.put("/api/me/preferences", json={"theme": "pink"})
         assert bad.status_code == 422
@@ -187,3 +191,27 @@ async def test_schedules_for_operators_only(app):  # noqa: F811
         await sign_in(web, "view")
         assert (await web.get("/operations/schedules")).status_code == 403
         assert 'href="/operations"' not in (await web.get("/activities")).text
+
+
+async def test_times_carry_their_zone(browser, app):  # noqa: F811
+    """The API sends every time in UTC with its zone, so that browsers convert it; the
+    page tells the browser whether to show UTC or local time."""
+    from test_web import add_hosts, boot_of
+
+    await add_hosts(browser)
+    host = (await browser.get("/api/hosts/1")).json()
+    started = await browser.post("/api/instances/1/start", headers=HEADERS)
+    await app.state.runner.wait(started.json()["id"])
+    activity = (await browser.get(f"/api/activities/{started.json()['id']}")).json()
+    users = (await browser.get("/api/users")).json()
+    for value in (
+        host["last_discovery_at"],
+        activity["requested_at"],
+        activity["entries"][0]["timestamp"],
+        users[0]["created_at"],
+    ):
+        assert value.endswith(("Z", "+00:00")), value
+
+    assert boot_of((await browser.get("/landscape")).text)["time_display"] == "browser"
+    await browser.put("/api/me/preferences", json={"time": "utc"}, headers=HEADERS)
+    assert boot_of((await browser.get("/landscape")).text)["time_display"] == "utc"

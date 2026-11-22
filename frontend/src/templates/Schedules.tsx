@@ -7,7 +7,7 @@ import { type FormEvent, useState } from "react";
 import { ApiError, api } from "../lib/api";
 import { describeSchedule } from "../lib/schedules";
 import type { ScheduleRow, Snapshot, TargetType } from "../lib/types";
-import { formatTime, useApp } from "../landscape/ui";
+import { formatTime, fromInputValue, timesInUtc, useApp } from "../landscape/ui";
 
 const DAYS = ["1", "2", "3", "4", "5", "6", "7"];
 
@@ -52,7 +52,7 @@ export function Schedules({ operation, selection, snapshot, disabled }: Props) {
       target_type: selection ?? "",
       target_ids: selection ? chosen : [],
       recurrence,
-      run_at: recurrence === "once" && runAt ? new Date(runAt).toISOString() : null,
+      run_at: recurrence === "once" && runAt ? fromInputValue(runAt) : null,
       time_of_day: recurrence === "daily" ? time : null,
       weekdays,
       interval_minutes: recurrence === "interval" ? interval : null,
@@ -139,7 +139,7 @@ export function Schedules({ operation, selection, snapshot, disabled }: Props) {
         </div>
         {recurrence === "once" && (
           <label>
-            {t("sched.when")}
+            {timesInUtc() ? t("time.input_utc") : t("sched.when")}
             <input type="datetime-local" value={runAt} required onChange={(e) => setRunAt(e.target.value)} />
           </label>
         )}

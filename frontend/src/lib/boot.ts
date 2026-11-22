@@ -5,6 +5,8 @@ export interface Boot {
   texts: Record<string, string>;
   user: { name: string; role: string };
   timezone?: string;
+  /** "utc": times are shown and entered in UTC; otherwise in the browser's local time. */
+  time_display?: string;
 }
 
 export function readBoot(id = "oslo-boot"): Boot {

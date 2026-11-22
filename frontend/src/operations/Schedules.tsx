@@ -11,7 +11,7 @@ import { ActionForm, ConfirmButton, PageHead, Section, go } from "../lib/forms";
 import { hasRole } from "../lib/i18n";
 import { describeSchedule } from "../lib/schedules";
 import type { Parameter, ScheduleRow, Snapshot, TargetType } from "../lib/types";
-import { formatTime, useApp, useLiveUpdates } from "../landscape/ui";
+import { formatTime, fromInputValue, timesInUtc, toInputValue, useApp, useLiveUpdates } from "../landscape/ui";
 
 const LIST = "/operations/schedules";
 // Colors of the last run's status.
@@ -249,14 +249,6 @@ export function SchedulesPage() {
 
 // --- plan or change -----------------------------------------------------------------------
 
-/** "2026-11-22T06:30" in local time, as a datetime-local input wants it. */
-function localInput(iso: string | null): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
 export function SchedulePage({ id }: { id?: number }) {
   const { t } = useApp();
   const existing = useQuery({ queryKey: ["schedules", id], queryFn: () => api<ScheduleRow>(`/schedules/${id}`), enabled: id !== undefined });
@@ -279,7 +271,7 @@ function ScheduleForm({ schedule, operations, snapshot }: { schedule?: ScheduleR
   const [targets, setTargets] = useState<number[]>(schedule?.target_ids ?? []);
   const [values, setValues] = useState<Record<string, string | number | boolean>>(schedule?.parameters ?? {});
   const [recurrence, setRecurrence] = useState<ScheduleRow["recurrence"]>(schedule?.recurrence ?? "once");
-  const [runAt, setRunAt] = useState(localInput(schedule?.run_at ?? null));
+  const [runAt, setRunAt] = useState(toInputValue(schedule?.run_at ?? null));
   const [time, setTime] = useState(schedule?.time_of_day ?? "22:00");
   const [weekdays, setWeekdays] = useState(schedule?.weekdays ?? "12345");
   const [interval, setIntervalMinutes] = useState(schedule?.interval_minutes ?? 60);
@@ -326,7 +318,7 @@ function ScheduleForm({ schedule, operations, snapshot }: { schedule?: ScheduleR
               target_ids: type ? chosen : [],
               parameters: values,
               recurrence,
-              run_at: recurrence === "once" && runAt ? new Date(runAt).toISOString() : null,
+              run_at: recurrence === "once" && runAt ? fromInputValue(runAt) : null,
               time_of_day: recurrence === "daily" ? time : null,
               weekdays,
               interval_minutes: recurrence === "interval" ? interval : null,
@@ -420,7 +412,7 @@ function ScheduleForm({ schedule, operations, snapshot }: { schedule?: ScheduleR
           </div>
           {recurrence === "once" && (
             <label className="oslo-field">
-              {t("sched.when")}
+              {timesInUtc() ? t("time.input_utc") : t("sched.when")}
               <input type="datetime-local" value={runAt} required onChange={(e) => setRunAt(e.target.value)} />
             </label>
           )}

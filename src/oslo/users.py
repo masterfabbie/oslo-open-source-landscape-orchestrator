@@ -343,25 +343,35 @@ async def set_setting(session: AsyncSession, user: User, key: str, value: str) -
         setting.value = value
 
 
-# Display preferences of a user ("Mein Konto"): language ("" follows the browser) and color
-# scheme ("system" follows the operating system).
+# Display preferences of a user ("Mein Konto"): language ("" follows the browser), color
+# scheme ("system" follows the operating system) and the zone times are shown in ("browser":
+# the browser's local time, "utc"). Times are always stored and sent in UTC.
 PREFERENCE_LANGUAGE = "ui.language"
 PREFERENCE_THEME = "ui.theme"
+PREFERENCE_TIME = "ui.time"
 PREFERENCE_LANGUAGES = ("", "en", "de")
 THEMES = ("system", "light", "dark")
+TIME_DISPLAYS = ("browser", "utc")
 
 
 async def get_preferences(session: AsyncSession, user: User) -> dict[str, str]:
     language = await get_setting(session, user, PREFERENCE_LANGUAGE) or ""
     theme = await get_setting(session, user, PREFERENCE_THEME) or "system"
+    time = await get_setting(session, user, PREFERENCE_TIME) or "browser"
     return {
         "language": language if language in PREFERENCE_LANGUAGES else "",
         "theme": theme if theme in THEMES else "system",
+        "time": time if time in TIME_DISPLAYS else "browser",
     }
 
 
 async def set_preferences(
-    session: AsyncSession, user: User, *, language: str | None = None, theme: str | None = None
+    session: AsyncSession,
+    user: User,
+    *,
+    language: str | None = None,
+    theme: str | None = None,
+    time: str | None = None,
 ) -> None:
     """Change the given preferences; the caller commits. Raises ValueError for unknown ones."""
     if language is not None:
@@ -372,3 +382,7 @@ async def set_preferences(
         if theme not in THEMES:
             raise ValueError(f"Unknown color scheme {theme!r}")
         await set_setting(session, user, PREFERENCE_THEME, theme)
+    if time is not None:
+        if time not in TIME_DISPLAYS:
+            raise ValueError(f"Unknown time display {time!r}")
+        await set_setting(session, user, PREFERENCE_TIME, time)

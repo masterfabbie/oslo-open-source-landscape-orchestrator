@@ -136,6 +136,7 @@ export function AccountPage() {
 interface Preferences {
   language: string;
   theme: string;
+  time: string;
 }
 
 /** Language and color scheme; the page reloads so that the server applies them. */
@@ -149,12 +150,13 @@ function DisplayForm({ initial }: { initial: Preferences }) {
   const { t } = useApp();
   const [language, setLanguage] = useState(initial.language);
   const [theme, setTheme] = useState(initial.theme);
+  const [time, setTime] = useState(initial.time);
   return (
     <Section title={t("account.display")} hint={t("account.display_hint")}>
       <ActionForm
         submit={t("action.save")}
         onSubmit={async () => {
-          await api("/me/preferences", { method: "PUT", body: { language, theme } });
+          await api("/me/preferences", { method: "PUT", body: { language, theme, time } });
           window.location.reload();
         }}
       >
@@ -177,7 +179,18 @@ function DisplayForm({ initial }: { initial: Preferences }) {
               ))}
             </select>
           </label>
+          <label className="oslo-field">
+            {t("account.time")}
+            <select value={time} onChange={(e) => setTime(e.target.value)}>
+              {["browser", "utc"].map((value) => (
+                <option key={value} value={value}>
+                  {t(`time.${value}`)}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
+        <p className="oslo-muted">{t("time.hint")}</p>
       </ActionForm>
     </Section>
   );

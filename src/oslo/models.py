@@ -7,7 +7,7 @@ SIDs; it never creates systems.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import (
     Boolean,
@@ -18,6 +18,7 @@ from sqlalchemy import (
     String,
     Table,
     Text,
+    TypeDecorator,
     UniqueConstraint,
     func,
     select,
@@ -32,6 +33,29 @@ from sqlalchemy.orm import (
 )
 
 from .roles import Role, instance_role, instance_type_key
+
+
+class UTCDateTime(TypeDecorator[datetime]):
+    """A point in time, stored in UTC and always read back as UTC.
+
+    SQLite keeps no time zone, so without this times came back without one and browsers read
+    them as local time (an hour early in Berlin). Naive values written are taken as UTC.
+    """
+
+    impl = DateTime(timezone=True)
+    cache_ok = True
+
+    def process_bind_param(self, value: datetime | None, dialect: object) -> datetime | None:
+        if value is None:
+            return None
+        if value.tzinfo is not None:
+            value = value.astimezone(UTC)
+        return value.replace(tzinfo=None)
+
+    def process_result_value(self, value: datetime | None, dialect: object) -> datetime | None:
+        if value is None:
+            return None
+        return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
 
 # Stages of systems, in the order of the overview's columns.
 STAGES = ("sandbox", "development", "quality", "preprod", "production")
@@ -99,7 +123,7 @@ class Host(Base):
 
     reachable: Mapped[bool | None] = mapped_column(Boolean)
     last_error: Mapped[str | None] = mapped_column(Text)
-    last_discovery_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_discovery_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
 
     instances: Mapped[list[Instance]] = relationship(
         back_populates="host",
@@ -150,7 +174,7 @@ class HostAgentInfo(Base):
     release: Mapped[str] = mapped_column(String(16))
     patch: Mapped[str | None] = mapped_column(String(16))
     details: Mapped[str | None] = mapped_column(String(255))
-    checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    checked_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
 
     host: Mapped[Host] = relationship(back_populates="agent_info")
 
@@ -304,7 +328,7 @@ class Instance(Base):
     features: Mapped[str | None] = mapped_column(String(255))
     start_priority: Mapped[str | None] = mapped_column(String(16))
     last_status: Mapped[str] = mapped_column(String(16), default=STATUS_UNKNOWN)
-    status_checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    status_checked_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
 
     host: Mapped[Host] = relationship(back_populates="instances")
     sid: Mapped[Sid] = relationship(back_populates="instances")
@@ -360,7 +384,7 @@ class Database(Base):
     vendor: Mapped[str | None] = mapped_column(String(64))
     release: Mapped[str | None] = mapped_column(String(64))
     last_status: Mapped[str] = mapped_column(String(16), default=STATUS_UNKNOWN)
-    status_checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    status_checked_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
 
     host: Mapped[Host] = relationship(back_populates="databases")
 
@@ -391,9 +415,9 @@ class Activity(Base):
     requested_by: Mapped[str | None] = mapped_column(String(64))
     timeout_seconds: Mapped[int] = mapped_column(Integer)
     error: Mapped[str | None] = mapped_column(Text)
-    requested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    requested_at: Mapped[datetime] = mapped_column(UTCDateTime())
+    started_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
+    finished_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
     # False for custom operations that lock nothing (e.g. reading logs): they run beside
     # other activities and do not keep others from starting.
     locks: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -421,7 +445,7 @@ class ActivityLogEntry(Base):
     activity_id: Mapped[int] = mapped_column(
         ForeignKey("activities.id", ondelete="CASCADE"), index=True
     )
-    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    timestamp: Mapped[datetime] = mapped_column(UTCDateTime())
     level: Mapped[str] = mapped_column(String(8))
     message: Mapped[str] = mapped_column(Text)
     # Structured part for the timeline of the activity page (all optional): ``event`` is
@@ -467,9 +491,9 @@ class User(Base):
     # Increased to end all browser sessions, e.g. after a password or role change.
     session_epoch: Mapped[int] = mapped_column(Integer, default=0)
     failed_logins: Mapped[int] = mapped_column(Integer, default=0)
-    locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    locked_until: Mapped[datetime | None] = mapped_column(UTCDateTime())
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime())
+    last_login_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
 
     tokens: Mapped[list[ApiToken]] = relationship(
         back_populates="user",
@@ -494,9 +518,9 @@ class ApiToken(Base):
     token_hash: Mapped[str] = mapped_column(String(64), unique=True)
     # First characters of the token, to recognize it in lists.
     prefix: Mapped[str] = mapped_column(String(16))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime())
+    expires_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
+    last_used_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
 
     user: Mapped[User] = relationship(back_populates="tokens")
 
@@ -526,9 +550,9 @@ class TrustedCertificate(Base):
     issuer: Mapped[str] = mapped_column(Text)
     # SHA-256 of the certificate, hex with colons.
     fingerprint: Mapped[str] = mapped_column(String(95), unique=True)
-    not_before: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    not_after: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    not_before: Mapped[datetime] = mapped_column(UTCDateTime())
+    not_after: Mapped[datetime] = mapped_column(UTCDateTime())
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime())
     created_by: Mapped[str | None] = mapped_column(String(64))
 
 
@@ -568,7 +592,7 @@ class CustomOperation(Base):
     # False: only as a step of an operation template, not in menus or the landscape.
     standalone: Mapped[bool] = mapped_column(Boolean, default=True)
     timeout_seconds: Mapped[int] = mapped_column(Integer)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime())
 
     parameters: Mapped[list[CustomOperationParameter]] = relationship(
         back_populates="operation",
@@ -623,7 +647,7 @@ class OperationTemplate(Base):
     role: Mapped[str] = mapped_column(String(16))
     # Unused since migration 0008: a selection of several targets is one run.
     mass: Mapped[bool] = mapped_column(Boolean, default=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime())
 
     steps: Mapped[list[TemplateStep]] = relationship(
         back_populates="template",
@@ -681,15 +705,15 @@ class Schedule(Base):
     parameters: Mapped[str] = mapped_column(Text, default="{}")
     # once (run_at), daily (time_of_day on weekdays), interval (every interval_minutes).
     recurrence: Mapped[str] = mapped_column(String(16))
-    run_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    run_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
     time_of_day: Mapped[str | None] = mapped_column(String(5))  # "22:00", local time
     weekdays: Mapped[str] = mapped_column(String(7), default="1234567")  # 1 = Monday
     interval_minutes: Mapped[int | None] = mapped_column(Integer)
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     # The run happens with the rights of this user, checked again when it is due.
     created_by: Mapped[str] = mapped_column(String(64))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    next_run_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
-    last_run_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime())
+    next_run_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), index=True)
+    last_run_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
     last_activity_id: Mapped[int | None] = mapped_column(Integer)
     last_error: Mapped[str | None] = mapped_column(Text)

@@ -329,6 +329,16 @@ TEXTS: dict[str, tuple[str, str]] = {
     "account.language": ("Language", "Sprache"),
     "account.language_auto": ("Like the browser", "Wie im Browser"),
     "account.theme": ("Color scheme", "Farbschema"),
+    "account.time": ("Times", "Zeitangaben"),
+    "time.browser": ("Local time of the browser", "Ortszeit des Browsers"),
+    "time.utc": ("UTC", "UTC"),
+    "time.hint": (
+        "OSLO stores and computes all times in UTC; this only changes how they are shown and "
+        "entered. Daily schedules keep the time zone of the schedules.",
+        "OSLO speichert und rechnet alle Zeiten in UTC; das ändert nur, wie sie angezeigt und "
+        "eingegeben werden. Tägliche Einplanungen bleiben in der Zeitzone der Einplanungen.",
+    ),
+    "time.input_utc": ("Date and time (UTC)", "Datum und Uhrzeit (UTC)"),
     "theme.system": ("Like the operating system", "Wie im Betriebssystem"),
     "theme.light": ("Light", "Hell"),
     "theme.dark": ("Dark", "Dunkel"),
