@@ -494,6 +494,8 @@ class TemplateRunIn(RunIn):
 
 
 class ScheduleIn(BaseModel):
+    # Shown in the list; empty: the name of the operation.
+    name: str | None = Field(default=None, max_length=128)
     operation: str
     # "" and no targets for a template with fixed targets only.
     target_type: Literal["SYSTEM", "INSTANCE", "HOST", ""]
@@ -516,6 +518,8 @@ class ScheduleOut(ScheduleIn):
     next_run_at: datetime | None
     last_run_at: datetime | None
     last_activity_id: int | None
+    # Status of the last run's activity (SUCCEEDED, FAILED, …), if it still exists.
+    last_status: str | None = None
     last_error: str | None
 
 

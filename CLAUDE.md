@@ -378,8 +378,9 @@ Wichtige Entwurfsentscheidungen:
   Vergleichstest ignoriert deshalb das nicht zurückgelesene `ON DELETE` dieser Spalten.
 - **Aufbau der Oberfläche:** Übersicht (Statusmatrix, „Braucht Aufmerksamkeit“), Landscape (beobachten und bedienen:
   Systeme, Hosts), Activities (Aktivitäten, Protokolle), Configuration (einrichten: Hosts,
-  Systeme, Pools), Operations (nur Admins: eigene Operationen unter `/operations/custom`,
-  Operationsvorlagen unter `/operations/templates`), Administration (Allgemein, Benutzer,
+  Systeme, Pools), Operations (eigene Operationen unter `/operations/custom` und
+  Operationsvorlagen unter `/operations/templates` nur für Admins, Einplanungen unter
+  `/operations/schedules` ab Operator), Administration (Allgemein, Benutzer,
   Regeln für „Braucht Aufmerksamkeit“, Zertifikate), „Mein Konto“ (Passwort, API-Tokens). Menüpunkte deutsch:
   Übersicht, Landschaft, Aktivitäten, Konfiguration, Operationen, Administration; englisch
   unverändert (Wunsch des Eigentümers, 2026-11-20).
@@ -432,13 +433,21 @@ Wichtige Entwurfsentscheidungen:
   `data-theme="dark"`. Den Umschalter EN/DE in der Kopfzeile zeigt `base.html` nur ohne
   angemeldeten Benutzer (Anmeldung, Einrichtung; Wunsch des Eigentümers); `/language/{code}`
   setzt nur das Cookie.
-- **Einplanungen als Bereich** (ToDo 9, Wunsch des Eigentümers): Reiter „Einplanungen“ unter
-  Aktivitäten (`/activities?tab=schedules`, `frontend/src/activities/SchedulesArea.tsx`) mit
-  allen Einplanungen; anlegen und ändern unter `/activities/schedules/new` bzw. `/{id}` (ab
-  Operator, `permissions.required_role`) für jede Katalog-Operation mit `standalone`, Ziele aus
-  `/api/landscape`, Parameter eigener Operationen aus `/api/operations`. Werte von Vorlagen
-  (`ask`) bleiben im Editor der Vorlage; beim Ändern bleiben vorhandene Werte erhalten.
-  Gemeinsame Beschreibung der Wiederholung in `frontend/src/lib/schedules.ts`.
+- **Einplanungen als Bereich** (ToDo 9, Wunsch des Eigentümers, nach dem Vorbild der LaMa-Liste
+  „Schedules“ im Bereich Operationen): Unterbereich „Einplanungen“ unter Operationen
+  (`/operations/schedules`, App `operations`, `frontend/src/operations/Schedules.tsx`) mit
+  allen Einplanungen, Filtern, Status des letzten Laufs (`last_status` aus der Aktivität),
+  Zeitzone und Serverzeit (`/api/server-time`) und Löschen mehrerer; anlegen und ändern unter
+  `/operations/schedules/new` bzw. `/{id}`. Ab Operator (`permissions.required_role`); die
+  Einträge der Seitennavigation haben je eine Rolle (`SECTIONS`, `_section` filtert), deshalb
+  sehen Operatoren und Konfiguratoren unter Operationen nur die Einplanungen, `/operations`
+  leitet sie dorthin. Name je Einplanung (`schedules.name`, Migration 0011, leer: Name der
+  Operation). Jede Katalog-Operation mit `standalone`, Ziele aus `/api/landscape`, Parameter
+  eigener Operationen aus `/api/operations`; Werte von Vorlagen (`ask`) bleiben im Editor der
+  Vorlage, beim Ändern bleiben vorhandene Werte erhalten. `/activities?tab=schedules` leitet
+  auf die neue Adresse. Gemeinsame Beschreibung der Wiederholung in
+  `frontend/src/lib/schedules.ts`. Zeiten der Einplanungen gibt die API mit Zeitzone aus
+  (`_aware`), sonst liest der Browser sie als Ortszeit.
 - In `api/app.py` steht bewusst kein `from __future__ import annotations`: FastAPI löst die
   Typangaben der Routen zur Laufzeit auf, und sie verweisen auf lokale Namen.
 
@@ -602,7 +611,7 @@ und freigeben lassen:
 7. Ansteuerung von außen, z. B. AWS SSM: ein externer Auftrag lässt OSLO ein SAP-System starten.
 8. „Erneut ausführen“-Knopf an einer abgebrochenen Aktivität (gleiche Operation, Ziele und Werte;
    gewünscht 2026-11-21).
-9. ~~Bereich „Schedules“ für alle geplanten Operationen.~~ Erledigt 2026-11-22 (Aktivitäten → Einplanungen).
+9. ~~Bereich „Schedules“ für alle geplanten Operationen.~~ Erledigt 2026-11-22 (Operationen → Einplanungen).
 10. Konzept für OSLO-eigene Operationen: Dateien in `operations.d`, die OSLO braucht (z. B. für den
     Neustart des Instanz-Agents, normal und forciert), verteilen und regelmäßig bzw. auf
     Anforderung prüfen; Vorschlag mit `DeployConfiguration` und Versionsprüfung liegt vor,
@@ -623,7 +632,10 @@ und freigeben lassen:
 - Abbrechen von Start und Stopp beendet nur das Warten
 - kein Probelauf für Operationsvorlagen
 - Werte, nach denen eine Vorlage beim Start fragt, lassen sich nur im Editor der Vorlage
-  einplanen, nicht unter Aktivitäten → Einplanungen
+  einplanen, nicht unter Operationen → Einplanungen
+- Zeiten der übrigen API (Aktivitäten, Discovery, Status) kommen ohne Zeitzone (SQLite liefert
+  sie so); der Browser zeigt sie als Ortszeit, in Berlin also eine Stunde zu früh (Korrektur
+  vorgeschlagen, 2026-11-22)
 - Instanz-Agent neu starten (normal und forciert) fehlt noch; offen ist, wie OSLO die nötigen
   Dateien in `operations.d` verteilt und prüft
 - keine Kernel-Repositories (Ablage der Kernel-Versionen für Kernel-Tausch-Skripte)

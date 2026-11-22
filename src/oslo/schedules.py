@@ -92,6 +92,7 @@ async def save_schedule(
     zone: ZoneInfo,
     *,
     operation: str,
+    name: str | None = None,
     target_type: str,
     target_ids: Sequence[int],
     parameters: Mapping[str, str | int | bool],
@@ -150,6 +151,7 @@ async def save_schedule(
         schedule = Schedule(created_at=now, created_by=user.username)
         session.add(schedule)
     schedule.operation = operation
+    schedule.name = (name or "").strip() or None
     schedule.target_type = kind.value if kind else ""
     schedule.target_ids = json.dumps(ids)
     schedule.parameters = json.dumps(dict(parameters))

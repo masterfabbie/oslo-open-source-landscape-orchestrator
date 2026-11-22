@@ -18,7 +18,7 @@
     <a href="/landscape" {% if path.startswith(("/landscape", "/systems", "/hosts")) %}aria-current="page"{% endif %}>{{ t("nav.landscape") }}</a>
     <a href="/activities" {% if path.startswith("/activities") %}aria-current="page"{% endif %}>{{ t("nav.activities") }}</a>
     {% if can("configurator") %}<a href="/configuration" {% if path.startswith("/configuration") %}aria-current="page"{% endif %}>{{ t("nav.configuration") }}</a>{% endif %}
-    {% if can("admin") %}<a href="/operations" {% if path.startswith("/operations") %}aria-current="page"{% endif %}>{{ t("nav.operations") }}</a>{% endif %}
+    {% if can("operator") %}<a href="/operations" {% if path.startswith("/operations") %}aria-current="page"{% endif %}>{{ t("nav.operations") }}</a>{% endif %}
     {% if can("admin") %}<a href="/administration" {% if path.startswith("/administration") %}aria-current="page"{% endif %}>{{ t("nav.administration") }}</a>{% endif %}
   </nav>
   {% endblock %}

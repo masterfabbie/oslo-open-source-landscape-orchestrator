@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 import pytest
 
 from conftest import make_user
@@ -126,6 +128,7 @@ async def test_schedules_area(browser, app):  # noqa: F811
 
     await add_hosts(browser)
     body = {
+        "name": " Morning restart ",
         "operation": "start",
         "target_type": "SYSTEM",
         "target_ids": [1],
@@ -136,14 +139,51 @@ async def test_schedules_area(browser, app):  # noqa: F811
     created = await browser.post("/api/schedules", json=body, headers=HEADERS)
     assert created.status_code == 201, created.text
     schedule = created.json()
+    assert schedule["name"] == "Morning restart" and schedule["last_status"] is None
+    # Times carry their zone, so that browsers do not read them as local time.
+    assert schedule["next_run_at"].endswith(("Z", "+00:00"))
+    assert schedule["created_at"].endswith(("Z", "+00:00"))
     one = await browser.get(f"/api/schedules/{schedule['id']}")
     assert one.status_code == 200 and one.json()["time_of_day"] == "06:30"
     assert (await browser.get("/api/schedules/99")).status_code == 404
+    unnamed = await browser.post("/api/schedules", json=body | {"name": "  "}, headers=HEADERS)
+    assert unnamed.json()["name"] is None
 
-    page = await browser.get(f"/activities/schedules/{schedule['id']}")
+    # A run fills in the status of its activity.
+    app.state.scheduler.now = lambda: datetime(2030, 1, 7, 6, 31, tzinfo=UTC)  # a Monday
+    await app.state.scheduler.tick()
+    listed = {s["id"]: s for s in (await browser.get("/api/schedules")).json()}
+    await app.state.runner.wait(listed[schedule["id"]]["last_activity_id"])
+    listed = {s["id"]: s for s in (await browser.get("/api/schedules")).json()}
+    assert listed[schedule["id"]]["last_status"] in ("SUCCEEDED", "FAILED", "RUNNING")
+    time = (await browser.get("/api/server-time")).json()
+    assert time["timezone"] == "Europe/Berlin" and time["now"].startswith("2030-01-07")
+
+    page = await browser.get(f"/operations/schedules/{schedule['id']}")
     assert page.status_code == 200 and '"page": "schedule"' in page.text
+    # The old address leads to the new place.
+    moved = await browser.get("/activities?tab=schedules")
+    assert moved.status_code in (302, 303) and moved.headers["location"] == "/operations/schedules"
 
-    # Viewers see the list, but planning pages need an operator.
-    async with client(app, await make_user(app, "view", "viewer")) as viewer:
-        assert (await viewer.get("/api/schedules")).status_code == 200
-        assert (await viewer.post("/api/schedules", json=body)).status_code == 403
+
+async def test_schedules_for_operators_only(app):  # noqa: F811
+    import httpx
+
+    for name, role in (("op", "operator"), ("view", "viewer")):
+        await make_user(app, name, role)
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://test"
+    ) as web:
+        await sign_in(web, "op")
+        page = await web.get("/operations/schedules")
+        assert page.status_code == 200
+        # Operators see only the schedules in the Operations area.
+        assert 'href="/operations/schedules"' in page.text
+        assert 'href="/operations/custom"' not in page.text
+        assert (await web.get("/operations/custom")).status_code == 403
+        redirect = await web.get("/operations")
+        assert redirect.headers["location"] == "/operations/schedules"
+        await web.post("/logout")
+        await sign_in(web, "view")
+        assert (await web.get("/operations/schedules")).status_code == 403
+        assert 'href="/operations"' not in (await web.get("/activities")).text

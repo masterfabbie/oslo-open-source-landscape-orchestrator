@@ -669,6 +669,8 @@ class Schedule(Base):
     __tablename__ = "schedules"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    # Shown in Operations → Schedules; empty: the name of the operation.
+    name: Mapped[str | None] = mapped_column(String(128))
     operation: Mapped[str] = mapped_column(String(64))
     # "" for a template whose steps all have fixed targets.
     target_type: Mapped[str] = mapped_column(String(16))

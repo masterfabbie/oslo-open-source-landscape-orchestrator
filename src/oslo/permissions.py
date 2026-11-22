@@ -50,17 +50,17 @@ def required_role(method: str, path: str) -> Role:
         )
     ):
         return Role.ADMIN
-    # Web area "Operations": custom operations and templates. "/operations" alone is the
-    # catalog in the API (and a redirect on the web).
+    # Web area "Operations": schedules from operator on (like the API /schedules), custom
+    # operations and templates only for admins. "/operations" alone is the catalog in the API
+    # (and a redirect on the web).
+    if path.startswith("/operations/schedules"):
+        return Role.OPERATOR
     if path.startswith("/operations/"):
         return Role.ADMIN
     if path.startswith(("/account", "/me")):
         return Role.VIEWER
     if path.startswith("/configuration"):
         return Role.CONFIGURATOR
-    if path.startswith("/activities/schedules"):
-        # Planning needs at least an operator, like the API (/schedules).
-        return Role.OPERATOR
     if path == "/run/{kind}/{target_id}/{key}":
         return Role.OPERATOR
     if method in ("GET", "HEAD"):

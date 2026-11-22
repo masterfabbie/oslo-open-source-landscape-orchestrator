@@ -1,18 +1,28 @@
-// Activities → Schedules: every planned run of every operation and template, and the page
-// to plan or change one (any operation of the catalog, its targets and parameter values,
-// once / daily / every N minutes). Planning needs an operator; the server checks the
-// role of the operation again when the run is due.
+// Operations → Schedules: every planned run of every operation and template, with filters,
+// the status of the last run and deleting several at once; and the page to plan or change
+// one (any operation of the catalog, its targets and parameter values, once / daily / every
+// N minutes). Needs an operator; the server checks the role of the operation again when the
+// run is due.
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { api } from "../lib/api";
 import { ActionForm, ConfirmButton, PageHead, Section, go } from "../lib/forms";
 import { hasRole } from "../lib/i18n";
 import { describeSchedule } from "../lib/schedules";
 import type { Parameter, ScheduleRow, Snapshot, TargetType } from "../lib/types";
-import { formatTime, useApp } from "../landscape/ui";
+import { formatTime, useApp, useLiveUpdates } from "../landscape/ui";
 
-const LIST = "/activities?tab=schedules";
+const LIST = "/operations/schedules";
+// Colors of the last run's status.
+const RUN_BADGE: Record<string, string> = {
+  SUCCEEDED: "green",
+  PARTIAL: "yellow",
+  FAILED: "red",
+  CANCELLED: "gray",
+  RUNNING: "running",
+  PENDING: "running",
+};
 const DAYS = ["1", "2", "3", "4", "5", "6", "7"];
 
 /** An operation as /api/operations lists it. */
@@ -48,78 +58,182 @@ function operationName(op: { key: string; name: string | null } | undefined, key
 
 // --- list ---------------------------------------------------------------------------------
 
-export function SchedulesList() {
+/** "planned", "paused" or "expired" (a single run that is over, or nothing due any more). */
+function nextState(s: ScheduleRow): "planned" | "paused" | "expired" {
+  if (!s.enabled) return "paused";
+  return s.next_run_at ? "planned" : "expired";
+}
+
+export function SchedulesPage() {
   const { t, language, role } = useApp();
   const queries = useQueryClient();
+  useLiveUpdates(["schedules"]);
   const schedules = useQuery({ queryKey: ["schedules", "all"], queryFn: () => api<ScheduleRow[]>("/schedules") });
+  const clock = useQuery({ queryKey: ["server-time"], queryFn: () => api<{ now: string; timezone: string }>("/server-time"), refetchInterval: 60_000 });
   const { operations, landscape } = useCatalog();
   const ops = new Map((operations.data ?? []).map((o) => [o.key, o]));
   const names = targetNames(landscape.data);
   const operator = hasRole(role, "operator");
 
+  const [text, setText] = useState("");
+  const [operation, setOperation] = useState("");
+  const [last, setLast] = useState("");
+  const [next, setNext] = useState("");
+  const [selected, setSelected] = useState<number[]>([]);
+
+  const label = (s: ScheduleRow) => s.name || operationName(ops.get(s.operation), s.operation, t);
+  const targetsOf = (s: ScheduleRow) => {
+    const map = s.target_type ? names[s.target_type] : null;
+    return map ? s.target_ids.map((id) => map.get(id) ?? `#${id}`).join(", ") : t("tpl.fixed_targets");
+  };
+  const rows = useMemo(() => {
+    const words = text.trim().toLowerCase();
+    return (schedules.data ?? []).filter(
+      (s) =>
+        (!operation || s.operation === operation) &&
+        (!last || (last === "never" ? !s.last_run_at : s.last_status === last)) &&
+        (!next || nextState(s) === next) &&
+        (!words || `${label(s)} ${operationName(ops.get(s.operation), s.operation, t)} ${targetsOf(s)} ${s.created_by}`.toLowerCase().includes(words)),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [schedules.data, operations.data, landscape.data, text, operation, last, next]);
+  const used = [...new Set((schedules.data ?? []).map((s) => s.operation))];
+  const chosen = selected.filter((id) => rows.some((r) => r.id === id));
+
   const toggle = async (s: ScheduleRow) => {
-    const { id, created_by: _by, next_run_at: _n, last_run_at: _l, last_activity_id: _a, last_error: _e, ...body } = s;
+    const { id, created_by: _by, next_run_at: _n, last_run_at: _l, last_activity_id: _a, last_error: _e, last_status: _s, ...body } = s;
     await api(`/schedules/${id}`, { method: "PUT", body: { ...body, enabled: !s.enabled } });
     await queries.invalidateQueries({ queryKey: ["schedules"] });
   };
 
   return (
-    <>
-      <p className="oslo-muted">{t("sched.intro")}</p>
+    <div className="oslo-page">
+      <PageHead
+        title={t("tab.schedules")}
+        action={operator ? { href: `${LIST}/new`, label: t("sched.new") } : undefined}
+        extra={
+          operator && chosen.length > 0 ? (
+            <ConfirmButton
+              label={t("sched.delete_selected", { count: chosen.length })}
+              confirm={t("sched.delete_selected_confirm", { count: chosen.length })}
+              onConfirm={async () => {
+                for (const id of chosen) await api(`/schedules/${id}`, { method: "DELETE" });
+                setSelected([]);
+                await queries.invalidateQueries({ queryKey: ["schedules"] });
+              }}
+            />
+          ) : undefined
+        }
+        tabs={[{ href: LIST, label: t("tab.overview"), current: true }]}
+      />
+      <p className="oslo-muted">
+        {clock.data && t("sched.clock", { zone: clock.data.timezone, time: formatTime(clock.data.now, language, true) })}
+      </p>
+      <div className="oslo-form-buttons">
+        <input className="oslo-filter-input" type="search" value={text} placeholder={t("ui.search")} aria-label={t("ui.search")} onChange={(e) => setText(e.target.value)} />
+        <label className="oslo-inline">
+          {t("sched.operation")}
+          <select value={operation} onChange={(e) => setOperation(e.target.value)}>
+            <option value="">{t("pool.all")}</option>
+            {used.map((key) => (
+              <option key={key} value={key}>
+                {operationName(ops.get(key), key, t)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="oslo-inline">
+          {t("sched.last_run")}
+          <select value={last} onChange={(e) => setLast(e.target.value)}>
+            <option value="">{t("pool.all")}</option>
+            {["SUCCEEDED", "PARTIAL", "FAILED", "CANCELLED", "RUNNING"].map((x) => (
+              <option key={x} value={x}>
+                {t(`activity.${x}`)}
+              </option>
+            ))}
+            <option value="never">{t("sched.never_run")}</option>
+          </select>
+        </label>
+        <label className="oslo-inline">
+          {t("sched.next_run")}
+          <select value={next} onChange={(e) => setNext(e.target.value)}>
+            <option value="">{t("pool.all")}</option>
+            {(["planned", "paused", "expired"] as const).map((x) => (
+              <option key={x} value={x}>
+                {t(`sched.state.${x}`)}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
       {schedules.isPending ? (
         <p className="oslo-muted">{t("ui.loading")}</p>
-      ) : !schedules.data?.length ? (
+      ) : !rows.length ? (
         <p className="oslo-empty">{t("sched.list_empty")}</p>
       ) : (
         <div className="oslo-table-wrap">
           <table className="oslo-table">
+            <caption className="oslo-table-caption">{t("sched.count", { count: rows.length })}</caption>
             <thead>
               <tr>
+                {operator && (
+                  <th className="oslo-check">
+                    <input
+                      type="checkbox"
+                      aria-label={t("ui.select_all")}
+                      checked={chosen.length === rows.length}
+                      onChange={(e) => setSelected(e.target.checked ? rows.map((r) => r.id) : [])}
+                    />
+                  </th>
+                )}
+                <th>{t("sched.name")}</th>
                 <th>{t("sched.operation")}</th>
                 <th>{t("sched.targets")}</th>
-                <th>{t("sched.recurrence")}</th>
                 <th>{t("sched.next_run")}</th>
                 <th>{t("sched.last_run")}</th>
+                <th>{t("sched.recurrence")}</th>
                 <th>{t("sched.planned_by")}</th>
-                <th>{t("sched.state")}</th>
-                {operator && <th>{t("field.actions")}</th>}
+                {operator && <th />}
               </tr>
             </thead>
             <tbody>
-              {schedules.data.map((s) => {
-                const map = s.target_type ? names[s.target_type] : null;
+              {rows.map((s) => {
+                const state = nextState(s);
                 return (
-                  <tr key={s.id} className={s.enabled ? undefined : "oslo-disabled-row"}>
-                    <td className="oslo-strong">
-                      {operator ? <a href={`/activities/schedules/${s.id}`}>{operationName(ops.get(s.operation), s.operation, t)}</a> : operationName(ops.get(s.operation), s.operation, t)}
-                    </td>
-                    <td>{map ? s.target_ids.map((id) => map.get(id) ?? `#${id}`).join(", ") : t("tpl.fixed_targets")}</td>
-                    <td>{describeSchedule(s, t, language)}</td>
-                    <td>{s.enabled && s.next_run_at ? formatTime(s.next_run_at, language) : <span className="oslo-muted">{t("sched.none_next")}</span>}</td>
+                  <tr key={s.id}>
+                    {operator && (
+                      <td className="oslo-check">
+                        <input type="checkbox" aria-label={label(s)} checked={chosen.includes(s.id)} onChange={(e) => setSelected(e.target.checked ? [...chosen, s.id] : chosen.filter((x) => x !== s.id))} />
+                      </td>
+                    )}
+                    <td className="oslo-strong">{operator ? <a href={`${LIST}/${s.id}`}>{label(s)}</a> : label(s)}</td>
+                    <td>{operationName(ops.get(s.operation), s.operation, t)}</td>
+                    <td>{targetsOf(s)}</td>
+                    <td>{state === "planned" ? formatTime(s.next_run_at, language) : <span className={`oslo-badge oslo-badge-${state === "paused" ? "yellow" : "gray"}`}>{t(`sched.state.${state}`)}</span>}</td>
                     <td>
-                      {s.last_run_at ? s.last_activity_id ? <a href={`/activities/${s.last_activity_id}`}>{formatTime(s.last_run_at, language)}</a> : formatTime(s.last_run_at, language) : <span className="oslo-muted">{t("hosts.never")}</span>}
+                      {s.last_run_at ? (
+                        <>
+                          {s.last_status ? (
+                            <a className={`oslo-badge oslo-badge-${RUN_BADGE[s.last_status] ?? "unknown"}`} href={`/activities/${s.last_activity_id}`}>
+                              {t(`activity.${s.last_status}`)}
+                            </a>
+                          ) : (
+                            <span className={`oslo-badge oslo-badge-${s.last_error ? "red" : "unknown"}`}>{t(s.last_error ? "sched.not_started" : "sched.unknown_run")}</span>
+                          )}
+                          <span className="oslo-sub">{formatTime(s.last_run_at, language)}</span>
+                        </>
+                      ) : (
+                        <span className="oslo-muted">{t("sched.never_run")}</span>
+                      )}
                       {s.last_error && <span className="oslo-sub error-text">{s.last_error}</span>}
                     </td>
+                    <td>{describeSchedule(s, t, language)}</td>
                     <td className="oslo-muted">{s.created_by}</td>
-                    <td>
-                      <span className={`oslo-badge ${s.enabled ? "oslo-badge-green" : "oslo-badge-gray"}`}>{t(s.enabled ? "sched.active" : "sched.paused")}</span>
-                    </td>
                     {operator && (
                       <td>
-                        <span className="oslo-row-tools">
-                          <button type="button" className="link" onClick={() => void toggle(s)}>
-                            {s.enabled ? t("sched.pause") : t("sched.resume")}
-                          </button>
-                          <ConfirmButton
-                            label={t("sched.delete")}
-                            confirm={t("sched.delete_confirm")}
-                            className="link"
-                            onConfirm={async () => {
-                              await api(`/schedules/${s.id}`, { method: "DELETE" });
-                              await queries.invalidateQueries({ queryKey: ["schedules"] });
-                            }}
-                          />
-                        </span>
+                        <button type="button" className="link" onClick={() => void toggle(s)}>
+                          {s.enabled ? t("sched.pause") : t("sched.resume")}
+                        </button>
                       </td>
                     )}
                   </tr>
@@ -129,7 +243,7 @@ export function SchedulesList() {
           </table>
         </div>
       )}
-    </>
+    </div>
   );
 }
 
@@ -155,6 +269,7 @@ export function SchedulePage({ id }: { id?: number }) {
 function ScheduleForm({ schedule, operations, snapshot }: { schedule?: ScheduleRow; operations: CatalogOperation[]; snapshot: Snapshot }) {
   const { t, timezone } = useApp();
   const choices = operations.filter((o) => o.standalone).sort((a, b) => operationName(a, a.key, t).localeCompare(operationName(b, b.key, t)));
+  const [name, setName] = useState(schedule?.name ?? "");
   const [key, setKey] = useState(schedule?.operation ?? "");
   const op = choices.find((o) => o.key === key);
   const [targetType, setTargetType] = useState<TargetType | "">(schedule?.target_type ?? "");
@@ -205,6 +320,7 @@ function ScheduleForm({ schedule, operations, snapshot }: { schedule?: ScheduleR
           onSubmit={async () => {
             if (problem) throw new Error(problem);
             const body = {
+              name: name.trim() || null,
               operation: key,
               target_type: type,
               target_ids: type ? chosen : [],
@@ -221,6 +337,10 @@ function ScheduleForm({ schedule, operations, snapshot }: { schedule?: ScheduleR
           }}
         >
           <div className="oslo-form-grid">
+            <label className="oslo-field">
+              {t("sched.name")}
+              <input value={name} maxLength={128} placeholder={op ? operationName(op, op.key, t) : ""} onChange={(e) => setName(e.target.value)} />
+            </label>
             <label className="oslo-field">
               {t("sched.operation")}
               <select value={key} required onChange={(e) => pick(e.target.value)}>

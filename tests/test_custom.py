@@ -331,8 +331,11 @@ async def test_custom_operations_in_the_browser(app, api, landscape):
     async with sign_in(app, "conf") as configurator:
         assert (await configurator.get("/operations/custom")).status_code == 403
         assert (await configurator.get("/operations/templates")).status_code == 403
-        page = (await configurator.get("/configuration/hosts")).text
-        assert 'href="/operations"' not in page
+        # The Operations area shows them only the schedules.
+        area = await configurator.get("/operations")
+        assert area.headers["location"] == "/operations/schedules"
+        page = (await configurator.get("/operations/schedules")).text
+        assert 'href="/operations/custom"' not in page and 'href="/operations/schedules"' in page
 
 
 async def test_cancel_in_the_browser(app, api):

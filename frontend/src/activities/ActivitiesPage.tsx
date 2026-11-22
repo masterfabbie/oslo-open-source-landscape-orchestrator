@@ -5,9 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { api } from "../lib/api";
 import { PageHead } from "../lib/forms";
-import { hasRole } from "../lib/i18n";
 import { StatusBadge, formatTime, useApp, useLiveUpdates } from "../landscape/ui";
-import { SchedulesList } from "./SchedulesArea";
 
 interface ActivityRow {
   id: number;
@@ -33,21 +31,19 @@ interface LogRow {
 
 const STATUSES = ["RUNNING", "PENDING", "SUCCEEDED", "PARTIAL", "FAILED", "CANCELLED"];
 
-export function ActivitiesPage({ tab }: { tab: "activities" | "logs" | "schedules" }) {
-  const { t, role } = useApp();
-  useLiveUpdates([tab === "schedules" ? "schedules" : "activities"]);
+export function ActivitiesPage({ tab }: { tab: "activities" | "logs" }) {
+  const { t } = useApp();
+  useLiveUpdates(["activities"]);
   return (
     <div className="oslo-page">
       <PageHead
         title={t("nav.activities")}
-        action={tab === "schedules" && hasRole(role, "operator") ? { href: "/activities/schedules/new", label: t("sched.new") } : undefined}
         tabs={[
           { href: "/activities", label: t("tab.activities"), current: tab === "activities" },
           { href: "/activities?tab=logs", label: t("tab.logs"), current: tab === "logs" },
-          { href: "/activities?tab=schedules", label: t("tab.schedules"), current: tab === "schedules" },
         ]}
       />
-      {tab === "activities" ? <ActivityList /> : tab === "logs" ? <LogList /> : <SchedulesList />}
+      {tab === "activities" ? <ActivityList /> : <LogList />}
     </div>
   );
 }

@@ -145,43 +145,49 @@ def _language(request: Request) -> str:
     )
 
 
-# Areas with a navigation on the left: path prefix -> title and [(href, text key)].
+# Areas with a navigation on the left: path prefix -> title and [(href, text key, role)];
+# items the user's role does not allow are left out.
 SECTIONS: dict[str, dict[str, Any]] = {
     "/configuration": {
         "title": "nav.configuration",
         "items": [
-            ("/configuration/hosts", "tab.hosts"),
-            ("/configuration/systems", "tab.systems"),
-            ("/configuration/pools", "tab.pools"),
+            ("/configuration/hosts", "tab.hosts", Role.CONFIGURATOR),
+            ("/configuration/systems", "tab.systems", Role.CONFIGURATOR),
+            ("/configuration/pools", "tab.pools", Role.CONFIGURATOR),
         ],
     },
     "/operations": {
         "title": "nav.operations",
         "items": [
-            ("/operations/custom", "tab.custom_operations"),
-            ("/operations/templates", "tpl.title"),
+            ("/operations/custom", "tab.custom_operations", Role.ADMIN),
+            ("/operations/templates", "tpl.title", Role.ADMIN),
+            ("/operations/schedules", "tab.schedules", Role.OPERATOR),
         ],
     },
     "/administration": {
         "title": "nav.administration",
         "items": [
-            ("/administration", "tab.general"),
-            ("/administration/users", "tab.users"),
-            ("/administration/attention", "ov.attention"),
-            ("/administration/certificates", "tab.certificates"),
+            ("/administration", "tab.general", Role.ADMIN),
+            ("/administration/users", "tab.users", Role.ADMIN),
+            ("/administration/attention", "ov.attention", Role.ADMIN),
+            ("/administration/certificates", "tab.certificates", Role.ADMIN),
         ],
     },
 }
 
 
-def _section(path: str) -> dict[str, Any] | None:
-    """The area of a path with the sub-area to mark (the longest matching item)."""
+def _section(path: str, user: User | None = None) -> dict[str, Any] | None:
+    """The area of a path with the sub-areas the user may open and the one to mark (the
+    longest matching item)."""
     for prefix, section in SECTIONS.items():
         if path == prefix or path.startswith(prefix + "/"):
-            matching = [
-                href for href, _ in section["items"] if path == href or path.startswith(href + "/")
+            items = [
+                (href, key)
+                for href, key, role in section["items"]
+                if user is None or has_role(user, role)
             ]
-            return section | {"current": max(matching, key=len, default=None)}
+            matching = [href for href, _ in items if path == href or path.startswith(href + "/")]
+            return section | {"items": items, "current": max(matching, key=len, default=None)}
     return None
 
 
@@ -210,7 +216,7 @@ def render(request: Request, name: str, status_code: int = 200, **context: Any) 
         # "light" or "dark" fixes the color scheme; "system" follows the operating system.
         "theme": _preferences(request).get("theme", "system"),
         "path": request.url.path,
-        "section": _section(request.url.path),
+        "section": _section(request.url.path, user),
         # Current page for the language switch, without one-off notices.
         "here": request.url.path + (f"?{urlencode(kept)}" if kept else ""),
         "notice": notice,
@@ -425,22 +431,11 @@ async def system_redirect(system_id: int, session: DbSession) -> Response:
 
 
 @pages.get("/activities")
-async def activities(request: Request, user: CurrentUser, tab: str | None = None) -> HTMLResponse:
-    page = tab if tab in ("logs", "schedules") else "activities"
+async def activities(request: Request, user: CurrentUser, tab: str | None = None) -> Response:
+    if tab == "schedules":  # the schedules moved to Operations
+        return _go("/operations/schedules")
+    page = "logs" if tab == "logs" else "activities"
     return app_page(request, user, "activities", "nav.activities", page=page)
-
-
-@pages.get("/activities/schedules/new")
-async def schedule_new(request: Request, user: CurrentUser) -> HTMLResponse:
-    return app_page(request, user, "activities", "tab.schedules", page="schedule_new")
-
-
-@pages.get("/activities/schedules/{schedule_id}")
-async def schedule_page(
-    request: Request, schedule_id: int, session: DbSession, user: CurrentUser
-) -> HTMLResponse:
-    await _exists(session, Schedule, schedule_id)
-    return app_page(request, user, "activities", "tab.schedules", page="schedule", id=schedule_id)
 
 
 @pages.get("/activities/{activity_id}")
@@ -524,8 +519,27 @@ async def configure_pool(
 
 
 @pages.get("/operations")
-async def operations_area() -> Response:
-    return _go("/operations/custom")
+async def operations_area(user: CurrentUser) -> Response:
+    # Operators only see the schedules of this area.
+    return _go("/operations/custom" if has_role(user, Role.ADMIN) else "/operations/schedules")
+
+
+@pages.get("/operations/schedules")
+async def schedules(request: Request, user: CurrentUser) -> HTMLResponse:
+    return app_page(request, user, "operations", "tab.schedules", page="schedules")
+
+
+@pages.get("/operations/schedules/new")
+async def schedule_new(request: Request, user: CurrentUser) -> HTMLResponse:
+    return app_page(request, user, "operations", "sched.new", page="schedule_new")
+
+
+@pages.get("/operations/schedules/{schedule_id}")
+async def schedule_page(
+    request: Request, schedule_id: int, session: DbSession, user: CurrentUser
+) -> HTMLResponse:
+    await _exists(session, Schedule, schedule_id)
+    return app_page(request, user, "operations", "tab.schedules", page="schedule", id=schedule_id)
 
 
 @pages.get("/operations/custom")

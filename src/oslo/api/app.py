@@ -932,6 +932,12 @@ def create_app(
             for entry, label, kind in rows
         ]
 
+    @api.get("/server-time")
+    async def server_time() -> dict[str, object]:
+        """Time of the server and the time zone of schedules, as Operations → Schedules
+        shows them."""
+        return {"now": scheduler.now(), "timezone": settings.timezone}
+
     @api.get("/platform")
     async def platform() -> dict[str, object]:
         """Version and settings of the platform (admin)."""
@@ -1158,26 +1164,38 @@ def create_app(
 
     # --- schedules ------------------------------------------------------------------------
 
-    def schedule_out(schedule: Schedule) -> dict[str, object]:
+    def schedule_out(schedule: Schedule, last_status: str | None = None) -> dict[str, object]:
         return {
             "id": schedule.id,
+            "name": schedule.name,
             "operation": schedule.operation,
             "target_type": schedule.target_type,
             "target_ids": json.loads(schedule.target_ids),
             "parameters": json.loads(schedule.parameters or "{}"),
             "recurrence": schedule.recurrence,
-            "run_at": schedule.run_at,
+            "run_at": _aware(schedule.run_at) if schedule.run_at else None,
             "time_of_day": schedule.time_of_day,
             "weekdays": schedule.weekdays,
             "interval_minutes": schedule.interval_minutes,
             "enabled": schedule.enabled,
             "created_by": schedule.created_by,
-            "created_at": schedule.created_at,
-            "next_run_at": schedule.next_run_at,
-            "last_run_at": schedule.last_run_at,
+            "created_at": _aware(schedule.created_at),
+            "next_run_at": _aware(schedule.next_run_at) if schedule.next_run_at else None,
+            "last_run_at": _aware(schedule.last_run_at) if schedule.last_run_at else None,
             "last_activity_id": schedule.last_activity_id,
+            "last_status": last_status,
             "last_error": schedule.last_error,
         }
+
+    async def last_statuses(session: AsyncSession, schedules: list[Schedule]) -> dict[int, str]:
+        """Status of the last run of each schedule, by activity id."""
+        ids = {s.last_activity_id for s in schedules if s.last_activity_id}
+        if not ids:
+            return {}
+        rows = await session.execute(
+            select(Activity.id, Activity.status).where(Activity.id.in_(ids))
+        )
+        return {activity_id: str(state) for activity_id, state in rows}
 
     async def save_schedule_body(
         session: AsyncSession, schedule: Schedule | None, body: ScheduleIn, user: User
@@ -1213,13 +1231,19 @@ def create_app(
         query = select(Schedule).order_by(Schedule.next_run_at.is_(None), Schedule.next_run_at)
         if operation:
             query = query.where(Schedule.operation == operation)
-        return [schedule_out(s) for s in await session.scalars(query)]
+        schedules = list(await session.scalars(query))
+        statuses = await last_statuses(session, schedules)
+        return [
+            schedule_out(s, statuses.get(s.last_activity_id or 0)) for s in schedules
+        ]
 
     @api.get("/schedules/{schedule_id}", response_model=ScheduleOut)
     async def get_schedule(
         schedule_id: int, session: Session, user: CurrentUser
     ) -> dict[str, object]:
-        return schedule_out(await load_schedule(session, schedule_id, user))
+        schedule = await load_schedule(session, schedule_id, user)
+        statuses = await last_statuses(session, [schedule])
+        return schedule_out(schedule, statuses.get(schedule.last_activity_id or 0))
 
     @api.post("/schedules", response_model=ScheduleOut, status_code=status.HTTP_201_CREATED)
     async def create_schedule(

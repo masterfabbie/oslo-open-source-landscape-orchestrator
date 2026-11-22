@@ -177,6 +177,7 @@ export interface BuildingBlocks {
 
 export interface ScheduleRow {
   id: number;
+  name: string | null;
   operation: string;
   // "" for a template with fixed targets only.
   target_type: TargetType | "";
@@ -192,5 +193,6 @@ export interface ScheduleRow {
   next_run_at: string | null;
   last_run_at: string | null;
   last_activity_id: number | null;
+  last_status?: string | null;
   last_error: string | null;
 }
