@@ -188,6 +188,8 @@ Der Server braucht einen Schlüssel aus einer Umgebungsvariable. `oslo-keygen` e
 | `OSLO_SECRET_KEY` | Schlüssel, mit dem gespeicherte Passwörter verschlüsselt werden |
 | `OSLO_DATABASE_URL` | optional, Standard `sqlite+aiosqlite:///./landscape.db` |
 | `OSLO_TIMEZONE` | optional, Standard `Europe/Berlin`: Zeitzone für Uhrzeiten in Einplanungen (IANA-Name) |
+| `OSLO_TLS` | optional, `1`: HTTPS mit dem gespeicherten Zertifikat (wie `--tls`) |
+| `OSLO_TLS_CERT`, `OSLO_TLS_KEY` | optional: HTTPS mit diesen Dateien (wie `--ssl-certfile`, `--ssl-keyfile`) |
 
 **Den `OSLO_SECRET_KEY` sicher aufbewahren.** Geht er verloren oder wird er geändert, lassen sich
 die gespeicherten Passwörter nicht mehr entschlüsseln und müssen neu eingegeben werden.
@@ -202,6 +204,47 @@ Hosts die eingebaute simulierte Landschaft an:
 ```bash
 .venv/bin/oslo-server --mock
 ```
+
+### HTTPS
+
+OSLO bietet HTTPS selbst an; ohne läuft es mit HTTP. Das Zertifikat wird unter
+**Administration → HTTPS** (nur Admins) eingerichtet. Der private Schlüssel entsteht immer auf
+dem OSLO-Server und wird nie hochgeladen, denn beim Einrichten läuft OSLO noch mit HTTP:
+
+- **Selbst signiert:** Hostnamen und IP-Adressen von OSLO eintragen, „Zertifikat erzeugen“.
+  Das Zertifikat lässt sich herunterladen, z. B. für die Hosts als CA-Datei der
+  OSLO-Operationen (`OSLO_CA`).
+- **Eigene CA:** „Anforderung erzeugen“, die Zertifikatsanforderung (CSR) herunterladen und
+  von der CA signieren lassen, dann das signierte Zertifikat samt Zwischenzertifikaten
+  hochladen. OSLO prüft, ob es zum Schlüssel passt. Bis dahin gilt das bisherige Zertifikat.
+
+Schlüssel und Zertifikat stehen in der Datenbank, der Schlüssel verschlüsselt mit
+`OSLO_SECRET_KEY`. Danach OSLO neu starten:
+
+```bash
+.venv/bin/oslo-server --tls
+```
+
+Ohne Browser erzeugt `oslo-tls-cert` ein selbst signiertes Zertifikat in derselben Datenbank
+(braucht `OSLO_SECRET_KEY` und `OSLO_DATABASE_URL` wie der Server):
+
+```bash
+.venv/bin/oslo-tls-cert --name oslo.example.com --ip 10.0.0.10 --out oslo-ca.pem
+```
+
+Schlüssel und Zertifikat, die schon als Dateien vorliegen, gibt man direkt an; das hat Vorrang
+vor dem gespeicherten Zertifikat:
+
+```bash
+.venv/bin/oslo-server --ssl-certfile /etc/oslo/cert.pem --ssl-keyfile /etc/oslo/key.pem
+```
+
+Mit `--tls` schreibt OSLO Schlüssel und Zertifikat kurz in ein privates temporäres Verzeichnis
+(nur für den eigenen Prozess lesbar), lädt sie und löscht die Dateien vor der ersten Anfrage.
+Über HTTPS setzt OSLO `Strict-Transport-Security`, das Sitzungs-Cookie ist dann `Secure`.
+Ohne Zertifikat bricht `--tls` mit einer Meldung ab; ein Zertifikat schaltet HTTPS nie von
+selbst ein. Die Regel „HTTPS-Zertifikat von OSLO läuft ab“ unter „Braucht Aufmerksamkeit“
+warnt 30 Tage vorher (einstellbar).
 
 ### Datenbank und Migrationen
 
@@ -846,6 +889,11 @@ keine Inventardaten.
 | GET | `/api/steps?limit=300&activity_id=` | Schritte, neueste zuerst, je mit ihrer obersten Aktivität (`activity_id`); mit `activity_id` nur die Schritte dieser Aktivität |
 | GET | `/api/config-changes?limit=300&object_type=&object_id=&username=&days=` | Konfigurationsprotokoll, neueste zuerst; `changes` je Feld `[alt, neu]`, Geheimnisse nur als `"(changed)"`; Einträge zu Benutzern nur für Admins |
 | GET, PUT | `/api/config-log-settings` | `{"retention_days": 365}`: wie lange das Konfigurationsprotokoll aufbewahrt wird (PUT nur Admin, 1–3650) |
+| GET | `/api/tls` | Zertifikat von OSLO, offene Anforderung, ob diese Verbindung HTTPS ist (nur Admin) |
+| POST | `/api/tls/self-signed` | `{"names": [...], "ips": [...], "days": 730}`: Schlüssel und selbst signiertes Zertifikat erzeugen (nur Admin) |
+| POST | `/api/tls/request` | `{"names": [...], "ips": [...]}`: Schlüssel und CSR erzeugen (nur Admin) |
+| POST | `/api/tls/certificate` | `{"pem": "<Zertifikat und Zwischenzertifikate>"}`: signiertes Zertifikat zur offenen Anforderung (nur Admin) |
+| DELETE | `/api/tls/request` | offene Anforderung verwerfen (nur Admin) |
 | GET | `/api/bundle-status` | `{"active_version": "1.0.0"}`: Version des aktiven Bündels der OSLO-Operationen |
 | GET | `/api/bundles` | Einstellungen (öffentlicher Schlüssel, Adresse, CA-Pfad) und alle Bündel (nur Admin) |
 | PUT | `/api/bundles/settings` | `{"public_key": "<PEM>", "base_url": "https://…", "ca_path": ""}` (nur Admin) |

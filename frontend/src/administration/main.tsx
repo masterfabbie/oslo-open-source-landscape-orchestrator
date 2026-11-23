@@ -1,5 +1,5 @@
 // Administration (general, users, rules of "needs attention", certificates, import/export,
-// OSLO operations): one app; the server says
+// OSLO operations, HTTPS): one app; the server says
 // which page (boot.page).
 
 import { mount } from "../lib/mount";
@@ -9,6 +9,7 @@ import "../templates/templates.css";
 import "../lib/forms.css";
 import { AttentionPage, CertificateNewPage, CertificatesPage, GeneralPage, UserNewPage, UserPage, UsersPage } from "./Administration";
 import { BundlePage } from "./Bundles";
+import { TlsPage } from "./Tls";
 import { TransferPage } from "./Transfer";
 
 mount((boot) => {
@@ -29,6 +30,8 @@ mount((boot) => {
       return <TransferPage />;
     case "bundle":
       return <BundlePage />;
+    case "tls":
+      return <TlsPage />;
     default:
       return <GeneralPage />;
   }

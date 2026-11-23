@@ -247,6 +247,18 @@ class BundleUploadIn(BaseModel):
     data: str = Field(max_length=7_000_000)
 
 
+class TlsNamesIn(BaseModel):
+    """Host names and IP addresses of OSLO for a certificate."""
+
+    names: list[str] = Field(default_factory=list, max_length=20)
+    ips: list[str] = Field(default_factory=list, max_length=20)
+    days: int = Field(default=730, ge=1, le=3650)
+
+
+class TlsCertificateIn(BaseModel):
+    pem: str = Field(max_length=64_000)
+
+
 class ConfigChangeOut(BaseModel):
     """An entry of the configuration log: ``changes`` maps a field to [old, new]."""
 

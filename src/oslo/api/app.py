@@ -25,7 +25,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from .. import __version__, config_log
+from .. import __version__, config_log, servertls
 from ..attention import (
     DEFAULT_RULES,
     Exceptions,
@@ -178,6 +178,8 @@ from .schemas import (
     TemplateIn,
     TemplateOut,
     TemplateRunIn,
+    TlsCertificateIn,
+    TlsNamesIn,
     TokenCreate,
     TokenOut,
     TrustedCertificateIn,
@@ -1117,6 +1119,83 @@ def create_app(
             headers={"Content-Disposition": f'attachment; filename="{name}"'},
         )
 
+    # --- HTTPS of OSLO itself (Administration → HTTPS) ----------------------------------------
+
+    def tls_out(state: servertls.CertificateState | None) -> dict[str, object] | None:
+        if state is None:
+            return None
+        return {
+            "subject": state.subject,
+            "issuer": state.issuer,
+            "names": state.names,
+            "not_before": state.not_before,
+            "not_after": state.not_after,
+            "self_signed": state.self_signed,
+            "expired": state.not_after < datetime.now(UTC),
+            "pem": state.pem,
+        }
+
+    async def tls_status(session: AsyncSession, request: Request) -> dict[str, object]:
+        return {
+            "https": request.url.scheme == "https",
+            "certificate": tls_out(await servertls.current(session)),
+            "csr": await servertls.open_request(session) or None,
+        }
+
+    def tls_error(exc: servertls.TlsError) -> HTTPException:
+        return HTTPException(422, str(exc))
+
+    @api.get("/tls")
+    async def get_tls(session: Session, request: Request) -> dict[str, object]:
+        """The stored certificate, an open request and whether this connection is HTTPS."""
+        return await tls_status(session, request)
+
+    @api.post("/tls/self-signed")
+    async def create_self_signed(
+        body: TlsNamesIn, session: Session, request: Request
+    ) -> dict[str, object]:
+        """Create a key and a self-signed certificate (admin); used after a restart with
+        --tls."""
+        try:
+            await servertls.store_self_signed(
+                session, secret_box, body.names, body.ips, body.days
+            )
+        except servertls.TlsError as exc:
+            raise tls_error(exc) from exc
+        await session.commit()
+        return await tls_status(session, request)
+
+    @api.post("/tls/request")
+    async def create_request(
+        body: TlsNamesIn, session: Session, request: Request
+    ) -> dict[str, object]:
+        """Create a key and a certificate signing request for a CA (admin)."""
+        try:
+            await servertls.store_request(session, secret_box, body.names, body.ips)
+        except servertls.TlsError as exc:
+            raise tls_error(exc) from exc
+        await session.commit()
+        return await tls_status(session, request)
+
+    @api.post("/tls/certificate")
+    async def upload_signed(
+        body: TlsCertificateIn, session: Session, request: Request
+    ) -> dict[str, object]:
+        """The certificate the CA signed for the open request, with intermediates (admin).
+        Never a private key."""
+        try:
+            await servertls.store_signed(session, secret_box, body.pem)
+        except servertls.TlsError as exc:
+            raise tls_error(exc) from exc
+        await session.commit()
+        return await tls_status(session, request)
+
+    @api.delete("/tls/request")
+    async def drop_request(session: Session, request: Request) -> dict[str, object]:
+        await servertls.cancel_request(session)
+        await session.commit()
+        return await tls_status(session, request)
+
     # --- configuration log (Activities → Configuration) -------------------------------------
 
     @api.get("/config-changes", response_model=list[ConfigChangeOut])
@@ -1971,6 +2050,9 @@ def create_app(
         response.headers.setdefault("Content-Security-Policy", CONTENT_SECURITY_POLICY)
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("Referrer-Policy", "same-origin")
+        if request.url.scheme == "https":
+            # Browsers keep to HTTPS for this server from now on.
+            response.headers.setdefault("Strict-Transport-Security", "max-age=31536000")
         return response
 
     app.state.catalog = catalog

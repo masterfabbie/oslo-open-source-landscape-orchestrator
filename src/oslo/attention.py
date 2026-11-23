@@ -20,6 +20,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from . import servertls
 from .bundles import NEEDS_UPDATE, host_state
 from .catalog import Catalog
 from .models import (
@@ -69,6 +70,8 @@ DEFAULT_RULES: dict[str, dict[str, Any]] = {
     # Hosts whose OSLO operations are missing, changed or not the active version (only once
     # a bundle is active).
     "bundle_outdated": {"enabled": True},
+    # The HTTPS certificate of OSLO (Administration → HTTPS) expires within this many days.
+    "tls_expiry": {"enabled": True, "days": 30},
 }
 SYSTEM_STATUSES = ("RED", "YELLOW", "GRAY", "UNKNOWN")
 _SCHEDULED = re.compile(r"\(schedule (\d+)\)$")
@@ -406,6 +409,22 @@ async def attention_items(
                         host.id,
                     )
                 )
+
+    if "tls_expiry" in on:
+        certificate = await servertls.current(session)
+        days = rules["tls_expiry"]["days"]
+        if certificate is not None and certificate.expires_within(days, now):
+            expired = certificate.not_after < now
+            items.append(
+                Item(
+                    "tls_expiry",
+                    "error" if expired else "warning",
+                    "att.tls_expired" if expired else "att.tls_expiring",
+                    {"date": certificate.not_after.date().isoformat(), "days": days},
+                    "/administration/tls",
+                    certificate.not_after,
+                )
+            )
 
     if "schedule_errors" in on:
         rows = await session.scalars(

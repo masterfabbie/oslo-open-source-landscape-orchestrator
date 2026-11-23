@@ -254,6 +254,7 @@ const SETTINGS: Record<string, [string, "number" | "bool" | "stages" | "statuses
   schedule_errors: [],
   stale_discovery: [["days", "number"]],
   bundle_outdated: [],
+  tls_expiry: [["days", "number"]],
 };
 
 export function AttentionPage() {

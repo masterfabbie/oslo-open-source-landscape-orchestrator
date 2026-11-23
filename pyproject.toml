@@ -33,6 +33,7 @@ oslo-db = "oslo.db:main"
 oslo-keygen = "oslo.crypto:keygen"
 oslo-mock = "oslo.mock.server:main"
 oslo-server = "oslo.server:main"
+oslo-tls-cert = "oslo.servertls:main"
 oslo-user = "oslo.usercli:main"
 
 [tool.hatch.build.targets.wheel]

@@ -50,6 +50,7 @@ def required_role(method: str, path: str) -> Role:
             "/export",
             "/import",
             "/bundles",
+            "/tls",
         )
     ):
         return Role.ADMIN

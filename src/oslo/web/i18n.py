@@ -563,6 +563,62 @@ TEXTS: dict[str, tuple[str, str]] = {
     "tab.certificates": ("Certificates", "Zertifikate"),
     "tab.transfer": ("Import/Export", "Import/Export"),
     "tab.bundle": ("OSLO operations", "OSLO-Operationen"),
+    "tab.tls": ("HTTPS", "HTTPS"),
+    "tls.intro": (
+        "The certificate OSLO serves HTTPS with. The private key is created on this server and "
+        "never leaves it: create a self-signed certificate, or a request for your own CA and "
+        "upload the certificate it signs. Then restart OSLO with --tls (or OSLO_TLS=1).",
+        "Das Zertifikat, mit dem OSLO HTTPS anbietet. Der private Schlüssel entsteht auf diesem "
+        "Server und verlässt ihn nie: ein selbst signiertes Zertifikat erzeugen, oder eine "
+        "Anforderung für die eigene CA und das von ihr signierte Zertifikat hochladen. Danach "
+        "OSLO mit --tls (oder OSLO_TLS=1) neu starten.",
+    ),
+    "tls.status": ("State", "Stand"),
+    "tls.connection": ("This connection", "Diese Verbindung"),
+    "tls.certificate": ("Stored certificate", "Gespeichertes Zertifikat"),
+    "tls.none": ("none", "keines"),
+    "tls.restart": (
+        "OSLO serves plain HTTP. Restart it with:",
+        "OSLO läuft noch mit HTTP. Neu starten mit:",
+    ),
+    "tls.download_cert": ("Download certificate", "Zertifikat herunterladen"),
+    "tls.ca_hint": (
+        "Self-signed: put it on the hosts as CA file (OSLO operations).",
+        "Selbst signiert: auf den Hosts als CA-Datei hinterlegen (OSLO-Operationen).",
+    ),
+    "tls.self_signed": ("Self-signed certificate", "Selbst signiertes Zertifikat"),
+    "tls.self_signed_hint": (
+        "Quick to set up; browsers and hosts must trust it explicitly.",
+        "Schnell eingerichtet; Browser und Hosts müssen ihm ausdrücklich vertrauen.",
+    ),
+    "tls.names": (
+        "Host names of OSLO (comma separated)",
+        "Hostnamen von OSLO (durch Kommas getrennt)",
+    ),
+    "tls.ips": ("IP addresses (comma separated)", "IP-Adressen (durch Kommas getrennt)"),
+    "tls.days": ("Valid for days", "Gültig für Tage"),
+    "tls.create": ("Create certificate", "Zertifikat erzeugen"),
+    "tls.replace_confirm": (
+        "Replace the stored certificate? The new one is used after the next restart.",
+        "Das gespeicherte Zertifikat ersetzen? Das neue gilt nach dem nächsten Neustart.",
+    ),
+    "tls.request": ("Certificate of your own CA", "Zertifikat der eigenen CA"),
+    "tls.request_hint": (
+        "Creates a key and a certificate signing request (CSR) for your CA.",
+        "Erzeugt einen Schlüssel und eine Zertifikatsanforderung (CSR) für eure CA.",
+    ),
+    "tls.create_request": ("Create request", "Anforderung erzeugen"),
+    "tls.request_open": (
+        "Have this request signed by your CA, then upload the certificate with its "
+        "intermediate certificates. The current certificate stays until then.",
+        "Diese Anforderung von eurer CA signieren lassen, dann das Zertifikat samt "
+        "Zwischenzertifikaten hochladen. Bis dahin gilt das bisherige Zertifikat.",
+    ),
+    "tls.download_csr": ("Download request", "Anforderung herunterladen"),
+    "tls.signed": ("Signed certificate (PEM)", "Signiertes Zertifikat (PEM)"),
+    "tls.signed_file": ("or as a file", "oder als Datei"),
+    "tls.upload_signed": ("Use certificate", "Zertifikat übernehmen"),
+    "tls.cancel_request": ("Discard request", "Anforderung verwerfen"),
     "bundle.intro": (
         "OSLO installs a few operations of its own into operations.d of the host agents, as a "
         "signed bundle. The first installation is done once per host with the bootstrap "
@@ -1418,6 +1474,10 @@ TEXTS: dict[str, tuple[str, str]] = {
         "Hosts without a discovery for this many days.",
         "Hosts ohne Discovery seit so vielen Tagen.",
     ),
+    "att.hint.tls_expiry": (
+        "The HTTPS certificate of OSLO expires within this many days.",
+        "Das HTTPS-Zertifikat von OSLO läuft in so vielen Tagen ab.",
+    ),
     "att.hint.bundle_outdated": (
         "Hosts whose OSLO operations are missing, changed or not the active version.",
         "Hosts, deren OSLO-Operationen fehlen, verändert sind oder nicht der aktiven Version "
@@ -1477,6 +1537,18 @@ TEXTS: dict[str, tuple[str, str]] = {
     "att.rule.stale_discovery": (
         "Hosts without a recent discovery",
         "Hosts ohne aktuelle Discovery",
+    ),
+    "att.rule.tls_expiry": (
+        "HTTPS certificate of OSLO expires",
+        "HTTPS-Zertifikat von OSLO läuft ab",
+    ),
+    "att.tls_expiring": (
+        "The HTTPS certificate of OSLO expires on {date}",
+        "Das HTTPS-Zertifikat von OSLO läuft am {date} ab",
+    ),
+    "att.tls_expired": (
+        "The HTTPS certificate of OSLO expired on {date}",
+        "Das HTTPS-Zertifikat von OSLO ist am {date} abgelaufen",
     ),
     "att.rule.bundle_outdated": (
         "Hosts with outdated OSLO operations",

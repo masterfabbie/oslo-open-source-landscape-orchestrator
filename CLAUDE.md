@@ -38,6 +38,9 @@ gearbeitet wird und was offen ist.
 .venv/bin/ruff check .
 ```
 
+HTTPS mit dem unter Administration → HTTPS gespeicherten Zertifikat: `oslo-server --tls`
+(siehe README, Abschnitt HTTPS).
+
 Server gegen die simulierte Landschaft, braucht `OSLO_SECRET_KEY` (erzeugen mit
 `.venv/bin/oslo-keygen`). Ohne Benutzer gibt er einen Einrichtungscode für `/setup` aus:
 
@@ -112,6 +115,7 @@ Alles liegt unter `src/oslo/`.
 | `web/` | Anmeldung, Einrichtung und Passwortwechsel (Jinja2), Hüllen der React-Seiten (`app_page.html`, `routes.app_page`), Seitennavigation der Bereiche, Übersetzungen |
 | `bundle.py` | Bündel der OSLO-Operationen: bauen, signieren (Ed25519), prüfen, Erstinstallationspaket, Ausgabe von `oslo_version`; Befehl `oslo-bundle`; Quellen der Host-Dateien in `bundle_files/` |
 | `bundles.py` | Bündel auf dem Server: hochladen, aktives Bündel (`BundleStore`), Einstellungen, `oslo_version` am Host lesen, Zustand je Host (`host_state`) |
+| `servertls.py` | HTTPS von OSLO selbst: Schlüssel und selbst signiertes Zertifikat oder CSR erzeugen, signiertes Zertifikat prüfen, Speicher in `platform_settings`, Dateien für uvicorn; Befehl `oslo-tls-cert` |
 | `config_log.py` | Konfigurationsprotokoll: Änderungen beim Speichern erfassen (`before_flush`, `SPECS`), Benutzer der Anfrage (`set_actor`), Änderungen ohne ORM (`record`), Aufbewahrung (`purge`) |
 | `attention.py` | Regeln für „Braucht Aufmerksamkeit“ (global in `platform_settings`, Ausnahmen je Benutzer), Spalten der Statusmatrix |
 | `mock/` | simulierter Host Agent und sapstartsrv für Entwicklung und Tests |
@@ -496,6 +500,20 @@ Wichtige Entwurfsentscheidungen:
   Bündel installiert, `oslo-server --mock` gibt `sapapp1` Version 0.9.0. Annahmen: Ausführung
   als root, OpenSSL ≥ 1.1.1, nur UNIX, kein `ReloadConfiguration` nötig. Der Name `oslo_*` ist
   reserviert. Neue OSLO-eigene Operationen kommen als Dateien nach `bundle_files/`.
+- **HTTPS von OSLO** (Wunsch des Eigentümers, 2026-11-23): `oslo-server --tls` (oder
+  `OSLO_TLS=1`) nutzt das unter Administration → HTTPS gespeicherte Zertifikat;
+  `--ssl-certfile`/`--ssl-keyfile` (oder `OSLO_TLS_CERT`/`OSLO_TLS_KEY`) haben Vorrang
+  (`server.tls_files`). Der private Schlüssel wird immer auf dem Server erzeugt
+  (`servertls.self_signed` oder `signing_request`), nie hochgeladen (Entscheidung des
+  Eigentümers: beim Einrichten läuft OSLO noch mit HTTP); hochgeladen wird nur das von der CA
+  signierte Zertifikat zur offenen CSR, geprüft gegen deren Schlüssel. Gespeichert in
+  `platform_settings` `tls.key` (verschlüsselt mit `OSLO_SECRET_KEY`), `tls.cert`,
+  `tls.pending_key`, `tls.csr`; nicht im Export. Uvicorn liest nur Dateien: OSLO schreibt sie in
+  ein `oslo-tls-*`-Verzeichnis (0700, Dateien 0600), `config.load()` liest sie, danach werden
+  sie gelöscht (`remove_private_files`), bevor Anfragen kommen; `atexit` allein reichte nicht,
+  weil uvicorn nach SIGTERM das Signal erneut auslöst. Ein Zertifikat schaltet HTTPS nie selbst
+  ein (kein Aussperren). HSTS-Header bei HTTPS (Middleware). Regel `tls_expiry` (Standard 30
+  Tage). Kein Betrieb hinter einem Reverse Proxy mit `--forwarded-allow-ips` (nicht gewünscht).
 - **Darstellung je Benutzer** (Wunsch des Eigentümers): `user_settings` `ui.language` (""
   folgt Cookie bzw. Browser) und `ui.theme` (`system`, `light`, `dark`), `users.get_preferences`
   bzw. `set_preferences`, `/api/me/preferences`. `require_login` legt sie in
@@ -571,6 +589,8 @@ Wichtige Entwurfsentscheidungen:
 - Das Bündel der OSLO-Operationen testet `tests/test_bundle.py`: Bauen, Signatur, abgelehnte
   Inhalte, die echten Shellskripte (`oslo_update.sh --local`, `oslo_version.sh`, braucht `sh`,
   `openssl`, `tar`, `sha256sum`), API, Download der Hosts und Update gegen den Mock.
+- HTTPS von OSLO testet `tests/test_servertls.py` (Test-CA signiert die CSR, Startoptionen mit
+  echtem TLS-Handshake, HSTS, `oslo-tls-cert`).
 - Import und Export testet `tests/test_transfer.py` (Import in ein zweites, leeres OSLO gegen
   dieselbe simulierte Landschaft, `second_oslo`).
 - Zertifikate testet `tests/test_certificates.py` mit echten TLS-Servern auf 127.0.0.1 und

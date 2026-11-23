@@ -162,6 +162,7 @@ APP_PAGES = [
     ("/administration/certificates/new", "administration", "certificate_new"),
     ("/administration/transfer", "administration", "transfer"),
     ("/administration/bundle", "administration", "bundle"),
+    ("/administration/tls", "administration", "tls"),
     ("/account", "account", None),
 ]
 
