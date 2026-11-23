@@ -331,7 +331,7 @@ function RulesEditor({ initial, operations }: { initial: Rules; operations: { ke
 const CERTS = "/administration/certificates";
 
 export function CertificatesPage() {
-  const { t, language } = useApp();
+  const { t } = useApp();
   const { data, isPending, refetch } = useQuery({
     queryKey: ["trusted-certificates"],
     queryFn: () => api<TrustedCertificate[]>("/trusted-certificates"),
@@ -350,48 +350,64 @@ export function CertificatesPage() {
             <thead>
               <tr>
                 <th>{t("field.name")}</th>
-                <th>{t("field.subject")}</th>
-                <th>{t("field.issuer")}</th>
                 <th>{t("field.valid_until")}</th>
-                <th>{t("field.fingerprint")}</th>
                 <th>{t("cert.added_by")}</th>
                 <th />
               </tr>
             </thead>
             <tbody>
               {data.map((c) => (
-                <tr key={c.id}>
-                  <td className="oslo-strong">{c.name}</td>
-                  <td className="oslo-wrap">
-                    <span className="oslo-mono">{c.subject}</span>
-                    {c.self_signed && <span className="oslo-badge oslo-badge-gray oslo-cert-tag">{t("cert.self_signed")}</span>}
-                  </td>
-                  <td className="oslo-mono oslo-wrap">{c.issuer}</td>
-                  <td>
-                    {formatTime(c.not_after, language)} {c.expired && <span className="oslo-badge oslo-badge-red">{t("cert.expired")}</span>}
-                  </td>
-                  <td className="oslo-mono oslo-wrap oslo-fingerprint">{c.fingerprint}</td>
-                  <td className="oslo-muted">
-                    {formatTime(c.created_at, language)}
-                    {c.created_by && <span className="oslo-sub">{c.created_by}</span>}
-                  </td>
-                  <td>
-                    <ConfirmButton
-                      label={t("cert.delete")}
-                      confirm={t("cert.delete_confirm")}
-                      onConfirm={async () => {
-                        await api(`/trusted-certificates/${c.id}`, { method: "DELETE" });
-                        await refetch();
-                      }}
-                    />
-                  </td>
-                </tr>
+                <CertificateRow key={c.id} cert={c} onDeleted={() => void refetch()} />
               ))}
             </tbody>
           </table>
         </div>
       )}
     </div>
+  );
+}
+
+/** One trusted certificate; subject, issuer and fingerprint can be long, so they open below
+ * the row with "Details" and do not widen the table. */
+function CertificateRow({ cert, onDeleted }: { cert: TrustedCertificate; onDeleted: () => void }) {
+  const { t, language } = useApp();
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <tr>
+        <td>
+          <span className="oslo-strong">{cert.name}</span>
+          {cert.self_signed && <span className="oslo-badge oslo-badge-gray oslo-cert-tag">{t("cert.self_signed")}</span>}
+        </td>
+        <td>
+          {formatTime(cert.not_after, language)} {cert.expired && <span className="oslo-badge oslo-badge-red">{t("cert.expired")}</span>}
+        </td>
+        <td className="oslo-muted">
+          {formatTime(cert.created_at, language)}
+          {cert.created_by && <span className="oslo-sub">{cert.created_by}</span>}
+        </td>
+        <td className="oslo-row-actions">
+          <button type="button" className="oslo-secondary" aria-expanded={open} onClick={() => setOpen(!open)}>
+            {open ? t("cert.hide_details") : t("cert.details")}
+          </button>
+          <ConfirmButton
+            label={t("cert.delete")}
+            confirm={t("cert.delete_confirm")}
+            onConfirm={async () => {
+              await api(`/trusted-certificates/${cert.id}`, { method: "DELETE" });
+              onDeleted();
+            }}
+          />
+        </td>
+      </tr>
+      {open && (
+        <tr className="oslo-details-row">
+          <td colSpan={4}>
+            <CertificateFacts cert={cert} />
+          </td>
+        </tr>
+      )}
+    </>
   );
 }
 

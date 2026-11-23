@@ -192,6 +192,9 @@ Wichtige Entwurfsentscheidungen:
   127.0.0.1 geprüft). `POST /api/hosts/{id}/certificate` liest das Zertifikat ungeprüft
   (`app.state.fetch_certificate`), nur das Blatt, nicht die Kette (Python 3.11). Mit dem
   selbst signierten Zertifikat eines echten Host Agents geprüft (2026-11-22).
+  Die Liste unter Administration → Zertifikate zeigt nur Name, Gültigkeit und Herkunft; Inhaber,
+  Aussteller und Fingerabdruck klappt „Details“ unter der Zeile auf (Wunsch des Eigentümers:
+  lange Namen verbreiterten die Tabelle, bis „Entfernen“ nur mit Scrollen erreichbar war).
 - **HTTPS am Host gilt nur für den Host Agent** (Entscheidung des Eigentümers, 2026-11-22):
   `ClientFactory.sapcontrol` nutzt immer HTTP und Port 5NN13 (plus Verschiebung), weil die
   Instanz-Agents eigene Zertifikate zeigen; am Host scheiterte die Prüfung dort mit

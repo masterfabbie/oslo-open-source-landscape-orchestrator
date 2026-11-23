@@ -214,6 +214,8 @@ TEXTS: dict[str, tuple[str, str]] = {
     ),
     "credentials.host_used": ("those of the host", "die des Hosts"),
     "tab.changes": ("Configuration", "Konfiguration"),
+    "cert.details": ("Details", "Details"),
+    "cert.hide_details": ("Hide details", "Details ausblenden"),
     "cfg.object": ("Object", "Objekt"),
     "cfg.action": ("Action", "Aktion"),
     "cfg.changes": ("Changes", "Änderungen"),

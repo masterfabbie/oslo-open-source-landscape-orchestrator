@@ -52,3 +52,19 @@ details.oslo-agent-group > summary { cursor: pointer; font-weight: 600; margin: 
   list-style: none;
   overflow-wrap: anywhere;
 }
+
+/* Buttons at the end of a table row, side by side. */
+.oslo-row-actions {
+  white-space: nowrap;
+  text-align: right;
+}
+.oslo-row-actions > * + * {
+  margin-left: 8px;
+}
+/* A row opened below another one with "Details": long values wrap inside the table. */
+.oslo-details-row td {
+  background: var(--bg);
+}
+.oslo-details-row .oslo-facts dd {
+  overflow-wrap: anywhere;
+}
