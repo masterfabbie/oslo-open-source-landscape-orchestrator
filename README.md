@@ -585,6 +585,70 @@ auf und liest die Ausgabe laufend ins Protokoll.
   Warnung bzw. Fehler. Ein Exit-Code ungleich 0 lässt die Aktivität scheitern; die Meldung
   nennt die letzte Fehlerzeile. Beim Zeitlimit bricht das Tool die Operation auf dem Host ab.
 
+### OSLO-Operationen (eigene Dateien in `operations.d`)
+
+OSLO bringt einige eigene Operationen für den Host Agent mit, als **signiertes Bündel**. Es
+enthält bisher `oslo_version` (meldet Version und ob die Dateien unverändert sind) und
+`oslo_update` (holt und installiert eine neue Version). Weitere OSLO-eigene Operationen, z. B.
+den Instanz-Agent neu starten, kommen in dieses Bündel.
+
+Der Host Agent nimmt keine Dateien von außen an: `DeployConfiguration` wurde an einem echten
+Host abgelehnt („Remote deployment not permitted“, auch lokal als root, ohne erkennbare
+Einstellung in `host_profile`). Deshalb holen sich die Hosts das Bündel selbst:
+
+1. **Signaturschlüssel erzeugen**, einmal, auf dem Rechner, der Bündel baut (nicht auf dem
+   OSLO-Server):
+
+   ```bash
+   .venv/bin/oslo-bundle keygen --out ~/oslo-keys
+   ```
+
+2. **Bündel bauen und signieren:**
+
+   ```bash
+   .venv/bin/oslo-bundle build --version 1.0.0 --key ~/oslo-keys/oslo-bundle-private.pem
+   ```
+
+3. **In OSLO** unter Administration → OSLO-Operationen (nur Admins): den öffentlichen
+   Schlüssel (`oslo-bundle-public.pem`) und die Adresse eintragen, unter der die Hosts OSLO
+   per HTTPS erreichen (optional eine CA-Datei auf den Hosts), dann die `.oslobundle`-Datei
+   hochladen. OSLO prüft die Signatur; das Bündel wird die aktive Version. Frühere Bündel
+   lassen sich wieder aktiv setzen.
+4. **Erstinstallation**, einmal je Host als root: das „Erstinstallationspaket“ herunterladen,
+   auf den Host kopieren (von Hand oder z. B. mit Ansible) und ausführen:
+
+   ```bash
+   tar -xzf oslo-bootstrap-1.0.0.tar.gz
+   ```
+
+   ```bash
+   sh oslo-bootstrap/install.sh
+   ```
+
+   Es installiert die Operationen nach `/usr/sap/hostctrl/exe/operations.d` (`oslo_*.conf`
+   und das Verzeichnis `oslo/`), dazu den öffentlichen Schlüssel und `oslo.cfg` mit der
+   Adresse von OSLO.
+5. **Prüfen:** Jede Discovery ruft `oslo_version` auf. Host-Seite und
+   Administration → OSLO-Operationen zeigen je Host „aktuell“, „veraltet“, „verändert“ oder
+   „nicht installiert“; die Regel „Hosts mit veralteten OSLO-Operationen“ meldet sie unter
+   „Braucht Aufmerksamkeit“ (nur, wenn ein Bündel aktiv ist).
+6. **Aktualisieren:** die eingebaute Host-Operation „OSLO-Operationen aktualisieren“ (nur
+   Admins, auch als Massenoperation, Knopf „Hosts aktualisieren“ auf der Seite). Sie ruft
+   `oslo_update` auf: Der Host lädt `/bundle/payload.tar.gz` und `/bundle/payload.sig` von
+   OSLO (HTTPS, ohne Anmeldung; das Bündel enthält keine Geheimnisse), prüft die Signatur mit
+   dem installierten Schlüssel, prüft Namen und Prüfsummen der Dateien und ersetzt nur
+   OSLO-eigene Dateien. Danach liest OSLO die Version und vergleicht sie.
+
+Sicherheit: Wer OSLO übernimmt, kann damit keinen eigenen Code auf die Hosts bringen, weil
+die Hosts nur Bündel mit gültiger Signatur installieren und der private Schlüssel nicht auf dem
+OSLO-Server liegt. Schlüssel und `oslo.cfg` ändern sich nur durch eine neue Erstinstallation.
+
+Annahmen und Voraussetzungen: Die Operationen laufen als root (ohne `Username:` in der
+`.conf`); auf den Hosts gibt es `curl`, `tar`, `sha256sum` und OpenSSL ab 1.1.1 (Ed25519); nur
+UNIX. Der Host Agent liest geänderte `.conf`-Dateien ohne `ReloadConfiguration` (die
+Befehlszeilen ändern sich bei Updates nicht, die Skripte schon). Der Name `oslo_*` ist für
+OSLO reserviert: eigene Operationen der Kunden dürfen nicht so heißen.
+
 ### Import und Export
 
 **Administration → Import/Export** (nur Admins) lädt die Konfiguration als JSON-Datei herunter
@@ -782,6 +846,13 @@ keine Inventardaten.
 | GET | `/api/steps?limit=300&activity_id=` | Schritte, neueste zuerst, je mit ihrer obersten Aktivität (`activity_id`); mit `activity_id` nur die Schritte dieser Aktivität |
 | GET | `/api/config-changes?limit=300&object_type=&object_id=&username=&days=` | Konfigurationsprotokoll, neueste zuerst; `changes` je Feld `[alt, neu]`, Geheimnisse nur als `"(changed)"`; Einträge zu Benutzern nur für Admins |
 | GET, PUT | `/api/config-log-settings` | `{"retention_days": 365}`: wie lange das Konfigurationsprotokoll aufbewahrt wird (PUT nur Admin, 1–3650) |
+| GET | `/api/bundle-status` | `{"active_version": "1.0.0"}`: Version des aktiven Bündels der OSLO-Operationen |
+| GET | `/api/bundles` | Einstellungen (öffentlicher Schlüssel, Adresse, CA-Pfad) und alle Bündel (nur Admin) |
+| PUT | `/api/bundles/settings` | `{"public_key": "<PEM>", "base_url": "https://…", "ca_path": ""}` (nur Admin) |
+| POST | `/api/bundles` | `{"data": "<base64 der .oslobundle-Datei>"}`: prüfen, speichern, aktiv setzen (nur Admin) |
+| POST | `/api/bundles/{id}/activate` | früheres Bündel wieder aktiv setzen (nur Admin) |
+| GET | `/api/bundles/bootstrap` | Erstinstallationspaket als `.tar.gz` (nur Admin) |
+| GET | `/bundle/payload.tar.gz`, `/bundle/payload.sig` | Download der Hosts, ohne Anmeldung |
 | GET | `/api/systems/suggestion?instance_ids=1&instance_ids=2` | Namensvorschlag für ein neues System |
 | GET | `/api/platform` | Version und Einstellungen (nur Admin) |
 | GET | `/api/instances/{id}/processes` | Prozesse einer Instanz, jetzt gelesen per `GetProcessList`; aktualisiert den gespeicherten Status |

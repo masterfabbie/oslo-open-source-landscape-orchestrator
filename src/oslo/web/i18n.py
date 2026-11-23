@@ -562,6 +562,81 @@ TEXTS: dict[str, tuple[str, str]] = {
     "field.fingerprint": ("Fingerprint (SHA-256)", "Fingerabdruck (SHA-256)"),
     "tab.certificates": ("Certificates", "Zertifikate"),
     "tab.transfer": ("Import/Export", "Import/Export"),
+    "tab.bundle": ("OSLO operations", "OSLO-Operationen"),
+    "bundle.intro": (
+        "OSLO installs a few operations of its own into operations.d of the host agents, as a "
+        "signed bundle. The first installation is done once per host with the bootstrap "
+        "package; later versions are uploaded here and installed from OSLO: the hosts "
+        "download them over HTTPS and check the signature themselves.",
+        "OSLO installiert einige eigene Operationen in operations.d der Host Agents, als "
+        "signiertes Bündel. Die Erstinstallation geschieht einmal je Host mit dem "
+        "Erstinstallationspaket; neue Versionen werden hier hochgeladen und aus OSLO heraus "
+        "installiert: Die Hosts laden sie per HTTPS und prüfen die Signatur selbst.",
+    ),
+    "bundle.settings": ("Signature and address", "Signatur und Adresse"),
+    "bundle.settings_hint": (
+        "Only bundles signed with the private key of this public key are accepted, here and "
+        "on the hosts. The private key stays with whoever builds bundles (oslo-bundle).",
+        "Angenommen werden nur Bündel, die mit dem privaten Schlüssel zu diesem öffentlichen "
+        "Schlüssel signiert sind, hier und auf den Hosts. Der private Schlüssel bleibt bei "
+        "dem, der Bündel baut (oslo-bundle).",
+    ),
+    "bundle.public_key": ("Public key (Ed25519, PEM)", "Öffentlicher Schlüssel (Ed25519, PEM)"),
+    "bundle.base_url": (
+        "Address of OSLO for the hosts (https://…)",
+        "Adresse von OSLO für die Hosts (https://…)",
+    ),
+    "bundle.ca_path": (
+        "CA file on the hosts (optional, for a certificate not in their store)",
+        "CA-Datei auf den Hosts (optional, für ein Zertifikat außerhalb ihres Speichers)",
+    ),
+    "bundle.upload": ("Upload a bundle", "Bündel hochladen"),
+    "bundle.upload_hint": (
+        "A .oslobundle file. It becomes the version the hosts install.",
+        "Eine .oslobundle-Datei. Sie wird die Version, die die Hosts installieren.",
+    ),
+    "bundle.file": ("Bundle file", "Bündeldatei"),
+    "bundle.key_first": (
+        "Enter the public key first.",
+        "Zuerst den öffentlichen Schlüssel eintragen.",
+    ),
+    "bundle.upload_button": ("Upload", "Hochladen"),
+    "bundle.uploaded": ("Bundle uploaded and active.", "Bündel hochgeladen und aktiv."),
+    "bundle.bootstrap": ("First installation", "Erstinstallation"),
+    "bundle.bootstrap_hint": (
+        "Once per host, as root: copy the package to the host and run install.sh, by hand or "
+        "with your own tools (e.g. Ansible). It also installs the key and the address of OSLO.",
+        "Einmal je Host, als root: Paket auf den Host kopieren und install.sh ausführen, von "
+        "Hand oder mit eigenen Werkzeugen (z. B. Ansible). Es installiert auch den Schlüssel "
+        "und die Adresse von OSLO.",
+    ),
+    "bundle.bootstrap_missing": (
+        "Needs the public key, the address of OSLO and an active bundle.",
+        "Braucht den öffentlichen Schlüssel, die Adresse von OSLO und ein aktives Bündel.",
+    ),
+    "bundle.bootstrap_download": ("Download package", "Paket herunterladen"),
+    "bundle.list": ("Bundles", "Bündel"),
+    "bundle.none": ("No bundle uploaded yet.", "Noch kein Bündel hochgeladen."),
+    "bundle.version": ("Version", "Version"),
+    "bundle.active": ("active", "aktiv"),
+    "bundle.files": ("{count} files", "{count} Dateien"),
+    "bundle.activate": ("Make active", "Aktiv setzen"),
+    "bundle.hosts": ("Hosts", "Hosts"),
+    "bundle.hosts_hint": (
+        "Read with oslo_version at every discovery.",
+        "Gelesen mit oslo_version bei jeder Discovery.",
+    ),
+    "bundle.update_all": ("Update {count} hosts", "{count} Hosts aktualisieren"),
+    "bundle.update_started": ("Activity {number} started", "Aktivität {number} gestartet"),
+    "bundle.state": ("State", "Zustand"),
+    "bundle.checked": ("Checked", "Geprüft"),
+    "bundle.state.unknown": ("not checked", "nicht geprüft"),
+    "bundle.state.missing": ("not installed", "nicht installiert"),
+    "bundle.state.modified": ("changed", "verändert"),
+    "bundle.state.outdated": ("outdated", "veraltet"),
+    "bundle.state.current": ("current", "aktuell"),
+    "bundle.state.installed": ("installed", "installiert"),
+    "bundle.on_host": ("OSLO operations", "OSLO-Operationen"),
     "transfer.part.hosts": (
         "Hosts (connection, tags, credentials)",
         "Hosts (Verbindung, Tags, Zugangsdaten)",
@@ -758,6 +833,7 @@ TEXTS: dict[str, tuple[str, str]] = {
     "op.register": ("Register instance agent", "Instanz-Agent registrieren"),
     "op.unregister": ("Unregister instance agent", "Instanz-Agent abmelden"),
     "op.reregister": ("Re-register instance agent", "Instanz-Agent neu registrieren"),
+    "op.update_bundle": ("Update OSLO operations", "OSLO-Operationen aktualisieren"),
     "kind.DISCOVER": ("Discovery", "Discovery"),
     "target.HOST": ("Host", "Host"),
     "target.MASS": ("Mass operation", "Massenoperation"),
@@ -828,6 +904,7 @@ TEXTS: dict[str, tuple[str, str]] = {
     "kind.REGISTER": ("Register instance agent", "Instanz-Agent registrieren"),
     "kind.UNREGISTER": ("Unregister instance agent", "Instanz-Agent abmelden"),
     "kind.REREGISTER": ("Re-register instance agent", "Instanz-Agent neu registrieren"),
+    "kind.UPDATE_BUNDLE": ("Update OSLO operations", "OSLO-Operationen aktualisieren"),
     "target.INSTANCE": ("Instance", "Instanz"),
     "target.SYSTEM": ("System", "System"),
     "status.GREEN": ("running", "läuft"),
@@ -1341,6 +1418,11 @@ TEXTS: dict[str, tuple[str, str]] = {
         "Hosts without a discovery for this many days.",
         "Hosts ohne Discovery seit so vielen Tagen.",
     ),
+    "att.hint.bundle_outdated": (
+        "Hosts whose OSLO operations are missing, changed or not the active version.",
+        "Hosts, deren OSLO-Operationen fehlen, verändert sind oder nicht der aktiven Version "
+        "entsprechen.",
+    ),
     "att.setting.hours": ("Of the last hours", "Der letzten Stunden"),
     "att.setting.hide_scheduled_every_minutes": (
         "Hide schedules repeating at least every … minutes (0: none)",
@@ -1395,6 +1477,22 @@ TEXTS: dict[str, tuple[str, str]] = {
     "att.rule.stale_discovery": (
         "Hosts without a recent discovery",
         "Hosts ohne aktuelle Discovery",
+    ),
+    "att.rule.bundle_outdated": (
+        "Hosts with outdated OSLO operations",
+        "Hosts mit veralteten OSLO-Operationen",
+    ),
+    "att.bundle_missing": (
+        "Host {host}: OSLO operations not installed",
+        "Host {host}: OSLO-Operationen nicht installiert",
+    ),
+    "att.bundle_outdated": (
+        "Host {host}: OSLO operations {version} instead of {active}",
+        "Host {host}: OSLO-Operationen {version} statt {active}",
+    ),
+    "att.bundle_modified": (
+        "Host {host}: OSLO operations changed by hand",
+        "Host {host}: OSLO-Operationen von Hand verändert",
     ),
     "att.failed": ("{kind} on {target} failed", "{kind} auf {target} fehlgeschlagen"),
     "att.system_status": ("System {system} is {status}", "System {system}: {status}"),

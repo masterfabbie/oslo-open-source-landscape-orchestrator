@@ -16,6 +16,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    LargeBinary,
     String,
     Table,
     Text,
@@ -125,6 +126,11 @@ class Host(Base):
     reachable: Mapped[bool | None] = mapped_column(Boolean)
     last_error: Mapped[str | None] = mapped_column(Text)
     last_discovery_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
+    # The OSLO operations in operations.d (bundle.py), read with oslo_version at each
+    # discovery: their version ("none": not installed) and "ok" or "modified".
+    bundle_version: Mapped[str | None] = mapped_column(String(32))
+    bundle_integrity: Mapped[str | None] = mapped_column(String(16))
+    bundle_checked_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
 
     instances: Mapped[list[Instance]] = relationship(
         back_populates="host",
@@ -737,3 +743,20 @@ class ConfigChange(Base):
     object_name: Mapped[str] = mapped_column(String(255))
     action: Mapped[str] = mapped_column(String(16))
     changes: Mapped[str] = mapped_column(Text, default="{}")
+
+
+class OperationBundle(Base):
+    """An uploaded bundle of OSLO operations (Administration → OSLO operations). The active
+    one is what hosts download with oslo_update. ``files``: JSON {path: SHA-256}."""
+
+    __tablename__ = "operation_bundles"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    version: Mapped[str] = mapped_column(String(32))
+    sha256: Mapped[str] = mapped_column(String(64), unique=True)
+    payload: Mapped[bytes] = mapped_column(LargeBinary)
+    signature: Mapped[bytes] = mapped_column(LargeBinary)
+    files: Mapped[str] = mapped_column(Text)
+    active: Mapped[bool] = mapped_column(Boolean, default=False)
+    uploaded_at: Mapped[datetime] = mapped_column(UTCDateTime())
+    uploaded_by: Mapped[str | None] = mapped_column(String(64))

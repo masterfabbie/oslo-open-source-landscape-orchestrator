@@ -68,3 +68,16 @@ details.oslo-agent-group > summary { cursor: pointer; font-weight: 600; margin: 
 .oslo-details-row .oslo-facts dd {
   overflow-wrap: anywhere;
 }
+
+/* Commands to copy, e.g. for the first installation of the OSLO operations. */
+.oslo-code {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

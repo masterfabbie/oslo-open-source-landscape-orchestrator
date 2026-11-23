@@ -26,7 +26,7 @@ DB_HOST = APP_HOST | {"name": "sapdb1", "hostagent_port": 11128, "sapcontrol_por
 def test_catalog():
     keys = [op.key for op in catalog.for_target(TargetType.SYSTEM)]
     assert keys == ["start", "stop", "restart"]
-    assert [op.key for op in catalog.for_target(TargetType.HOST)] == ["discover"]
+    assert [op.key for op in catalog.for_target(TargetType.HOST)] == ["discover", "update_bundle"]
     assert catalog.for_target(TargetType.HOST, User(role="operator")) == []
     assert catalog.get("stop").label_key(TargetType.SYSTEM) == "op.stop_system"
     assert catalog.get("stop").label_key(TargetType.INSTANCE) == "op.stop"
@@ -94,7 +94,7 @@ def log(activity: dict) -> list[str]:
 async def test_list_operations(app, api):
     keys = {op["key"]: op for op in (await api.get("/api/operations")).json()}
     agent = {"register", "unregister", "reregister"}
-    assert set(keys) == {"start", "stop", "restart", "discover"} | agent
+    assert set(keys) == {"start", "stop", "restart", "discover", "update_bundle"} | agent
     assert keys["discover"]["targets"] == ["HOST"]
     async with client(app, await make_user(app, "op", "operator")) as operator:
         offered = {o["key"] for o in (await operator.get("/api/operations")).json()}

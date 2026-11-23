@@ -4,6 +4,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { api } from "../lib/api";
+import { BUNDLE_BADGE, bundleState } from "../lib/bundle";
 import { RecentChanges } from "../lib/changes";
 import { ActionForm, ConfirmButton, CredentialsForm, Messages, PageHead, Section, TagsForm, go, useAction } from "../lib/forms";
 import { StatusBadge, formatTime, useApp } from "../landscape/ui";
@@ -214,6 +215,7 @@ export function HostPage({ id }: { id: number }) {
   const key = ["host", id];
   const { data: host, isPending, error } = useQuery({ queryKey: key, queryFn: () => api<HostDetail>(`/hosts/${id}`) });
   const systems = useQuery({ queryKey: ["systems"], queryFn: () => api<{ id: number; name: string }[]>("/systems") });
+  const bundleStatus = useQuery({ queryKey: ["bundle-status"], queryFn: () => api<{ active_version: string | null }>("/bundle-status") });
   const discovery = useAction();
   const [result, setResult] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
@@ -222,6 +224,7 @@ export function HostPage({ id }: { id: number }) {
   if (isPending) return <p className="oslo-muted">{t("ui.loading")}</p>;
   if (error || !host) return <p className="flash error">{(error as Error)?.message}</p>;
   const systemName = new Map((systems.data ?? []).map((s) => [s.id, s.name]));
+  const bundleNow = bundleState(host, bundleStatus.data?.active_version ?? null);
 
   const discover = () =>
     discovery.run(async () => {
@@ -279,6 +282,11 @@ export function HostPage({ id }: { id: number }) {
               </dd>
               <dt>{t("field.hostagent")}</dt>
               <dd>{host.hostagent_version ?? ""}</dd>
+              <dt>{t("bundle.on_host")}</dt>
+              <dd>
+                <span className={`oslo-badge oslo-badge-${BUNDLE_BADGE[bundleNow]}`}>{t(`bundle.state.${bundleNow}`)}</span>{" "}
+                {host.bundle_version && host.bundle_version !== "none" && <span className="oslo-mono">{host.bundle_version}</span>}
+              </dd>
               <dt>{t("field.os")}</dt>
               <dd>{[host.os_name, host.os_version].filter(Boolean).join(" ")}</dd>
               <dt>{t("field.cpus")}</dt>

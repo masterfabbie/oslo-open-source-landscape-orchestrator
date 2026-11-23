@@ -20,8 +20,18 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .bundles import NEEDS_UPDATE, host_state
 from .catalog import Catalog
-from .models import STAGES, Activity, Host, PlatformSetting, Schedule, System, User
+from .models import (
+    STAGES,
+    Activity,
+    Host,
+    OperationBundle,
+    PlatformSetting,
+    Schedule,
+    System,
+    User,
+)
 from .operations import ACTIVE_STATUSES, ActivityStatus, OperationKind
 from .users import get_setting, set_setting
 
@@ -56,6 +66,9 @@ DEFAULT_RULES: dict[str, dict[str, Any]] = {
     "schedule_errors": {"enabled": True},
     # Hosts without a discovery for this many days.
     "stale_discovery": {"enabled": False, "days": 7},
+    # Hosts whose OSLO operations are missing, changed or not the active version (only once
+    # a bundle is active).
+    "bundle_outdated": {"enabled": True},
 }
 SYSTEM_STATUSES = ("RED", "YELLOW", "GRAY", "UNKNOWN")
 _SCHEDULED = re.compile(r"\(schedule (\d+)\)$")
@@ -338,8 +351,32 @@ async def attention_items(
                 )
             )
 
+    active_bundle = None
+    if "bundle_outdated" in on:
+        active_bundle = await session.scalar(
+            select(OperationBundle.version).where(OperationBundle.active)
+        )
     for host in hosts:
         link = f"/landscape?tab=hosts&host={host.id}"
+        if active_bundle is not None:
+            state = host_state(host, active_bundle)
+            if state in NEEDS_UPDATE:
+                items.append(
+                    Item(
+                        "bundle_outdated",
+                        "warning",
+                        f"att.bundle_{state}",
+                        {
+                            "host": host.name,
+                            "version": host.bundle_version or "",
+                            "active": active_bundle,
+                        },
+                        f"/configuration/hosts/{host.id}",
+                        _utc(host.bundle_checked_at),
+                        None,
+                        host.id,
+                    )
+                )
         if "host_unreachable" in on and host.reachable is False:
             items.append(
                 Item(

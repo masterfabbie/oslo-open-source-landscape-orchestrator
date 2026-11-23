@@ -169,6 +169,8 @@ class MockOperationRun:
     duration: float
     exit_code: int
     cancelled: bool = False
+    # Lines of the script instead of the echoed arguments (operations of the OSLO bundle).
+    output: tuple[str, ...] | None = None
 
 
 @dataclass
@@ -179,6 +181,12 @@ class MockHost:
     opsys: str = "Linux"
     instances: list[MockInstance] = field(default_factory=list)
     databases: list[MockDatabase] = field(default_factory=list)
+    # The OSLO operations in operations.d (oslo/bundle.py): installed version (None: not
+    # installed), whether a file was changed by hand, and the public key installed with the
+    # bootstrap package ("auto": the key OSLO is configured with, see MockLandscape).
+    bundle_version: str | None = None
+    bundle_modified: bool = False
+    bundle_key: str | None = None
 
     @property
     def hostagent_port(self) -> int:
@@ -213,6 +221,11 @@ class MockLandscape:
         self.start_duration = start_duration
         self.stop_duration = stop_duration
         self.clock = clock
+        # Where oslo_update gets the bundle: (payload, signature) of the bundle OSLO offers.
+        # The real script downloads it over HTTPS; tests and oslo-server --mock set this.
+        self.bundle_source: Callable[[], tuple[bytes, bytes] | None] = lambda: None
+        # The public key a host with bundle_key "auto" trusts.
+        self.bundle_key_source: Callable[[], str] = lambda: ""
 
     @classmethod
     def from_dict(
@@ -227,6 +240,10 @@ class MockLandscape:
                 port_offset=host_data.get("port_offset", 0),
                 opsys=host_data.get("opsys", "Linux"),
             )
+            bundle = host_data.get("oslo_bundle")
+            if bundle:
+                host.bundle_version = bundle.get("version", "0")
+                host.bundle_key = bundle.get("key", "auto")
             for inst in host_data.get("instances", []):
                 if inst["kind"] not in INSTANCE_KINDS:
                     raise ValueError(f"Unknown instance kind: {inst['kind']!r}")
@@ -279,6 +296,45 @@ class MockLandscape:
             started=self.clock(),
             duration=duration,
             exit_code=exit_code,
+        )
+        self.operation_runs[run.id] = run
+        return run
+
+    def run_bundle_operation(self, host: MockHost, name: str) -> MockOperationRun:
+        """oslo_version or oslo_update, like the scripts of the bundle do on a real host."""
+        from ..bundle import BundleError, check_bundle
+
+        lines: list[str]
+        exit_code = 0
+        if name == "oslo_version":
+            lines = [
+                f"oslo_bundle version={host.bundle_version or 'none'}",
+                f"oslo_bundle integrity={'modified' if host.bundle_modified else 'ok'}",
+            ]
+        else:
+            source = self.bundle_source()
+            key = self.bundle_key_source() if host.bundle_key == "auto" else host.bundle_key
+            try:
+                if source is None:
+                    raise BundleError("download of the bundle failed (HTTP 404)")
+                data = _pack(*source)
+                _, _, manifest = check_bundle(data, key or "")
+            except BundleError as exc:
+                lines, exit_code = [f"[ERROR]: {exc}"], 1
+            else:
+                host.bundle_version = manifest.version
+                host.bundle_modified = False
+                lines = [f"oslo_bundle installed={manifest.version}"]
+        operation = MockCustomOperation(name, f"OSLO operations: {name[5:]}", ())
+        run = MockOperationRun(
+            id=f"MOCK{len(self.operation_runs) + 1:028d}",
+            host=host.name,
+            operation=operation,
+            arguments=[],
+            started=self.clock(),
+            duration=0.0,
+            exit_code=exit_code,
+            output=tuple(lines),
         )
         self.operation_runs[run.id] = run
         return run
@@ -385,3 +441,9 @@ def default_landscape_config() -> dict[str, Any]:
             },
         ],
     }
+
+
+def _pack(payload: bytes, signature: bytes) -> bytes:
+    from ..bundle import pack
+
+    return pack(payload, signature)

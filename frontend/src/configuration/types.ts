@@ -37,6 +37,10 @@ export interface HostInfo {
   last_error: string | null;
   last_discovery_at: string | null;
   hostagent_version: string | null;
+  // The OSLO operations on the host (lib/bundle.ts).
+  bundle_version: string | null;
+  bundle_integrity: string | null;
+  bundle_checked_at: string | null;
   tags: string[];
 }
 

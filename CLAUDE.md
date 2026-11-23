@@ -110,6 +110,8 @@ Alles liegt unter `src/oslo/`.
 | `customops.py` | eigene Operationen und Parameter anlegen und prüfen, Parameterwerte prüfen (`parameter_values`) |
 | `api/` | REST-API unter `/api`, geschützt durch persönliche API-Tokens; `create_app` baut die Anwendung |
 | `web/` | Anmeldung, Einrichtung und Passwortwechsel (Jinja2), Hüllen der React-Seiten (`app_page.html`, `routes.app_page`), Seitennavigation der Bereiche, Übersetzungen |
+| `bundle.py` | Bündel der OSLO-Operationen: bauen, signieren (Ed25519), prüfen, Erstinstallationspaket, Ausgabe von `oslo_version`; Befehl `oslo-bundle`; Quellen der Host-Dateien in `bundle_files/` |
+| `bundles.py` | Bündel auf dem Server: hochladen, aktives Bündel (`BundleStore`), Einstellungen, `oslo_version` am Host lesen, Zustand je Host (`host_state`) |
 | `config_log.py` | Konfigurationsprotokoll: Änderungen beim Speichern erfassen (`before_flush`, `SPECS`), Benutzer der Anfrage (`set_actor`), Änderungen ohne ORM (`record`), Aufbewahrung (`purge`) |
 | `attention.py` | Regeln für „Braucht Aufmerksamkeit“ (global in `platform_settings`, Ausnahmen je Benutzer), Spalten der Statusmatrix |
 | `mock/` | simulierter Host Agent und sapstartsrv für Entwicklung und Tests |
@@ -471,6 +473,29 @@ Wichtige Entwurfsentscheidungen:
   Viewer. Aufbewahrung `platform_settings` `config_log.retention_days` (Standard 365,
   Administration → Allgemein), gelöscht im `Scheduler.tick` höchstens stündlich. Neue
   Konfigurationsmodelle oder -felder in `SPECS` eintragen.
+- **OSLO-Operationen** (ToDo 10, Entscheidung des Eigentümers 2026-11-23): OSLO-eigene Dateien
+  für `operations.d` als signiertes Bündel (`bundle.py`, Quellen in `src/oslo/bundle_files/`:
+  `oslo_*.conf` und `oslo/`). `DeployConfiguration` scheidet aus (am Host „Remote deployment not
+  permitted“, auch lokal als root). Erstinstallation einmal je Host von Hand oder per Ansible aus
+  dem Erstinstallationspaket (`/api/bundles/bootstrap`, `install.sh`, legt auch
+  `oslo/bundle_key.pem` und `oslo/oslo.cfg` mit `OSLO_URL` an). Updates: Admins laden
+  `.oslobundle`-Dateien hoch (signiert mit `oslo-bundle build`, privater Schlüssel nie auf dem
+  Server; OSLO prüft gegen den eingetragenen öffentlichen Schlüssel, `platform_settings`
+  `bundle.*`), die eingebaute Host-Operation `update_bundle` (`OperationKind.UPDATE_BUNDLE`, nur
+  Admin) ruft `oslo_update` auf, der Host lädt `/bundle/payload.tar.gz` und `.sig` (öffentlich,
+  ohne Anmeldung) und prüft selbst Signatur, Dateinamen (`oslo_*.conf`, `oslo/…`, keine Links)
+  und `SHA256SUMS`; ersetzt werden nur OSLO-Dateien, per Umbenennen (laufende Skripte behalten
+  ihre Kopie). Die Hosts dürfen OSLO per HTTPS erreichen (Eigentümer, 2026-11-23). Jede
+  Discovery ruft `oslo_version` auf (wie eigene Operationen: asynchron, dann Abfrage) und
+  speichert `hosts.bundle_version`/`bundle_integrity`/`bundle_checked_at` (Migration 0013);
+  unbekannte Operation heißt „nicht installiert“. Zustand (`bundles.host_state`, im Browser
+  `lib/bundle.ts`): unknown, missing, modified, outdated, current, installed (ohne aktives
+  Bündel). Regel `bundle_outdated` für „Braucht Aufmerksamkeit“. Der Mock bildet beide
+  Operationen nach (`MockHost.bundle_version`, `bundle_key`, `MockLandscape.bundle_source`,
+  Signaturprüfung mit `bundle.check_bundle`); in der Standardlandschaft der Tests ist kein
+  Bündel installiert, `oslo-server --mock` gibt `sapapp1` Version 0.9.0. Annahmen: Ausführung
+  als root, OpenSSL ≥ 1.1.1, nur UNIX, kein `ReloadConfiguration` nötig. Der Name `oslo_*` ist
+  reserviert. Neue OSLO-eigene Operationen kommen als Dateien nach `bundle_files/`.
 - **Darstellung je Benutzer** (Wunsch des Eigentümers): `user_settings` `ui.language` (""
   folgt Cookie bzw. Browser) und `ui.theme` (`system`, `light`, `dark`), `users.get_preferences`
   bzw. `set_preferences`, `/api/me/preferences`. `require_login` legt sie in
@@ -543,6 +568,9 @@ Wichtige Entwurfsentscheidungen:
   `tests/test_settings_pages.py` (Fixtures von `test_web.py`).
 - Das Konfigurationsprotokoll testet `tests/test_config_log.py` (Fixtures von `test_mass.py`),
   die Darstellung der Änderungen `frontend/src/lib/changes.test.ts`.
+- Das Bündel der OSLO-Operationen testet `tests/test_bundle.py`: Bauen, Signatur, abgelehnte
+  Inhalte, die echten Shellskripte (`oslo_update.sh --local`, `oslo_version.sh`, braucht `sh`,
+  `openssl`, `tar`, `sha256sum`), API, Download der Hosts und Update gegen den Mock.
 - Import und Export testet `tests/test_transfer.py` (Import in ein zweites, leeres OSLO gegen
   dieselbe simulierte Landschaft, `second_oslo`).
 - Zertifikate testet `tests/test_certificates.py` mit echten TLS-Servern auf 127.0.0.1 und
@@ -637,6 +665,11 @@ Aktuelle WSDLs lassen sich von einem Host abrufen:
   trotzdem durch; vermutlich scheiterte die Abfrage von `GetProcessList` und OSLO ging weiter wie
   bei einem nicht antwortenden sapstartsrv. Ausführlicher Test durch den Eigentümer steht aus,
   Korrektur vorgeschlagen (ToDo 11).
+- **`DeployConfiguration`** (2026-11-23, per `saphostctrl` als root und per SOAP mit `curl`):
+  abgelehnt mit „Remote deployment not permitted“; eine Einstellung dafür war in `host_profile`
+  nicht zu finden. Laut WSDL nimmt die Webmethode den Inhalt zeilenweise an
+  (`HostAgentConfiguration`: `target`, `name`, `configuration`). Deshalb holen die Hosts das
+  Bündel der OSLO-Operationen selbst.
 - **HTTPS zum Host Agent** (2026-11-21): OSLO erreicht einen Host Agent über Port 1129 mit
   abgeschalteter Zertifikatsprüfung (selbst signiertes Zertifikat). Mit Zertifikatsprüfung
   (2026-11-22): Das über „Zertifikat abrufen“ übernommene selbst signierte Zertifikat des Host
@@ -685,10 +718,10 @@ und freigeben lassen:
 8. „Erneut ausführen“-Knopf an einer abgebrochenen Aktivität (gleiche Operation, Ziele und Werte;
    gewünscht 2026-11-21).
 9. ~~Bereich „Schedules“ für alle geplanten Operationen.~~ Erledigt 2026-11-22 (Operationen → Einplanungen).
-10. Konzept für OSLO-eigene Operationen: Dateien in `operations.d`, die OSLO braucht (z. B. für den
-    Neustart des Instanz-Agents, normal und forciert), verteilen und regelmäßig bzw. auf
-    Anforderung prüfen; Vorschlag mit `DeployConfiguration` und Versionsprüfung liegt vor,
-    Test am Host steht aus (gewünscht 2026-11-21).
+10. ~~Konzept für OSLO-eigene Operationen: Dateien in `operations.d` verteilen und prüfen.~~
+    Erledigt 2026-11-23 (signiertes Bündel, siehe „OSLO-Operationen“). Offen: Operationen für den
+    Neustart des Instanz-Agents (normal und forciert) ins Bündel aufnehmen; Test des Bündels an
+    einem echten Host.
 11. Prüfung vor dem Neu-Registrieren des Instanz-Agents festlegen (heute: Abbruch, solange ein
     Prozess der Instanz läuft; gewünscht 2026-11-21). Am Host lief Neu registrieren trotz
     laufender Prozesse durch. Vorschlag: nur bei abgelehnter Verbindung weitermachen, sonst
@@ -707,8 +740,9 @@ und freigeben lassen:
 - kein Probelauf für Operationsvorlagen
 - Werte, nach denen eine Vorlage beim Start fragt, lassen sich nur im Editor der Vorlage
   einplanen, nicht unter Operationen → Einplanungen
-- Instanz-Agent neu starten (normal und forciert) fehlt noch; offen ist, wie OSLO die nötigen
-  Dateien in `operations.d` verteilt und prüft
+- Instanz-Agent neu starten (normal und forciert) fehlt noch (kommt ins Bündel der
+  OSLO-Operationen)
+- Bündel der OSLO-Operationen nur für UNIX-Hosts
 - keine Kernel-Repositories (Ablage der Kernel-Versionen für Kernel-Tausch-Skripte)
 - keine Hooks und kein HTTP-Provider für eigene Operationen
 - keine eigenen Datenbank-Operationen (`StartDatabase`, `StopDatabase`)

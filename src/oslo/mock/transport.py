@@ -16,6 +16,7 @@ class MockLandscapeTransport(httpx.AsyncBaseTransport):
     """
 
     def __init__(self, landscape: MockLandscape) -> None:
+        self.landscape = landscape
         self._transports: dict[int, httpx.ASGITransport] = {}
         # Port of a sapstartsrv -> its instance; an unregistered one refuses connections.
         self._instances: dict[int, MockInstance] = {}

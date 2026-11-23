@@ -174,6 +174,7 @@ SECTIONS: dict[str, dict[str, Any]] = {
             ("/administration/attention", "ov.attention", Role.ADMIN),
             ("/administration/certificates", "tab.certificates", Role.ADMIN),
             ("/administration/transfer", "tab.transfer", Role.ADMIN),
+            ("/administration/bundle", "tab.bundle", Role.ADMIN),
         ],
     },
 }
@@ -614,6 +615,11 @@ async def certificates(request: Request, user: CurrentUser) -> HTMLResponse:
 @pages.get("/administration/transfer")
 async def transfer(request: Request, user: CurrentUser) -> HTMLResponse:
     return _administration(request, user, "transfer")
+
+
+@pages.get("/administration/bundle")
+async def bundle_page(request: Request, user: CurrentUser) -> HTMLResponse:
+    return _administration(request, user, "bundle")
 
 
 @pages.get("/administration/certificates/new")

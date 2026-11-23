@@ -28,6 +28,7 @@ dev = [
 ]
 
 [project.scripts]
+oslo-bundle = "oslo.bundle:main"
 oslo-db = "oslo.db:main"
 oslo-keygen = "oslo.crypto:keygen"
 oslo-mock = "oslo.mock.server:main"

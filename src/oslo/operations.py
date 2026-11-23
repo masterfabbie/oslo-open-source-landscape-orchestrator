@@ -28,6 +28,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm import selectinload
 
 from . import config_log
+from .bundles import UPDATE_OPERATION, BundleStore, read_host_bundle
 from .clients import (
     AuthenticationRequiredError,
     InvalidCredentialsError,
@@ -75,6 +76,8 @@ class OperationKind(StrEnum):
     REREGISTER = "REREGISTER"
     # A custom operation: a script configured in the host agent's operations.d.
     CUSTOM = "CUSTOM"
+    # Installs the active OSLO operations bundle on a host (bundles.py).
+    UPDATE_BUNDLE = "UPDATE_BUNDLE"
     # An operation template: its steps run as child activities, after their predecessors.
     TEMPLATE = "TEMPLATE"
 
@@ -265,6 +268,8 @@ class OperationRunner:
         # locked, and the end of the activity could not be written.
         self._at_safe_point: dict[int, set[asyncio.Task[object]]] = {}
         self._shutting_down = False
+        # The active OSLO operations bundle (set by create_app).
+        self.bundle_store: BundleStore | None = None
 
     # --- submitting ---------------------------------------------------------------------
 
@@ -443,11 +448,12 @@ class OperationRunner:
         *,
         parent_id: int | None = None,
     ) -> Activity:
-        """Run a host operation (so far only a discovery) as an activity."""
+        """Run a host operation (a discovery or an update of the OSLO operations) as an
+        activity."""
         host = await session.get(Host, host_id)
         if host is None:
             raise TargetNotFoundError("Host not found")
-        if kind is not OperationKind.DISCOVER:
+        if kind not in (OperationKind.DISCOVER, OperationKind.UPDATE_BUNDLE):
             raise ValueError(f"{kind} is not a host operation")
         return await self._submit(
             session,
@@ -1102,6 +1108,9 @@ class OperationRunner:
         if kind is OperationKind.TEMPLATE:
             await self._execute_template(session, activity)
             return
+        if kind is OperationKind.UPDATE_BUNDLE:
+            await self._update_bundle(session, activity)
+            return
         if activity.target_type == TargetType.HOST:
             await self._discover(session, activity)
             return
@@ -1577,6 +1586,56 @@ class OperationRunner:
             return
         await log_new(result)
         await log("WARNING", f"Operation {operation_id} cancelled on {host.name}")
+
+    async def _update_bundle(self, session: AsyncSession, activity: Activity) -> None:
+        """Let the host download and install the active OSLO operations bundle (oslo_update),
+        then read the installed version (oslo_version)."""
+        active = self.bundle_store.version if self.bundle_store else None
+        if active is None:
+            raise OperationFailedError(
+                "No OSLO operations bundle is active; upload one under Administration first"
+            )
+        host = await session.get(Host, activity.host_id)
+        if host is None:
+            raise OperationFailedError("The host no longer exists")
+        await self._log(session, activity, f"Installing OSLO operations {active} on {host.name}")
+        spec = CustomSpec(
+            id=0,
+            name="Update OSLO operations",
+            description=None,
+            agent_operation=UPDATE_OPERATION,
+            target=TargetType.HOST,
+            instance_types=(),
+            ordering="parallel",
+            timeout_seconds=activity.timeout_seconds,
+            parameters=(),
+        )
+        deadline = self._clock() + activity.timeout_seconds
+        try:
+            await self._run_host_operation(
+                session, activity, spec, "", host, {}, deadline, asyncio.Lock()
+            )
+        except OperationFailedError as exc:
+            if "was rejected" in str(exc):
+                raise OperationFailedError(
+                    f"oslo_update is not installed on {host.name}; install the bootstrap "
+                    "package from Administration → OSLO operations first"
+                ) from exc
+            raise
+        try:
+            async with self._clients.hostagent(host) as agent:
+                version, integrity = await read_host_bundle(agent, self._pause)
+        except SoapError as exc:
+            raise OperationFailedError(f"The installed version could not be read: {exc}") from exc
+        host.bundle_version, host.bundle_integrity = version, integrity
+        host.bundle_checked_at = _now()
+        await session.commit()
+        if version != active or integrity != "ok":
+            raise OperationFailedError(
+                f"After the update {host.name} reports version {version} ({integrity}), "
+                f"expected {active}"
+            )
+        await self._log(session, activity, f"OSLO operations {version} installed on {host.name}")
 
     async def _discover(self, session: AsyncSession, activity: Activity) -> None:
         host = await session.scalar(

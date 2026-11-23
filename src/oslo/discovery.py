@@ -11,6 +11,7 @@ from datetime import UTC, datetime
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .bundles import read_host_bundle
 from .clients import SoapError
 from .clients.hostagent import CimObject, HostAgentClient, HostAgentVersion
 from .clients.hostagent import Database as AgentDatabase
@@ -104,6 +105,19 @@ async def _read_version(agent: HostAgentClient) -> tuple[HostAgentVersion | None
     return version, None
 
 
+async def _read_bundle(agent: HostAgentClient, host: Host, now: datetime) -> str | None:
+    """Version of the OSLO operations on the host (bundles.py); a warning if it could not be
+    read. Not knowing oslo_version is no error: the bundle is not installed."""
+    try:
+        version, integrity = await read_host_bundle(agent)
+    except SoapError as exc:
+        return f"The version of the OSLO operations could not be read ({exc})"
+    host.bundle_version = version
+    host.bundle_integrity = integrity
+    host.bundle_checked_at = now
+    return None
+
+
 async def discover_host(
     session: AsyncSession, host: Host, clients: ClientFactory
 ) -> DiscoveryResult:
@@ -120,6 +134,7 @@ async def discover_host(
             agent_instances = await agent.list_instances()
             agent_databases = await agent.list_databases()
             version, version_warning = await _read_version(agent)
+            bundle_warning = await _read_bundle(agent, host, now)
     except SoapError as exc:
         host.reachable = False
         host.last_error = str(exc)
@@ -131,6 +146,8 @@ async def discover_host(
     result = DiscoveryResult()
     if version_warning:
         result.warnings.append(version_warning)
+    if bundle_warning:
+        result.warnings.append(bundle_warning)
     if version is not None:
         info = await session.get(HostAgentInfo, host.id)
         if info is None:

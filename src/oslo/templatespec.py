@@ -25,6 +25,7 @@ BUILT_IN_NAMES = {
     "REGISTER": "Register instance agent",
     "UNREGISTER": "Unregister instance agent",
     "REREGISTER": "Re-register instance agent",
+    "UPDATE_BUNDLE": "Update OSLO operations",
 }
 # Parameters of a step are passed in a run as "<position>.<NAME>", e.g. "3.KRNLREL".
 SEPARATOR = "."

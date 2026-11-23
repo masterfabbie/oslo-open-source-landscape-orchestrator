@@ -60,6 +60,13 @@ def main() -> None:
         print("Using the simulated landscape. Hosts: sapapp1 (offset 0), sapdb1 (offset 10000).")
 
     app = create_app(settings, transport=transport, run_scheduler=True)
+    if transport is not None:
+        # The simulated hosts download the bundle OSLO offers and trust its configured key.
+        transport.landscape.bundle_source = app.state.bundles.files
+        transport.landscape.bundle_key_source = lambda: app.state.bundles.public_key
+        # sapapp1 has an old version from the bootstrap package, sapdb1 none.
+        sapapp1 = transport.landscape.host("sapapp1")
+        sapapp1.bundle_version, sapapp1.bundle_key = "0.9.0", "auto"
     uvicorn.run(app, host=args.host, port=args.port)
 
 

@@ -4,6 +4,8 @@
 # route functions at runtime, and they refer to names local to create_app.
 
 import asyncio
+import base64
+import binascii
 import json
 import secrets
 import sys
@@ -33,6 +35,11 @@ from ..attention import (
     save_exceptions,
     save_rules,
 )
+from ..bundle import BundleError, bootstrap_archive
+from ..bundles import BundleStore, save_bundle
+from ..bundles import activate as activate_stored_bundle
+from ..bundles import load_settings as load_bundle_settings
+from ..bundles import save_settings as save_bundle_settings
 from ..catalog import Catalog, OperationDef
 from ..connections import ClientFactory
 from ..crypto import SecretBox
@@ -57,6 +64,7 @@ from ..models import (
     Host,
     HostTag,
     Instance,
+    OperationBundle,
     OperationTemplate,
     PlatformSetting,
     Pool,
@@ -124,6 +132,8 @@ from .schemas import (
     AttentionExceptionsIn,
     AttentionRulesIn,
     BuildingBlocksOut,
+    BundleSettingsIn,
+    BundleUploadIn,
     CertificateOut,
     ConfigChangeOut,
     ConfigLogSettings,
@@ -252,6 +262,9 @@ def create_app(
         session_factory, clients, poll_interval=poll_interval, sleep=sleep, clock=clock
     )
     config_log.install()
+    # The active OSLO operations bundle, which hosts download (bundles.py).
+    bundle_store = BundleStore()
+    runner.bundle_store = bundle_store
     # Starts due schedules every 30 seconds; tests call scheduler.tick() themselves.
     scheduler = Scheduler(session_factory, runner, catalog, ZoneInfo(settings.timezone))
 
@@ -262,6 +275,7 @@ def create_app(
         async with session_factory() as session:
             await catalog.reload(session)
             await clients.load_trusted(session)
+            await bundle_store.load(session)
             if await user_count(session) == 0:
                 # One-time code for creating the first admin on the page /setup.
                 code = "-".join(secrets.token_hex(3).upper() for _ in range(3))
@@ -1010,6 +1024,98 @@ def create_app(
         await catalog.reload(session)
         await clients.load_trusted(session)
         return {"applied": body.apply, "counts": report.counts(), "items": report.items}
+
+    # --- OSLO operations bundle (Administration → OSLO operations) ---------------------------
+
+    def bundle_out(row: OperationBundle) -> dict[str, object]:
+        return {
+            "id": row.id,
+            "version": row.version,
+            "sha256": row.sha256,
+            "active": row.active,
+            "uploaded_at": row.uploaded_at,
+            "uploaded_by": row.uploaded_by,
+            "files": sorted(json.loads(row.files)),
+        }
+
+    @api.get("/bundle-status")
+    async def bundle_status() -> dict[str, object]:
+        """The version of the active bundle, to compare the hosts with (every role)."""
+        return {"active_version": bundle_store.version}
+
+    @api.get("/bundles")
+    async def list_bundles(session: Session) -> dict[str, object]:
+        """Settings, the active and the earlier bundles (admin)."""
+        rows = await session.scalars(select(OperationBundle).order_by(OperationBundle.id.desc()))
+        return {
+            "settings": await load_bundle_settings(session),
+            "bundles": [bundle_out(row) for row in rows],
+        }
+
+    @api.put("/bundles/settings")
+    async def put_bundle_settings(body: BundleSettingsIn, session: Session) -> dict[str, str]:
+        """Public key of the bundle signature, address of OSLO for the hosts (admin)."""
+        try:
+            saved = await save_bundle_settings(
+                session, body.public_key, body.base_url, body.ca_path
+            )
+        except BundleError as exc:
+            raise HTTPException(422, str(exc)) from exc
+        await session.commit()
+        await bundle_store.load(session)
+        return saved
+
+    @api.post("/bundles", status_code=status.HTTP_201_CREATED)
+    async def upload_bundle(
+        body: BundleUploadIn, session: Session, user: CurrentUser
+    ) -> dict[str, object]:
+        """Upload a signed bundle (base64) and make it the active one (admin)."""
+        try:
+            data = base64.b64decode(body.data, validate=True)
+        except (binascii.Error, ValueError) as exc:
+            raise HTTPException(422, "The file is not base64") from exc
+        try:
+            row, _ = await save_bundle(session, data, user.username)
+        except BundleError as exc:
+            await session.rollback()
+            raise HTTPException(422, str(exc)) from exc
+        await session.commit()
+        await bundle_store.load(session)
+        return bundle_out(row)
+
+    @api.post("/bundles/{bundle_id}/activate")
+    async def activate_bundle(bundle_id: int, session: Session) -> dict[str, object]:
+        """Offer an earlier bundle again, e.g. to go back (admin)."""
+        row = await session.get(OperationBundle, bundle_id)
+        if row is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Bundle not found")
+        await activate_stored_bundle(session, row)
+        await session.commit()
+        await bundle_store.load(session)
+        return bundle_out(row)
+
+    @api.get("/bundles/bootstrap")
+    async def bootstrap(session: Session) -> Response:
+        """The package for the first installation on a host (admin)."""
+        settings_ = await load_bundle_settings(session)
+        active = bundle_store.active
+        if active is None:
+            raise HTTPException(409, "Upload a bundle first")
+        if not settings_["public_key"] or not settings_["base_url"]:
+            raise HTTPException(409, "Enter the public key and the address of OSLO first")
+        data = bootstrap_archive(
+            active.payload,
+            active.signature,
+            settings_["public_key"],
+            settings_["base_url"],
+            settings_["ca_path"],
+        )
+        name = f"oslo-bootstrap-{active.version}.tar.gz"
+        return Response(
+            data,
+            media_type="application/gzip",
+            headers={"Content-Disposition": f'attachment; filename="{name}"'},
+        )
 
     # --- configuration log (Activities → Configuration) -------------------------------------
 
@@ -1873,6 +1979,21 @@ def create_app(
     app.state.fetch_certificate = fetch_certificate
     app.state.setup_code = None
     app.state.session_factory = session_factory
+    # Downloads of the hosts (oslo_update.sh): no sign-in, the bundle is signed and holds no
+    # secrets.
+    @app.get("/bundle/{name}", include_in_schema=False)
+    async def bundle_file(name: str) -> Response:
+        active = bundle_store.active
+        files = {"payload.tar.gz": "payload", "payload.sig": "signature"}
+        if active is None or name not in files:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "No bundle")
+        return Response(
+            getattr(active, files[name]),
+            media_type="application/octet-stream",
+            headers={"X-OSLO-Bundle-Version": active.version, "Cache-Control": "no-store"},
+        )
+
+    app.state.bundles = bundle_store
     app.mount("/api", api)
     register_web(app, AppContext(settings, secret_box, clients, session_factory, runner, catalog))
     return app

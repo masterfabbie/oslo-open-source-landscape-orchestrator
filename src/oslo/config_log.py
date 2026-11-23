@@ -28,6 +28,7 @@ from .models import (
     Host,
     HostTag,
     Instance,
+    OperationBundle,
     OperationTemplate,
     PlatformSetting,
     Pool,
@@ -137,6 +138,7 @@ SPECS: dict[type, Spec] = {
         lambda o: o.name or o.operation,
     ),
     TrustedCertificate: Spec("certificate", ("name",), lambda o: o.name),
+    OperationBundle: Spec("bundle", ("version", "active"), lambda o: o.version),
     User: Spec(
         "user",
         ("username", "display_name", "role", "active", "must_change_password", "password_hash"),

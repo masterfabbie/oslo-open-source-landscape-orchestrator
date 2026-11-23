@@ -452,6 +452,17 @@ def create_hostagent_app(landscape: MockLandscape, host_name: str) -> FastAPI:
     def _run_lines(run, final: bool) -> list[dict[str, str]]:
         """Messages of a run, as a real host agent returns them for a test script."""
         desc = run.operation.description
+        if run.output is not None:
+            lines = []
+            for text in run.output:
+                severity = "Error" if text.startswith("[ERROR]") else "Info"
+                lines += _line(severity, desc, text)
+            if run.exit_code:
+                failed = f"{desc} hook failed (exit code = {run.exit_code})"
+                lines += _line("Error", "saphostcontrol", failed)
+            else:
+                lines += _line("Info", "saphostcontrol", f"{desc} hook successfully executed")
+            return lines
         lines = _line("Info", desc, f"count={len(run.arguments)}")
         for i, value in enumerate(run.arguments, start=1):
             lines += _line("Info", desc, f"arg{i}=[{value}]")
@@ -498,6 +509,11 @@ def create_hostagent_app(landscape: MockLandscape, host_name: str) -> FastAPI:
 
     def execute_operation(params: dict[str, Any]) -> dict[str, Any]:
         name = params.get("aOperation")
+        if name in ("oslo_version", "oslo_update"):
+            if host.bundle_version is None:
+                raise SoapFault(f"Operation '{name}' not found")
+            run = landscape.run_bundle_operation(host, name)
+            return {"result": {"mOperationID": run.id, "mOperationResults": []}}
         custom = landscape.custom_operations.get(name or "")
         if custom is not None:
             arguments = {

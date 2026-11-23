@@ -253,6 +253,7 @@ const SETTINGS: Record<string, [string, "number" | "bool" | "stages" | "statuses
   host_unreachable: [],
   schedule_errors: [],
   stale_discovery: [["days", "number"]],
+  bundle_outdated: [],
 };
 
 export function AttentionPage() {

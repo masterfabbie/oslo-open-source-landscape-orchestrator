@@ -76,6 +76,10 @@ BUILT_IN: tuple[OperationDef, ...] = (
     OperationDef("register", OperationKind.REGISTER, _INSTANCE, Role.OPERATOR),
     OperationDef("unregister", OperationKind.UNREGISTER, _INSTANCE, Role.OPERATOR, danger=True),
     OperationDef("reregister", OperationKind.REREGISTER, _INSTANCE, Role.OPERATOR, danger=True),
+    # Installs the active OSLO operations bundle into operations.d (bundles.py).
+    OperationDef(
+        "update_bundle", OperationKind.UPDATE_BUNDLE, frozenset({TargetType.HOST}), Role.ADMIN
+    ),
 )
 BUILT_IN_KEYS = frozenset(op.key for op in BUILT_IN)
 # Kept for code that only needs the built-in operations.

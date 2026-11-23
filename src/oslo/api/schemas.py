@@ -118,6 +118,10 @@ class HostOut(BaseModel):
     hostagent_version: str | None
     # E.g. ["dev", "sla=1"].
     tags: list[str] = Field(validation_alias=AliasChoices("tag_list", "tags"))
+    # The OSLO operations on the host, read at the last discovery (bundles.py).
+    bundle_version: str | None = None
+    bundle_integrity: str | None = None
+    bundle_checked_at: datetime | None = None
 
 
 class HostDetail(HostOut):
@@ -229,6 +233,18 @@ class ActivityOut(BaseModel):
     requested_at: datetime
     started_at: datetime | None
     finished_at: datetime | None
+
+
+class BundleSettingsIn(BaseModel):
+    public_key: str = Field(default="", max_length=2000)
+    base_url: str = Field(default="", max_length=255)
+    ca_path: str = Field(default="", max_length=255)
+
+
+class BundleUploadIn(BaseModel):
+    """A bundle file (oslo-bundle build), base64."""
+
+    data: str = Field(max_length=7_000_000)
 
 
 class ConfigChangeOut(BaseModel):
