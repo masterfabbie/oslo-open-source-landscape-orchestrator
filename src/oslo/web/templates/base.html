@@ -13,7 +13,10 @@
 </head>
 <body>
 <header class="topbar">
-  <a class="brand" href="/">{{ t("app.title") }}</a>
+  <a class="brand" href="/" aria-label="{{ t("app.title") }}">
+    <img class="logo-light" src="/static/oslo-header.png" width="103" height="28" alt="{{ t("app.title") }}">
+    <img class="logo-dark" src="/static/oslo-header-dark.png" width="103" height="28" alt="{{ t("app.title") }}">
+  </a>
   {% block nav %}
   <nav aria-label="Main">
     <a href="/" {% if path == "/" %}aria-current="page"{% endif %}>{{ t("nav.overview") }}</a>

@@ -169,8 +169,11 @@ Die CI prüft, dass der eingecheckte Build zu den Quellen passt, und meldet Sich
 (`npm audit`); Dependabot schlägt Updates vor.
 
 Logo und Favicon liegen in `src/oslo/web/static/` (`oslo-logo.png`, `oslo-logo-dark.png` für
-dunkle Farben, `favicon.png`, `apple-touch-icon.png`). Das Logo steht auf der Anmelde- und der
-Einrichtungsseite, das Favicon auf allen Seiten.
+dunkle Farben, `favicon.png`, `apple-touch-icon.png`). Das große Logo steht auf der Anmelde- und der
+Einrichtungsseite, das kleine (`oslo-header.png`, `oslo-header-dark.png`) oben links in der
+Kopfzeile jeder Seite, das Favicon ebenfalls auf allen Seiten. Anmelde- und Einrichtungsseite
+folgen hell oder dunkel der Einstellung des Betriebssystems; angemeldet gilt die Wahl unter
+„Mein Konto → Darstellung“ (Standard ebenfalls das Betriebssystem).
 
 ## Server starten
 

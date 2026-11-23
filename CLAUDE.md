@@ -437,8 +437,11 @@ Wichtige Entwurfsentscheidungen:
   `web/static/` sind daraus freigestellt (Alpha aus dem Abstand zum hellen Hintergrund),
   verkleinert (Logo 720 px breit, Favicon 32 px, Apple-Icon 180 px) und für dunkle Farben
   umgefärbt (`oslo-logo-dark.png`, Grau wird hell, Petrol bleibt). Logo nur auf Anmeldung und
-  Einrichtung (`.login-logo`, `style.css` blendet je Farbschema eines aus), Favicon in
-  `base.html`.
+  Einrichtung (`.login-logo`), in der Kopfzeile jeder Seite ein kleines Logo aus Symbol und
+  Schriftzug ohne Unterzeile (`oslo-header.png`, 56 px hoch für 28 px Anzeige, Wunsch des
+  Eigentümers), Favicon in `base.html`. Jedes Logo gibt es hell und dunkel (`img.logo-light`,
+  `img.logo-dark`); `style.css` zeigt das passende nach denselben Regeln wie die Farben.
+  Anmeldung und Einrichtung haben kein `data-theme` und folgen damit dem Betriebssystem.
 - **Darstellung je Benutzer** (Wunsch des Eigentümers): `user_settings` `ui.language` (""
   folgt Cookie bzw. Browser) und `ui.theme` (`system`, `light`, `dark`), `users.get_preferences`
   bzw. `set_preferences`, `/api/me/preferences`. `require_login` legt sie in
