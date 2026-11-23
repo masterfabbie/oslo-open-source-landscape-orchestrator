@@ -157,6 +157,7 @@ APP_PAGES = [
     ("/administration/attention", "administration", "attention"),
     ("/administration/certificates", "administration", "certificates"),
     ("/administration/certificates/new", "administration", "certificate_new"),
+    ("/administration/transfer", "administration", "transfer"),
     ("/account", "account", None),
 ]
 

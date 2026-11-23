@@ -95,6 +95,7 @@ from ..systems import (
 from ..tags import TagError, matches, parse_tags, replace_tags
 from ..templates import TemplateError, save_template, steps_using, template_values
 from ..tls import CertificateError, CertificateInfo, fetch_certificate, parse_pem
+from ..transfer import TransferError, export_configuration, import_configuration
 from ..users import (
     API_REQUEST_HEADER,
     SESSION_COOKIE,
@@ -127,6 +128,7 @@ from .schemas import (
     CustomOperationOut,
     DependenciesIn,
     DiscoveryOut,
+    ExportIn,
     FavoritesIn,
     HostBatchCreate,
     HostCertificateOut,
@@ -134,6 +136,8 @@ from .schemas import (
     HostDetail,
     HostOut,
     HostUpdate,
+    ImportIn,
+    ImportReportOut,
     InstanceIds,
     InstanceListOut,
     InstanceOut,
@@ -932,6 +936,51 @@ def create_app(
             }
             for entry, label, kind in rows
         ]
+
+    # --- import and export (Administration → Import/Export) ---------------------------------
+
+    @api.post("/export")
+    async def export(body: ExportIn, session: Session) -> Response:
+        """The chosen parts of the configuration as a JSON file (admin)."""
+        try:
+            data = await export_configuration(
+                session, secret_box, body.parts, password=body.password
+            )
+        except TransferError as exc:
+            raise HTTPException(422, {"code": exc.code, "message": str(exc)}) from exc
+        stamp = datetime.now(UTC).strftime("%Y%m%d-%H%M")
+        return Response(
+            json.dumps(data, indent=2, ensure_ascii=False),
+            media_type="application/json",
+            headers={"Content-Disposition": f'attachment; filename="oslo-export-{stamp}.json"'},
+        )
+
+    @api.post("/import", response_model=ImportReportOut)
+    async def import_(body: ImportIn, session: Session, user: CurrentUser) -> dict[str, object]:
+        """Import an export (admin). Without ``apply`` it is a preview that keeps nothing."""
+        try:
+            report = await import_configuration(
+                session,
+                secret_box,
+                catalog,
+                user,
+                body.data,
+                mode=body.mode,
+                password=body.password,
+                zone=scheduler.zone,
+                now=scheduler.now(),
+            )
+        except TransferError as exc:
+            await session.rollback()
+            raise HTTPException(422, {"code": exc.code, "message": str(exc)}) from exc
+        if body.apply:
+            await session.commit()
+        else:
+            await session.rollback()
+        # The catalog and the trusted certificates follow what is in the database now.
+        await catalog.reload(session)
+        await clients.load_trusted(session)
+        return {"applied": body.apply, "counts": report.counts(), "items": report.items}
 
     @api.get("/server-time")
     async def server_time() -> dict[str, object]:

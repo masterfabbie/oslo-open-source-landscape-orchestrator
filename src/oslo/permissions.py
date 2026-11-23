@@ -47,6 +47,8 @@ def required_role(method: str, path: str) -> Role:
             "/templates",
             "/platform",
             "/trusted-certificates",
+            "/export",
+            "/import",
         )
     ):
         return Role.ADMIN

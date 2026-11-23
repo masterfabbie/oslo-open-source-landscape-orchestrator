@@ -176,7 +176,7 @@ select {
 .checks { display: flex; flex-wrap: wrap; gap: 16px; }
 label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
 .checks label { flex-direction: row; align-items: center; gap: 6px; color: var(--text); font-size: 15px; }
-input:not([type="checkbox"]) {
+input:not([type="checkbox"]):not([type="radio"]) {
   font: inherit;
   padding: 6px 9px;
   border-radius: 6px;

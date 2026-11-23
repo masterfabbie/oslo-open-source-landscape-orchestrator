@@ -307,7 +307,7 @@ eigenen Seite, danach geht es zur Seite des neuen Eintrags (bei Pools zur Liste)
 | Activities | Tab „Aktivitäten“ mit Filtern (Status, Suche, Teilaktivitäten) und Live-Ansicht je Aktivität; Tab „Protokolle“ mit den letzten 200 Protokolleinträgen |
 | Configuration | „Hosts“ (`/configuration/hosts`): anlegen, Verbindung ändern, Discovery, Zugangsdaten, Tags, Instanzen, Datenbanken, löschen. „Systeme“: Reiter „Übersicht“ mit den Systemen, aufklappbar mit ihren Instanzen, und Reiter „Nicht zugeordnete Instanzen“ zum Zuordnen; „System anlegen“ wählt die Instanzen aus allen nicht zugeordneten und schlägt den Namen vor; Seite eines Systems mit Name, Stufe, Beschreibung, Pool, Tags, Abhängigkeiten, Instanzen, Zugangsdaten je SID, Löschen. „Pools“: anlegen und löschen |
 | Operations | „Eigene Operationen“ (`/operations/custom`) und „Operationsvorlagen“ (`/operations/templates`) nur für Admins; „Einplanungen“ (`/operations/schedules`) ab Operator, siehe unten. Operatoren und Konfiguratoren sehen in diesem Bereich nur die Einplanungen |
-| Administration | „Allgemein“: Version und Einstellungen; „Benutzer“: anlegen, bearbeiten, Passwort zurücksetzen; „Braucht Aufmerksamkeit“: die Regeln der Übersicht; „Zertifikate“: vertrauenswürdige Zertifikate für HTTPS zu den Hosts (siehe unten) |
+| Administration | „Allgemein“: Version und Einstellungen; „Benutzer“: anlegen, bearbeiten, Passwort zurücksetzen; „Braucht Aufmerksamkeit“: die Regeln der Übersicht; „Zertifikate“: vertrauenswürdige Zertifikate für HTTPS zu den Hosts; „Import/Export“: Konfiguration als JSON-Datei (siehe unten) |
 
 Die Hauptmenüpunkte heißen auf Englisch Overview, Landscape, Activities, Configuration,
 Operations und Administration, auf Deutsch Übersicht, Landschaft, Aktivitäten, Konfiguration,
@@ -578,6 +578,32 @@ auf und liest die Ausgabe laufend ins Protokoll.
   Warnung bzw. Fehler. Ein Exit-Code ungleich 0 lässt die Aktivität scheitern; die Meldung
   nennt die letzte Fehlerzeile. Beim Zeitlimit bricht das Tool die Operation auf dem Host ab.
 
+### Import und Export
+
+**Administration → Import/Export** (nur Admins) lädt die Konfiguration als JSON-Datei herunter
+und liest sie in dasselbe oder ein anderes OSLO wieder ein.
+
+- **Teile**, einzeln wählbar: Hosts (Verbindung, Tags, Zugangsdaten), Zugangsdaten je SID,
+  Pools, Systeme (Stufe, Pool, Tags, Abhängigkeiten, Instanzen), eigene Operationen,
+  Operationsvorlagen, Einplanungen, Regeln für „Braucht Aufmerksamkeit“, vertrauenswürdige
+  Zertifikate. Aktivitäten, Protokolle und Benutzer sind nie dabei.
+- **Bezüge über Namen**, nicht über Ids: ein System über seinen Namen, ein Host über seinen
+  Namen, eine Instanz über Host, SID und Nummer. So passt die Datei in ein anderes OSLO.
+- **Passwörter** von Hosts und SIDs nur, wenn beim Export ein Export-Passwort (mindestens 8
+  Zeichen) vergeben wird; sie stehen dann damit verschlüsselt in der Datei (scrypt und Fernet),
+  nie im Klartext. Ohne das Passwort übernimmt der Import alles andere und überspringt die
+  Passwörter; ein falsches Passwort lehnt den Import ab.
+- **Import:** erst „Vorschau“, die zeigt, was neu angelegt, geändert, übersprungen oder
+  abgelehnt würde, ohne etwas zu ändern; dann „Importieren“. Vorhandene Einträge (gleicher
+  Name) bleiben unverändert oder werden mit der Datei aktualisiert. Es wird nie etwas gelöscht.
+  Ein fehlerhafter Eintrag wird allein abgelehnt, die übrigen laufen weiter.
+- **Instanzen** entstehen nur durch eine Discovery, der Import startet keine. Ein System, von
+  dessen Instanzen keine bekannt ist, wird abgelehnt (ebenso Vorlagen und Einplanungen mit
+  festen Zielen darin); nach einer Discovery der neuen Hosts den Import wiederholen.
+- **Einplanungen** laufen nach dem Import mit den Rechten des Admins, der importiert hat.
+- Das Dateiformat hat eine Version (`"format": "oslo-export"`, `"version": 1`); eine neuere
+  Version lehnt OSLO ab.
+
 ### HTTPS und vertrauenswürdige Zertifikate
 
 Je Host gibt es drei Schalter: **HTTPS zum Host Agent** (Port 1129), **Zertifikat prüfen**
@@ -763,6 +789,8 @@ keine Inventardaten.
 | GET, POST | `/api/schedules` | Einplanungen (`?operation=`) bzw. einplanen (ab Operator, Rolle der Operation nötig): `{"operation", "target_type", "target_ids", "parameters", "recurrence": "once"|"daily"|"interval", "run_at", "time_of_day", "weekdays", "interval_minutes"}` |
 | GET, PUT, DELETE | `/api/schedules/{id}` | eine Einplanung lesen (mit `last_status` des letzten Laufs), ändern (z. B. `enabled`, `name`) bzw. löschen |
 | GET | `/api/server-time` | Serverzeit und Zeitzone der Einplanungen |
+| POST | `/api/export` | Konfiguration als JSON-Datei (`{"parts": [...], "password": "..."}`, Passwort optional; nur Admin) |
+| POST | `/api/import` | Export einlesen (`{"data": {...}, "mode": "add" \| "update", "password": "...", "apply": false}`; ohne `apply` nur Vorschau; Antwort mit `counts` und `items`; nur Admin) |
 | POST | `/api/activities/{id}/cancel` | laufende Aktivität abbrechen (Operator); HTTP 409, wenn sie schon beendet ist |
 | POST | `/api/mass-operations` | Massenoperation (`{"operation": "stop", "target_type": "SYSTEM", "target_ids": [1, 2], "parallel": 5, "stop_on_error": false}`); `target_type` ist `SYSTEM`, `INSTANCE` oder `HOST`; für eigene Operationen zusätzlich `parameters`; Antwort ist die Sammelaktivität (HTTP 202) |
 

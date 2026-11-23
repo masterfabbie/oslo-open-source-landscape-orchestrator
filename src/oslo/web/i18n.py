@@ -466,6 +466,105 @@ TEXTS: dict[str, tuple[str, str]] = {
     "field.valid_until": ("Valid until", "Gültig bis"),
     "field.fingerprint": ("Fingerprint (SHA-256)", "Fingerabdruck (SHA-256)"),
     "tab.certificates": ("Certificates", "Zertifikate"),
+    "tab.transfer": ("Import/Export", "Import/Export"),
+    "transfer.part.hosts": (
+        "Hosts (connection, tags, credentials)",
+        "Hosts (Verbindung, Tags, Zugangsdaten)",
+    ),
+    "transfer.part.sids": ("Credentials per SID", "Zugangsdaten je SID"),
+    "transfer.part.pools": ("Pools", "Pools"),
+    "transfer.part.systems": (
+        "Systems (stage, pool, tags, dependencies, instances)",
+        "Systeme (Stufe, Pool, Tags, Abhängigkeiten, Instanzen)",
+    ),
+    "transfer.part.custom_operations": ("Custom operations", "Eigene Operationen"),
+    "transfer.part.templates": ("Operation templates", "Operationsvorlagen"),
+    "transfer.part.schedules": ("Schedules", "Einplanungen"),
+    "transfer.part.attention_rules": (
+        "Rules of “needs attention”",
+        "Regeln für „Braucht Aufmerksamkeit“",
+    ),
+    "transfer.part.certificates": ("Trusted certificates", "Vertrauenswürdige Zertifikate"),
+    "transfer.part.dependencies": ("Dependencies", "Abhängigkeiten"),
+    "transfer.part.credentials": ("Credentials", "Zugangsdaten"),
+    "transfer.export": ("Export", "Export"),
+    "transfer.export_hint": (
+        "Downloads the chosen parts as a JSON file. Activities, logs and users are never "
+        "part of it.",
+        "Lädt die gewählten Teile als JSON-Datei herunter. Aktivitäten, Protokolle und Benutzer "
+        "sind nie dabei.",
+    ),
+    "transfer.with_passwords": (
+        "Include the passwords of hosts and SIDs, encrypted with an export password",
+        "Passwörter von Hosts und SIDs mitexportieren, verschlüsselt mit einem Export-Passwort",
+    ),
+    "transfer.password": ("Export password", "Export-Passwort"),
+    "transfer.password_repeat": ("Repeat export password", "Export-Passwort wiederholen"),
+    "transfer.password_hint": (
+        "At least 8 characters. Keep it apart from the file; without it the passwords cannot "
+        "be imported.",
+        "Mindestens 8 Zeichen. Getrennt von der Datei aufbewahren; ohne es lassen sich die "
+        "Passwörter nicht importieren.",
+    ),
+    "transfer.password_mismatch": (
+        "The passwords differ.",
+        "Die Passwörter stimmen nicht überein.",
+    ),
+    "transfer.download": ("Download", "Herunterladen"),
+    "transfer.import": ("Import", "Import"),
+    "transfer.import_hint": (
+        "Nothing is deleted. Instances come from a discovery: run one for new hosts and import "
+        "again to assign them to their systems. Schedules run with your rights.",
+        "Es wird nichts gelöscht. Instanzen kommen aus einer Discovery: für neue Hosts eine "
+        "starten und erneut importieren, um sie ihren Systemen zuzuordnen. Einplanungen laufen "
+        "mit deinen Rechten.",
+    ),
+    "transfer.file": ("Export file (JSON)", "Exportdatei (JSON)"),
+    "transfer.file_info": (
+        "Exported {date}; parts: {parts}.",
+        "Exportiert am {date}; Teile: {parts}.",
+    ),
+    "transfer.file_passwords": (
+        "The file contains encrypted passwords.",
+        "Die Datei enthält verschlüsselte Passwörter.",
+    ),
+    "transfer.bad_file": ("The file is not valid JSON.", "Die Datei ist kein gültiges JSON."),
+    "transfer.mode": ("Existing entries", "Vorhandene Einträge"),
+    "transfer.mode.add": (
+        "leave unchanged, only add new ones",
+        "unverändert lassen, nur Neues anlegen",
+    ),
+    "transfer.mode.update": ("update with the file", "mit der Datei aktualisieren"),
+    "transfer.import_password": (
+        "Export password (for the passwords)",
+        "Export-Passwort (für die Passwörter)",
+    ),
+    "transfer.preview": ("Preview", "Vorschau"),
+    "transfer.apply": ("Import", "Importieren"),
+    "transfer.apply_confirm": ("Import the file now?", "Die Datei jetzt importieren?"),
+    "transfer.preview_note": (
+        "Preview: nothing has been changed yet.",
+        "Vorschau: Es wurde noch nichts geändert.",
+    ),
+    "transfer.applied_note": ("Imported.", "Importiert."),
+    "transfer.counts": (
+        "{created} new, {updated} changed, {skipped} skipped, {failed} failed",
+        "{created} neu, {updated} geändert, {skipped} übersprungen, {failed} fehlgeschlagen",
+    ),
+    "transfer.part": ("Part", "Teil"),
+    "transfer.result": ("Result", "Ergebnis"),
+    "transfer.note": ("Note", "Hinweis"),
+    "transfer.action.created": ("new", "neu"),
+    "transfer.action.updated": ("changed", "geändert"),
+    "transfer.action.skipped": ("skipped", "übersprungen"),
+    "transfer.action.failed": ("failed", "fehlgeschlagen"),
+    "transfer.action.warning": ("note", "Hinweis"),
+    "error.transfer_password": ("Wrong export password.", "Falsches Export-Passwort."),
+    "error.transfer_format": ("Not an OSLO export.", "Keine Exportdatei von OSLO."),
+    "error.transfer_version": (
+        "The export is from a newer OSLO.",
+        "Der Export stammt von einem neueren OSLO.",
+    ),
     "cert.add": ("Add certificate", "Zertifikat hinzufügen"),
     "cert.intro": (
         "OSLO trusts these certificates for HTTPS to hosts, in addition to those of the "

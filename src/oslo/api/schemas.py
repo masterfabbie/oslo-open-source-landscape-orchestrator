@@ -536,6 +536,26 @@ class FavoritesIn(BaseModel):
     operations: list[str] = Field(default=[], max_length=100)
 
 
+class ExportIn(BaseModel):
+    parts: list[str] = Field(min_length=1)
+    # With a password the passwords of hosts and SIDs are exported, encrypted with it.
+    password: str | None = Field(default=None, min_length=8, max_length=256)
+
+
+class ImportIn(BaseModel):
+    data: dict
+    mode: Literal["add", "update"] = "add"
+    password: str | None = Field(default=None, max_length=256)
+    # False: a preview; nothing is kept.
+    apply: bool = False
+
+
+class ImportReportOut(BaseModel):
+    applied: bool
+    counts: dict[str, int]
+    items: list[dict[str, str]]
+
+
 class PreferencesIn(BaseModel):
     """Display preferences; omitted ones stay. language "" follows the browser."""
 

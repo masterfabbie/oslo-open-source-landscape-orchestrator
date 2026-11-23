@@ -1,4 +1,4 @@
-// Administration (general, users, rules of "needs attention", certificates): one app; the server says
+// Administration (general, users, rules of "needs attention", certificates, import/export): one app; the server says
 // which page (boot.page).
 
 import { mount } from "../lib/mount";
@@ -7,6 +7,7 @@ import "../activity/activity.css";
 import "../templates/templates.css";
 import "../lib/forms.css";
 import { AttentionPage, CertificateNewPage, CertificatesPage, GeneralPage, UserNewPage, UserPage, UsersPage } from "./Administration";
+import { TransferPage } from "./Transfer";
 
 mount((boot) => {
   switch (boot.page) {
@@ -22,6 +23,8 @@ mount((boot) => {
       return <CertificatesPage />;
     case "certificate_new":
       return <CertificateNewPage />;
+    case "transfer":
+      return <TransferPage />;
     default:
       return <GeneralPage />;
   }

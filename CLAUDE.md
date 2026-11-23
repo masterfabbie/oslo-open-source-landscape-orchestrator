@@ -85,6 +85,7 @@ Alles liegt unter `src/oslo/`.
 | `models.py`, `db.py` | Datenmodell (SQLAlchemy, asynchron): Host, Sid, Instance, System, Pool, Database, Activity, ActivityLogEntry; Migration beim Start, Sicherungskopie, Befehl `oslo-db` |
 | `migrations/` | Alembic-Migrationen (`env.py`, `versions/`) |
 | `hosts.py` | Verbindungsdaten eines Hosts ändern |
+| `transfer.py` | Export und Import der Konfiguration als JSON (`export_configuration`, `import_configuration`, Bericht je Eintrag) |
 | `tls.py` | vertrauenswürdige Zertifikate lesen und prüfen (`parse_pem`), TLS-Kontext für Hosts (`client_context`), Zertifikat eines Hosts abrufen (`fetch_certificate`) |
 | `users.py` | Benutzer, Rollen, Passwörter (scrypt), Sperre nach Fehlversuchen, Sitzungs-Cookies, persönliche API-Tokens, Einstellungen pro Benutzer |
 | `permissions.py` | welche Rolle eine Route braucht, gemeinsam für API und Oberfläche |
@@ -384,7 +385,7 @@ Wichtige Entwurfsentscheidungen:
   Systeme, Pools), Operations (eigene Operationen unter `/operations/custom` und
   Operationsvorlagen unter `/operations/templates` nur für Admins, Einplanungen unter
   `/operations/schedules` ab Operator), Administration (Allgemein, Benutzer,
-  Regeln für „Braucht Aufmerksamkeit“, Zertifikate), „Mein Konto“ (Passwort, API-Tokens). Menüpunkte deutsch:
+  Regeln für „Braucht Aufmerksamkeit“, Zertifikate, Import/Export), „Mein Konto“ (Passwort, API-Tokens). Menüpunkte deutsch:
   Übersicht, Landschaft, Aktivitäten, Konfiguration, Operationen, Administration; englisch
   unverändert (Wunsch des Eigentümers, 2026-11-20).
 - **Bereiche mit Unterbereichen** (Wunsch des Eigentümers nach LaMa-Vorbild): Configuration,
@@ -464,6 +465,19 @@ Wichtige Entwurfsentscheidungen:
   Startdaten als `time_display`. `formatTime` in `frontend/src/landscape/ui.tsx` zeigt UTC mit
   dem Zusatz „UTC“; Eingaben (`datetime-local`) rechnen `toInputValue`/`fromInputValue` in
   der gewählten Zone um. Tägliche Einplanungen bleiben in `OSLO_TIMEZONE`.
+- **Import/Export** (Wunsch des Eigentümers, 2026-11-23; Format JSON statt XML wie in LaMa,
+  Entscheidung des Eigentümers): `transfer.py`, Administration → Import/Export
+  (`/administration/transfer`, `frontend/src/administration/Transfer.tsx`), API `/api/export`
+  und `/api/import` (nur Admin). Bezüge über Namen (Instanz: Host, SID, Nummer). Passwörter
+  nur mit Export-Passwort, verschlüsselt mit scrypt + Fernet (Salz und Prüfwert im Kopf
+  `credentials`), nie mit `OSLO_SECRET_KEY`. Keine Benutzer (Entscheidung des Eigentümers).
+  Import: Reihenfolge Hosts, SIDs, Pools, Systeme, Abhängigkeiten, eigene Operationen,
+  Vorlagen, Einplanungen, Regeln, Zertifikate; je Eintrag ein Savepoint (`begin_nested`), ein
+  Fehler betrifft nur den Eintrag. `_begin` startet die Transaktion ausdrücklich, weil der
+  SQLite-Treiber sonst beim Freigeben eines Savepoints festschreibt und die Vorschau (Rollback)
+  nicht wirkt. Modus `add`/`update`, nie löschen. Keine Discovery beim Import (Entscheidung des
+  Eigentümers); Systeme ohne bekannte Instanz werden abgelehnt. Nach dem Import lädt die API
+  Katalog und vertrauenswürdige Zertifikate neu.
 - In `api/app.py` steht bewusst kein `from __future__ import annotations`: FastAPI löst die
   Typangaben der Routen zur Laufzeit auf, und sie verweisen auf lokale Namen.
 
@@ -488,6 +502,8 @@ Wichtige Entwurfsentscheidungen:
   Operationen ausführen, übergeben `sleep` und `clock` an `create_app`.
 - Pools bearbeiten, mehrere Hosts anlegen und die Darstellung je Benutzer testet
   `tests/test_settings_pages.py` (Fixtures von `test_web.py`).
+- Import und Export testet `tests/test_transfer.py` (Import in ein zweites, leeres OSLO gegen
+  dieselbe simulierte Landschaft, `second_oslo`).
 - Zertifikate testet `tests/test_certificates.py` mit echten TLS-Servern auf 127.0.0.1 und
   selbst erzeugten Zertifikaten (`self_signed`, `TlsServer`).
 - Die neuen API-Teile für die Oberfläche (Cookie, Landscape-Daten, Prozesse, Ereignisse,
