@@ -4,6 +4,10 @@
 {% block session %}{% endblock %}
 {% block content %}
 <section class="card narrow">
+  <div class="login-logo">
+    <img class="logo-light" src="/static/oslo-logo.png" width="360" height="109" alt="OSLO – Open Source Landscape Orchestrator">
+    <img class="logo-dark" src="/static/oslo-logo-dark.png" width="360" height="109" alt="OSLO – Open Source Landscape Orchestrator">
+  </div>
   <h1>{{ t("login.title") }}</h1>
   {% if invalid %}<p class="flash error" role="alert">{{ t("login.invalid") }}</p>{% endif %}
   <form method="post" action="/login" class="stack">

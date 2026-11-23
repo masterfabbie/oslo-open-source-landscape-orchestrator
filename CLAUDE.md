@@ -432,6 +432,13 @@ Wichtige Entwurfsentscheidungen:
   Kommas im Feld „Name“ (`hostNames` in `Hosts.tsx`), gleiche Einstellungen und Zugangsdaten,
   Adresse = Name, alle oder keiner (vorhandene oder doppelte Namen, auch in anderer
   Schreibweise, lehnen den ganzen Auftrag ab).
+- **Logo und Favicon** (Vorlagen des Eigentümers im Wissens-Repository, 2026-11-23): Die
+  Vorlagen sind RGB mit eingebranntem Schachbrettmuster statt Transparenz; die Dateien in
+  `web/static/` sind daraus freigestellt (Alpha aus dem Abstand zum hellen Hintergrund),
+  verkleinert (Logo 720 px breit, Favicon 32 px, Apple-Icon 180 px) und für dunkle Farben
+  umgefärbt (`oslo-logo-dark.png`, Grau wird hell, Petrol bleibt). Logo nur auf Anmeldung und
+  Einrichtung (`.login-logo`, `style.css` blendet je Farbschema eines aus), Favicon in
+  `base.html`.
 - **Darstellung je Benutzer** (Wunsch des Eigentümers): `user_settings` `ui.language` (""
   folgt Cookie bzw. Browser) und `ui.theme` (`system`, `light`, `dark`), `users.get_preferences`
   bzw. `set_preferences`, `/api/me/preferences`. `require_login` legt sie in

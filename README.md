@@ -168,6 +168,10 @@ mitgelieferten Bibliotheken schreibt der Build nach `static/app/THIRD-PARTY-LICE
 Die CI prüft, dass der eingecheckte Build zu den Quellen passt, und meldet Sicherheitslücken
 (`npm audit`); Dependabot schlägt Updates vor.
 
+Logo und Favicon liegen in `src/oslo/web/static/` (`oslo-logo.png`, `oslo-logo-dark.png` für
+dunkle Farben, `favicon.png`, `apple-touch-icon.png`). Das Logo steht auf der Anmelde- und der
+Einrichtungsseite, das Favicon auf allen Seiten.
+
 ## Server starten
 
 Der Server braucht einen Schlüssel aus einer Umgebungsvariable. `oslo-keygen` erzeugt ihn:

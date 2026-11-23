@@ -4,6 +4,10 @@
 {% block session %}{% endblock %}
 {% block content %}
 <section class="card narrow">
+  <div class="login-logo">
+    <img class="logo-light" src="/static/oslo-logo.png" width="360" height="109" alt="OSLO – Open Source Landscape Orchestrator">
+    <img class="logo-dark" src="/static/oslo-logo-dark.png" width="360" height="109" alt="OSLO – Open Source Landscape Orchestrator">
+  </div>
   <h1>{{ t("setup.title") }}</h1>
   <p class="muted">{{ t("setup.hint") }}</p>
   <form method="post" action="/setup" class="stack">

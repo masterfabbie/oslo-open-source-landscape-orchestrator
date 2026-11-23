@@ -356,6 +356,16 @@ async def test_static_files_are_served(anonymous):
         assert (await anonymous.get(f"/static/app/{app_name}.js")).status_code == 200
 
 
+async def test_logo_and_favicon(anonymous):
+    page = (await anonymous.get("/login")).text
+    assert 'rel="icon"' in page and "/static/favicon.png" in page
+    # One logo for light and one for dark colors; the style sheet shows the right one.
+    assert "/static/oslo-logo.png" in page and "/static/oslo-logo-dark.png" in page
+    for name in ("favicon.png", "apple-touch-icon.png", "oslo-logo.png", "oslo-logo-dark.png"):
+        image = await anonymous.get(f"/static/{name}")
+        assert image.status_code == 200 and image.headers["content-type"] == "image/png"
+
+
 async def test_pages_have_a_strict_content_security_policy(browser):
     policy = (await browser.get("/")).headers["content-security-policy"]
     assert "default-src 'self'" in policy and "unsafe-inline" not in policy
