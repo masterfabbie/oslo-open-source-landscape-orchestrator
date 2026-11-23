@@ -437,7 +437,8 @@ async def system_redirect(system_id: int, session: DbSession) -> Response:
 async def activities(request: Request, user: CurrentUser, tab: str | None = None) -> Response:
     if tab == "schedules":  # the schedules moved to Operations
         return _go("/operations/schedules")
-    page = "logs" if tab == "logs" else "activities"
+    # "logs" was the list of all log entries; the steps replaced it.
+    page = {"steps": "steps", "logs": "steps", "changes": "changes"}.get(tab or "", "activities")
     return app_page(request, user, "activities", "nav.activities", page=page)
 
 

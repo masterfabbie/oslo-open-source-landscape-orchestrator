@@ -51,7 +51,6 @@ from ..hosts import Connection, HostChangeError, update_connection
 from ..landscape import landscape_snapshot, operation_row, overview_snapshot, read_processes
 from ..models import (
     Activity,
-    ActivityLogEntry,
     ApiToken,
     CustomOperation,
     Host,
@@ -156,6 +155,7 @@ from .schemas import (
     ScheduleIn,
     ScheduleOut,
     SidOut,
+    StepOut,
     SystemCreate,
     SystemOut,
     SystemUpdate,
@@ -913,28 +913,48 @@ def create_app(
             query = query.where(Activity.host_id == host_id)
         return list(await session.scalars(query))
 
-    @api.get("/activity-log")
-    async def activity_log(
-        session: Session, limit: Annotated[int, Query(ge=1, le=1000)] = 200
+    @api.get("/steps", response_model=list[StepOut])
+    async def list_steps(
+        session: Session,
+        limit: Annotated[int, Query(ge=1, le=1000)] = 300,
+        activity_id: int | None = None,
     ) -> list[dict[str, object]]:
-        """The newest log entries of all activities, newest first."""
-        rows = await session.execute(
-            select(ActivityLogEntry, Activity.target_label, Activity.kind)
-            .join(Activity, Activity.id == ActivityLogEntry.activity_id)
-            .order_by(ActivityLogEntry.id.desc())
-            .limit(limit)
+        """The activities that do the work themselves, newest first: a single operation is one
+        step, a mass operation or an operation template has one per target and step. Their
+        parents, which only coordinate, are not listed. ``activity_id``: only the steps of
+        that (top-level) activity. Each step names its top-level activity (``activity_id``)."""
+        containers = Activity.target_type.in_([TargetType.MASS, TargetType.TEMPLATE]) | (
+            Activity.kind == OperationKind.TEMPLATE
         )
+        parents = dict((await session.execute(select(Activity.id, Activity.parent_id))).all())
+
+        def root(activity_id: int) -> int:
+            seen: set[int] = set()
+            while parents.get(activity_id) is not None and activity_id not in seen:
+                seen.add(activity_id)
+                activity_id = parents[activity_id]  # type: ignore[assignment]
+            return activity_id
+
+        query = select(Activity).where(~containers).order_by(Activity.id.desc())
+        if activity_id is not None:
+            if activity_id not in parents:
+                raise HTTPException(status.HTTP_404_NOT_FOUND, "Activity not found")
+            members = [i for i in parents if root(i) == activity_id]
+            query = query.where(Activity.id.in_(members))
+        rows = list(await session.scalars(query.limit(limit)))
         return [
             {
-                "id": entry.id,
-                "activity_id": entry.activity_id,
-                "target_label": label,
-                "kind": kind,
-                "timestamp": entry.timestamp,
-                "level": entry.level,
-                "message": entry.message,
+                "id": a.id,
+                "activity_id": root(a.id),
+                "kind": a.kind,
+                "target_type": a.target_type,
+                "target_label": a.target_label,
+                "status": a.status,
+                "requested_at": a.requested_at,
+                "started_at": a.started_at,
+                "finished_at": a.finished_at,
             }
-            for entry, label, kind in rows
+            for a in rows
         ]
 
     # --- import and export (Administration → Import/Export) ---------------------------------

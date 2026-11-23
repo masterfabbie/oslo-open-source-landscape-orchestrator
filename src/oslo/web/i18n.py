@@ -21,7 +21,7 @@ TEXTS: dict[str, tuple[str, str]] = {
     "tab.systems": ("Systems", "Systeme"),
     "tab.hosts": ("Hosts", "Hosts"),
     "tab.activities": ("Activities", "Aktivitäten"),
-    "tab.logs": ("Logs", "Protokolle"),
+    "tab.steps": ("Steps", "Schritte"),
     "tab.schedules": ("Schedules", "Einplanungen"),
     "tab.pools": ("Pools", "Pools"),
     "tab.overview": ("Overview", "Übersicht"),
@@ -213,11 +213,14 @@ TEXTS: dict[str, tuple[str, str]] = {
         "Nur Instanzen, die zu einem System gehören, lassen sich starten oder stoppen.",
     ),
     "credentials.host_used": ("those of the host", "die des Hosts"),
-    "logs.hint": (
-        "The latest {limit} log entries of all activities.",
-        "Die letzten {limit} Protokolleinträge aller Aktivitäten.",
-    ),
-    "logs.empty": ("No log entries yet.", "Noch keine Protokolleinträge."),
+    "steps.empty": ("No steps yet.", "Noch keine Schritte."),
+    "steps.only": ("Only the steps of {number}.", "Nur die Schritte von {number}."),
+    "steps.all": ("All steps", "Alle Schritte"),
+    "steps.of_activity": ("Show all steps in the list", "Alle Schritte in der Liste zeigen"),
+    "step.title": ("Step", "Schritt"),
+    "field.id": ("ID", "ID"),
+    "field.duration": ("Duration", "Dauer"),
+    "field.activity_number": ("Activity", "Aktivität"),
     "admin.planned": (
         "Platform settings will follow. Current configuration:",
         "Plattform-Einstellungen folgen. Aktuelle Konfiguration:",
@@ -1210,7 +1213,6 @@ TEXTS: dict[str, tuple[str, str]] = {
     "userstate.GRAY": ("inactive", "inaktiv"),
     "admin.timezone": ("Time zone of schedules", "Zeitzone der Einplanungen"),
     "token.none": ("No tokens yet.", "Noch keine Tokens."),
-    "activities.with_children": ("With parts", "Mit Teilaktivitäten"),
     "att.rules_intro": (
         "The rules decide what the overview shows under \"needs attention\", for everyone. "
         "Each user can switch rules off and hide systems or pools for themselves.",

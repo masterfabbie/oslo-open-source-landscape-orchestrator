@@ -1,10 +1,12 @@
-// Activities: all activities (newest first, with filters) and the latest log entries of
-// all activities. Live: reloads when the server reports a change.
+// Activities: the top-level activities (newest first, with filters) and their steps, the
+// activities that do the work themselves (one per single operation, one per target and step
+// of a mass operation or template). Live: reloads when the server reports a change.
 
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { api } from "../lib/api";
 import { PageHead } from "../lib/forms";
+import { activityNumber, formatDuration, stepNumber } from "../lib/numbers";
 import { StatusBadge, formatTime, useApp, useLiveUpdates } from "../landscape/ui";
 
 interface ActivityRow {
@@ -19,19 +21,23 @@ interface ActivityRow {
   finished_at: string | null;
 }
 
-interface LogRow {
+interface StepRow {
   id: number;
   activity_id: number;
-  target_label: string;
   kind: string;
-  timestamp: string;
-  level: string;
-  message: string;
+  target_type: string;
+  target_label: string;
+  status: string;
+  requested_at: string;
+  started_at: string | null;
+  finished_at: string | null;
 }
+
+export type ActivitiesTab = "activities" | "steps";
 
 const STATUSES = ["RUNNING", "PENDING", "SUCCEEDED", "PARTIAL", "FAILED", "CANCELLED"];
 
-export function ActivitiesPage({ tab }: { tab: "activities" | "logs" }) {
+export function ActivitiesPage({ tab }: { tab: ActivitiesTab }) {
   const { t } = useApp();
   useLiveUpdates(["activities"]);
   return (
@@ -40,11 +46,28 @@ export function ActivitiesPage({ tab }: { tab: "activities" | "logs" }) {
         title={t("nav.activities")}
         tabs={[
           { href: "/activities", label: t("tab.activities"), current: tab === "activities" },
-          { href: "/activities?tab=logs", label: t("tab.logs"), current: tab === "logs" },
+          { href: "/activities?tab=steps", label: t("tab.steps"), current: tab === "steps" },
         ]}
       />
-      {tab === "activities" ? <ActivityList /> : <LogList />}
+      {tab === "activities" ? <ActivityList /> : <StepList />}
     </div>
+  );
+}
+
+function StatusFilter({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const { t } = useApp();
+  return (
+    <label className="oslo-inline">
+      {t("field.status")}
+      <select value={value} onChange={(e) => onChange(e.target.value)}>
+        <option value="">{t("pool.all")}</option>
+        {STATUSES.map((s) => (
+          <option key={s} value={s}>
+            {t(`activity.${s}`)}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 
@@ -53,34 +76,20 @@ function ActivityList() {
   const { data, isPending } = useQuery({ queryKey: ["activities", "list"], queryFn: () => api<ActivityRow[]>("/activities?limit=300") });
   const [status, setStatus] = useState("");
   const [text, setText] = useState("");
-  const [children, setChildren] = useState(false);
   const rows = useMemo(() => {
     const words = text.trim().toLowerCase();
     return (data ?? []).filter(
       (a) =>
-        (children || a.parent_id === null) &&
+        a.parent_id === null &&
         (!status || a.status === status) &&
-        (!words || `${a.id} ${a.kind} ${t(`kind.${a.kind}`)} ${a.target_label} ${a.requested_by ?? ""}`.toLowerCase().includes(words)),
+        (!words || `${activityNumber(a.id)} ${a.kind} ${t(`kind.${a.kind}`)} ${a.target_label} ${a.requested_by ?? ""}`.toLowerCase().includes(words)),
     );
-  }, [data, status, text, children, t]);
+  }, [data, status, text, t]);
   return (
     <>
       <div className="oslo-form-buttons">
         <input className="oslo-filter-input" type="search" value={text} placeholder={t("ui.search")} aria-label={t("ui.search")} onChange={(e) => setText(e.target.value)} />
-        <label className="oslo-inline">
-          {t("field.status")}
-          <select value={status} onChange={(e) => setStatus(e.target.value)}>
-            <option value="">{t("pool.all")}</option>
-            {STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {t(`activity.${s}`)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="oslo-inline">
-          <input type="checkbox" checked={children} onChange={(e) => setChildren(e.target.checked)} /> {t("activities.with_children")}
-        </label>
+        <StatusFilter value={status} onChange={setStatus} />
       </div>
       {isPending ? (
         <p className="oslo-muted">{t("ui.loading")}</p>
@@ -91,7 +100,7 @@ function ActivityList() {
           <table className="oslo-table">
             <thead>
               <tr>
-                <th>#</th>
+                <th>{t("field.activity_number")}</th>
                 <th>{t("field.operation")}</th>
                 <th>{t("field.target")}</th>
                 <th>{t("field.status")}</th>
@@ -104,16 +113,13 @@ function ActivityList() {
               {rows.map((a) => (
                 <tr key={a.id}>
                   <td>
-                    <a href={`/activities/${a.id}`}>{a.id}</a>
+                    <a className="oslo-mono" href={`/activities/${a.id}`}>
+                      {activityNumber(a.id)}
+                    </a>
                   </td>
                   <td>{t(`kind.${a.kind}`)}</td>
                   <td>
                     {t(`target.${a.target_type}`)} <span className="oslo-mono">{a.target_label}</span>
-                    {a.parent_id && (
-                      <a className="oslo-sub" href={`/activities/${a.parent_id}`}>
-                        {t("mass.part_of", { id: a.parent_id })}
-                      </a>
-                    )}
                   </td>
                   <td>
                     <StatusBadge status={a.status} prefix="activity" />
@@ -131,54 +137,93 @@ function ActivityList() {
   );
 }
 
-function LogList() {
+function StepList() {
   const { t, language } = useApp();
-  const limit = 200;
-  const { data, isPending } = useQuery({ queryKey: ["activities", "log"], queryFn: () => api<LogRow[]>(`/activity-log?limit=${limit}`) });
-  const [level, setLevel] = useState("");
-  const rows = (data ?? []).filter((e) => !level || e.level === level);
+  // ?activity=<id>: only the steps of that activity, e.g. from the page of a mass operation.
+  const only = Number(new URLSearchParams(window.location.search).get("activity")) || null;
+  const { data, isPending } = useQuery({
+    queryKey: ["activities", "steps", only],
+    queryFn: () => api<StepRow[]>(only ? `/steps?activity_id=${only}&limit=1000` : "/steps?limit=500"),
+  });
+  const [status, setStatus] = useState("");
+  const [kind, setKind] = useState("");
+  const [text, setText] = useState("");
+  const kinds = useMemo(() => [...new Set((data ?? []).map((s) => s.kind))].sort(), [data]);
+  const rows = useMemo(() => {
+    const words = text.trim().toLowerCase();
+    return (data ?? []).filter(
+      (s) =>
+        (!status || s.status === status) &&
+        (!kind || s.kind === kind) &&
+        (!words ||
+          `${stepNumber(s.id)} ${activityNumber(s.activity_id)} ${t(`kind.${s.kind}`)} ${s.target_label}`.toLowerCase().includes(words)),
+    );
+  }, [data, status, kind, text, t]);
   return (
     <>
       <div className="oslo-form-buttons">
-        <span className="oslo-muted">{t("logs.hint", { limit })}</span>
+        <input className="oslo-filter-input" type="search" value={text} placeholder={t("ui.search")} aria-label={t("ui.search")} onChange={(e) => setText(e.target.value)} />
         <label className="oslo-inline">
-          {t("ui.log_level")}
-          <select value={level} onChange={(e) => setLevel(e.target.value)}>
+          {t("field.operation")}
+          <select value={kind} onChange={(e) => setKind(e.target.value)}>
             <option value="">{t("pool.all")}</option>
-            <option value="WARNING">{t("ui.log_warnings")}</option>
-            <option value="ERROR">{t("ui.log_errors")}</option>
+            {kinds.map((k) => (
+              <option key={k} value={k}>
+                {t(`kind.${k}`)}
+              </option>
+            ))}
           </select>
         </label>
+        <StatusFilter value={status} onChange={setStatus} />
+        {only && (
+          <span className="oslo-muted">
+            {t("steps.only", { number: activityNumber(only) })} <a href="/activities?tab=steps">{t("steps.all")}</a>
+          </span>
+        )}
       </div>
       {isPending ? (
         <p className="oslo-muted">{t("ui.loading")}</p>
       ) : !rows.length ? (
-        <p className="oslo-empty">{t("logs.empty")}</p>
+        <p className="oslo-empty">{t("steps.empty")}</p>
       ) : (
         <div className="oslo-table-wrap">
           <table className="oslo-table">
             <thead>
               <tr>
                 <th>{t("field.time")}</th>
-                <th>{t("activity.title")}</th>
-                <th>{t("field.message")}</th>
+                <th>{t("field.operation")}</th>
+                <th>{t("field.id")}</th>
+                <th>{t("field.target")}</th>
+                <th>{t("field.duration")}</th>
+                <th>{t("field.activity_number")}</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((e) => (
-                <tr key={e.id} className={`oslo-log-${e.level.toLowerCase()}`}>
-                  <td className="oslo-muted">{formatTime(e.timestamp, language, true)}</td>
+              {rows.map((s) => (
+                <tr key={s.id}>
+                  <td className="oslo-muted">{formatTime(s.started_at ?? s.requested_at, language)}</td>
+                  <td>{t(`kind.${s.kind}`)}</td>
                   <td>
-                    <a href={`/activities/${e.activity_id}`}>{e.activity_id}</a> <span className="oslo-mono">{e.target_label}</span>
+                    <a className="oslo-mono" href={`/activities/${s.id}`}>
+                      {stepNumber(s.id)}
+                    </a>
                   </td>
-                  <td className="oslo-mono">{e.message}</td>
+                  <td className="oslo-mono">{s.target_label}</td>
+                  <td>
+                    {formatDuration(s.started_at, s.finished_at)}{" "}
+                    {s.status !== "SUCCEEDED" && <StatusBadge status={s.status} prefix="activity" />}
+                  </td>
+                  <td>
+                    <a className="oslo-mono" href={`/activities/${s.activity_id}`}>
+                      {activityNumber(s.activity_id)}
+                    </a>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
-      {language !== "en" && <p className="oslo-muted">{t("activity.log_language")}</p>}
     </>
   );
 }

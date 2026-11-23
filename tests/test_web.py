@@ -134,7 +134,9 @@ APP_PAGES = [
     ("/", "overview", None),
     ("/landscape", "landscape", None),
     ("/activities", "activities", "activities"),
-    ("/activities?tab=logs", "activities", "logs"),
+    ("/activities?tab=steps", "activities", "steps"),
+    # The list of all log entries was replaced by the steps.
+    ("/activities?tab=logs", "activities", "steps"),
     ("/configuration/hosts", "configuration", "hosts"),
     ("/configuration/hosts/new", "configuration", "host_new"),
     ("/configuration/hosts/1", "configuration", "host"),

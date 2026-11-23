@@ -169,11 +169,15 @@ async def test_parts_for_the_form_pages(app, api):
         assert (await operator.get("/api/platform")).status_code == 403
 
 
-async def test_latest_log_entries(app, api):
+async def test_steps_of_a_single_operation(app, api):
     started = (await api.post("/api/systems/3/start")).json()
     await app.state.runner.wait(started["id"])
-    entries = (await api.get("/api/activity-log?limit=5")).json()
-    assert len(entries) == 5
-    assert entries[0]["message"] == "Finished successfully"
-    assert entries[0]["activity_id"] == started["id"] and entries[0]["target_label"] == "C"
-    assert [e["id"] for e in entries] == sorted((e["id"] for e in entries), reverse=True)
+    steps = (await api.get("/api/steps")).json()
+    # A single operation is one step, and its own top-level activity.
+    step = next(s for s in steps if s["id"] == started["id"])
+    assert step["activity_id"] == started["id"] and step["kind"] == "START"
+    assert step["target_label"] == "C" and step["status"] == "SUCCEEDED"
+    assert step["started_at"] and step["finished_at"]
+    assert [s["id"] for s in steps] == sorted((s["id"] for s in steps), reverse=True)
+    # The old list of all log entries is gone.
+    assert (await api.get("/api/activity-log")).status_code == 404

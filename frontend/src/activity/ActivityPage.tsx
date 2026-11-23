@@ -4,6 +4,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ApiError, api } from "../lib/api";
+import { activityNumber, stepNumber } from "../lib/numbers";
 import { hasRole } from "../lib/i18n";
 import type { ActivityDetail, LogEntry } from "../lib/types";
 import { activityTone } from "../landscape/Drawer";
@@ -69,13 +70,13 @@ export function ActivityPage({ id }: { id: number }) {
         {data.parent_id && (
           <>
             {" / "}
-            <a href={`/activities/${data.parent_id}`}>{t("mass.part_of", { id: data.parent_id })}</a>
+            <a href={`/activities/${data.parent_id}`}>{t("mass.part_of", { id: activityNumber(data.parent_id) })}</a>
           </>
         )}
       </p>
       <div className="oslo-activity-head">
         <h1>
-          {t("activity.title")} {data.id}: {title} <span className="oslo-mono">{data.target_label}</span>
+          {data.parent_id ? t("step.title") : t("activity.title")} {data.parent_id ? stepNumber(data.id) : activityNumber(data.id)}: {title} <span className="oslo-mono">{data.target_label}</span>
         </h1>
         <span className={`oslo-badge oslo-badge-${activityTone(data.status)} oslo-badge-big`}>{t(`activity.${data.status}`)}</span>
         {running && hasRole(role, "operator") && (
@@ -155,6 +156,11 @@ function Children({ activity }: { activity: ActivityDetail }) {
   return (
     <section className="oslo-card">
       <h2>{activity.kind === "TEMPLATE" ? t("tpl.steps") : t("mass.children")}</h2>
+      {activity.parent_id === null && (
+        <p>
+          <a href={`/activities?tab=steps&activity=${activity.id}`}>{t("steps.of_activity")}</a>
+        </p>
+      )}
       {activity.target_type === "MASS" && (
         <p className="oslo-muted">
           {t("mass.settings_summary", { parallel: String(options.parallel ?? ""), total })}{" "}
@@ -184,7 +190,9 @@ function Children({ activity }: { activity: ActivityDetail }) {
               {activity.children.map((child) => (
                 <tr key={child.id}>
                   <td>
-                    <a href={`/activities/${child.id}`}>{child.id}</a>
+                    <a className="oslo-mono" href={`/activities/${child.id}`}>
+                      {child.target_type === "MASS" ? activityNumber(child.id) : stepNumber(child.id)}
+                    </a>
                   </td>
                   <td>
                     {t(`target.${child.target_type}`)} <span className="oslo-mono">{child.target_label}</span>

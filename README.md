@@ -311,7 +311,7 @@ eigenen Seite, danach geht es zur Seite des neuen Eintrags (bei Pools zur Liste)
 |---|---|
 | Übersicht | Kennzahlen, Statusmatrix Produkte × Stufen und „Braucht Aufmerksamkeit“ (siehe unten) |
 | Landscape | Tabelle der Systeme mit aufklappbaren Instanzen und Tabelle der Hosts, Mehrfachauswahl mit Leiste für Operationen, Filter, Detailleiste rechts für System, Instanz (mit den Prozessen) und Host (Systeminformationen, Instanzen), Befehlspalette (siehe unten). Instanzen ohne System erscheinen hier nicht |
-| Activities | Tab „Aktivitäten“ mit Filtern (Status, Suche, Teilaktivitäten) und Live-Ansicht je Aktivität; Tab „Protokolle“ mit den letzten 200 Protokolleinträgen |
+| Activities | Tab „Aktivitäten“ (nur oberste Ebene) mit Filtern (Status, Suche) und Live-Ansicht je Aktivität; Tab „Schritte“ mit allen Aktivitäten, die selbst arbeiten: Zeit, Operation, ID (`O…`), Ziel, Dauer, Aktivität (`A…`). Eine Einzeloperation ist ein Schritt, eine Massenoperation oder Vorlage hat einen je Ziel und Schritt. Nummern: Datenbank-ID + 100000 (`A100002`, `O100002`) |
 | Configuration | „Hosts“ (`/configuration/hosts`): anlegen, Verbindung ändern, Discovery, Zugangsdaten, Tags, Instanzen, Datenbanken, löschen. „Systeme“: Reiter „Übersicht“ mit den Systemen, aufklappbar mit ihren Instanzen, und Reiter „Nicht zugeordnete Instanzen“ zum Zuordnen; „System anlegen“ wählt die Instanzen aus allen nicht zugeordneten und schlägt den Namen vor; Seite eines Systems mit Name, Stufe, Beschreibung, Pool, Tags, Abhängigkeiten, Instanzen, Zugangsdaten je SID, Löschen. „Pools“: anlegen und löschen |
 | Operations | „Eigene Operationen“ (`/operations/custom`) und „Operationsvorlagen“ (`/operations/templates`) nur für Admins; „Einplanungen“ (`/operations/schedules`) ab Operator, siehe unten. Operatoren und Konfiguratoren sehen in diesem Bereich nur die Einplanungen |
 | Administration | „Allgemein“: Version und Einstellungen; „Benutzer“: anlegen, bearbeiten, Passwort zurücksetzen; „Braucht Aufmerksamkeit“: die Regeln der Übersicht; „Zertifikate“: vertrauenswürdige Zertifikate für HTTPS zu den Hosts; „Import/Export“: Konfiguration als JSON-Datei (siehe unten) |
@@ -779,7 +779,7 @@ keine Inventardaten.
 | GET | `/api/overview` | die Übersicht: Kennzahlen, Spalten (Stufen), Pools, Systeme mit Instanzen, „Braucht Aufmerksamkeit“ nach den Regeln und den Ausnahmen des Benutzers |
 | GET, PUT | `/api/attention-rules` | Regeln von „Braucht Aufmerksamkeit“ lesen bzw. ändern (nur Admin): `{"rules": {"failed_activities": {"hours": 24, "hide_operations": ["read_logs"]}}}` |
 | GET, PUT | `/api/me/attention` | eigene Ausnahmen: `{"disabled_rules": [], "hidden_systems": [], "hidden_pools": []}` |
-| GET | `/api/activity-log?limit=200` | die neuesten Protokolleinträge aller Aktivitäten |
+| GET | `/api/steps?limit=300&activity_id=` | Schritte, neueste zuerst, je mit ihrer obersten Aktivität (`activity_id`); mit `activity_id` nur die Schritte dieser Aktivität |
 | GET | `/api/systems/suggestion?instance_ids=1&instance_ids=2` | Namensvorschlag für ein neues System |
 | GET | `/api/platform` | Version und Einstellungen (nur Admin) |
 | GET | `/api/instances/{id}/processes` | Prozesse einer Instanz, jetzt gelesen per `GetProcessList`; aktualisiert den gespeicherten Status |

@@ -263,3 +263,15 @@ async def test_host_operations_in_the_browser(app, api):
     async with sign_in(app, "view") as viewer:
         data = (await viewer.get("/api/landscape")).json()
         assert data["operations"] == []  # a viewer may run nothing
+
+
+async def test_steps_of_a_mass_operation(app, api):
+    parent = await run_mass(
+        app, api, operation="stop", target_type="SYSTEM", target_ids=[1, 2], parallel=2
+    )
+    steps = (await api.get(f"/api/steps?activity_id={parent['id']}")).json()
+    # One step per target, all naming the mass operation; the mass operation itself is none.
+    assert sorted(s["target_label"] for s in steps) == ["A", "B"]
+    assert {s["activity_id"] for s in steps} == {parent["id"]}
+    assert parent["id"] not in {s["id"] for s in (await api.get("/api/steps")).json()}
+    assert (await api.get("/api/steps?activity_id=999")).status_code == 404

@@ -231,6 +231,20 @@ class ActivityOut(BaseModel):
     finished_at: datetime | None
 
 
+class StepOut(BaseModel):
+    """An activity that does the work itself, with its top-level activity."""
+
+    id: int
+    activity_id: int
+    kind: str
+    target_type: str
+    target_label: str
+    status: str
+    requested_at: datetime
+    started_at: datetime | None
+    finished_at: datetime | None
+
+
 class ActivityDetail(ActivityOut):
     entries: list[ActivityLogEntryOut]
     # Children of a mass operation.

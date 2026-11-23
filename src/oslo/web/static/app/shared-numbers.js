@@ -1,0 +1,1 @@
+var e=1e5;function t(t){return`A${e+t}`}function n(t){return`O${e+t}`}function r(e,t,n=Date.now()){if(!e)return``;let r=Math.max(0,Math.round(((t?Date.parse(t):n)-Date.parse(e))/1e3)),i=e=>String(e).padStart(2,`0`),a=Math.floor(r/3600),o=Math.floor(r%3600/60),s=r%60;return a?`${a}:${i(o)}:${i(s)}`:`${o}:${i(s)}`}export{r as n,n as r,t};

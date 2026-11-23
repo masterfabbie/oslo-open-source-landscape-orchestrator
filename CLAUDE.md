@@ -121,7 +121,7 @@ Seite und Zustand, `SystemsTable`, `HostsTable`, `FilterBar`, `ActionBar`, `Draw
 strukturierten Protokolleinträgen, mit Tests). `src/templates/`: `TemplatesPage.tsx` (Liste
 und Graph-Editor unter `/operations/templates`), `graph.ts` (Anordnung, Vorgänger, mit Tests),
 `OperationPicker.tsx`, `Schedules.tsx` (Einplanen). `src/overview/` (Übersicht),
-`src/activities/` (Liste und Protokolle), `src/configuration/` (Hosts, Systeme, Pools),
+`src/activities/` (Aktivitäten und Schritte), `src/configuration/` (Hosts, Systeme, Pools),
 `src/operations/` (eigene Operationen), `src/administration/` (Allgemein, Benutzer, Regeln),
 `src/account/` (Mein Konto mit Darstellung). `src/lib/` API-Aufrufe, Texte, Typen, `mount.tsx` (Start einer
 Seite), `forms.tsx` und `forms.css` (Seitenkopf, Formulare, Tags, Zugangsdaten). Ein Stylesheet
@@ -276,6 +276,14 @@ Wichtige Entwurfsentscheidungen:
   data=)` im Runner. Neue Wartezustände, die im Zeitplan erscheinen sollen, brauchen dort ein
   Ereignis. Abbrechen über `POST /api/activities/<id>/cancel`; die alte Web-Route dafür gibt
   es nicht mehr.
+- **Schritte** (Wunsch des Eigentümers, 2026-11-23, ersetzen den Reiter mit allen
+  Protokolleinträgen und `/api/activity-log`): Schritte sind Aktivitäten, die selbst arbeiten,
+  also nicht Sammelaktivitäten (`target_type` MASS oder TEMPLATE, `kind` TEMPLATE);
+  `/api/steps` nennt zu jedem die oberste Aktivität (über `parent_id`). Spalten nach Vorgabe
+  des Eigentümers: Zeit, Operation, ID, Ziel, Dauer, Aktivitätsnummer; der Status erscheint nur
+  als Marke neben der Dauer, wenn er nicht „erfolgreich“ ist. Nummern auf allen Seiten
+  `A`/`O` + ID + 100000 (`frontend/src/lib/numbers.ts`, nur Anzeige); die Liste der
+  Aktivitäten zeigt nur die oberste Ebene. `/activities?tab=logs` zeigt die Schritte.
 - **Operationsvorlagen** (Phase 3, Wunsch des Eigentümers; seit Migration 0008 als Graph nach
   dem Vorbild LaMa): Tabellen `operation_templates`, `template_steps`, nur Admins legen sie an.
   Schlüssel teilen sich den Raum mit eigenen Operationen. Jeder Schritt hat `position`
@@ -381,7 +389,7 @@ Wichtige Entwurfsentscheidungen:
   aktiven Fremdschlüsseln das Protokoll per `ON DELETE CASCADE` mitlöschen würde. Der
   Vergleichstest ignoriert deshalb das nicht zurückgelesene `ON DELETE` dieser Spalten.
 - **Aufbau der Oberfläche:** Übersicht (Statusmatrix, „Braucht Aufmerksamkeit“), Landscape (beobachten und bedienen:
-  Systeme, Hosts), Activities (Aktivitäten, Protokolle), Configuration (einrichten: Hosts,
+  Systeme, Hosts), Activities (Aktivitäten, Schritte), Configuration (einrichten: Hosts,
   Systeme, Pools), Operations (eigene Operationen unter `/operations/custom` und
   Operationsvorlagen unter `/operations/templates` nur für Admins, Einplanungen unter
   `/operations/schedules` ab Operator), Administration (Allgemein, Benutzer,

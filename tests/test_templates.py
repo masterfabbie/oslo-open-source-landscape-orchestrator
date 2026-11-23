@@ -182,6 +182,16 @@ async def test_parallel_steps_and_several_predecessors(app, api):
     # Both discoveries started before either finished.
     assert messages.index("Step 2/3: Discovery") < messages.index("Step 1/3: Discovery succeeded")
     assert messages.index("Step 3/3: Restart") > messages.index("Step 2/3: Discovery succeeded")
+    # The steps: both discoveries and one restart per system (the mass operation of the
+    # third step only coordinates), all under the template run.
+    steps = (await api.get(f"/api/steps?activity_id={result['id']}")).json()
+    assert sorted((s["kind"], s["target_label"]) for s in steps) == [
+        ("DISCOVER", "sapapp1"),
+        ("DISCOVER", "sapdb1"),
+        ("RESTART", "A"),
+        ("RESTART", "B"),
+    ]
+    assert {s["activity_id"] for s in steps} == {result["id"]}
 
 
 async def test_parallel_locking_steps_are_refused(app, api):
