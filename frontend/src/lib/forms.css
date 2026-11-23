@@ -44,3 +44,11 @@ tr.oslo-disabled-row > td { opacity: 0.6; }
 .oslo-table-caption { caption-side: top; text-align: left; padding: 10px 10px 6px; font-weight: 650; }
 details.oslo-agent-group > summary { cursor: pointer; font-weight: 600; margin: 10px 0 6px; }
 .oslo-checks.oslo-checks-column { flex-direction: column; align-items: flex-start; }
+
+/* Lines of a configuration change: "Address: a → b". */
+.oslo-change-lines {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-wrap: anywhere;
+}

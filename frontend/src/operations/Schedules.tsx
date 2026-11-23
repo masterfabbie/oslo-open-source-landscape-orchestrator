@@ -7,6 +7,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { api } from "../lib/api";
+import { RecentChanges } from "../lib/changes";
 import { ActionForm, ConfirmButton, PageHead, Section, go } from "../lib/forms";
 import { hasRole } from "../lib/i18n";
 import { describeSchedule } from "../lib/schedules";
@@ -255,7 +256,12 @@ export function SchedulePage({ id }: { id?: number }) {
   const { operations, landscape } = useCatalog();
   if ((id !== undefined && existing.isPending) || operations.isPending || landscape.isPending) return <p className="oslo-muted">{t("ui.loading")}</p>;
   if (existing.error || operations.error || landscape.error) return <p className="flash error">{((existing.error ?? operations.error ?? landscape.error) as Error).message}</p>;
-  return <ScheduleForm schedule={existing.data} operations={operations.data ?? []} snapshot={landscape.data as Snapshot} />;
+  return (
+    <>
+      <ScheduleForm schedule={existing.data} operations={operations.data ?? []} snapshot={landscape.data as Snapshot} />
+      <div className="oslo-page">{id !== undefined && <RecentChanges type="schedule" id={id} />}</div>
+    </>
+  );
 }
 
 function ScheduleForm({ schedule, operations, snapshot }: { schedule?: ScheduleRow; operations: CatalogOperation[]; snapshot: Snapshot }) {

@@ -231,6 +231,30 @@ class ActivityOut(BaseModel):
     finished_at: datetime | None
 
 
+class ConfigChangeOut(BaseModel):
+    """An entry of the configuration log: ``changes`` maps a field to [old, new]."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    changed_at: datetime
+    username: str | None
+    object_type: str
+    object_id: int | None
+    object_name: str
+    action: str
+    changes: dict[str, list]
+
+    @field_validator("changes", mode="before")
+    @classmethod
+    def _parse(cls, value: object) -> object:
+        return json.loads(value) if isinstance(value, str) else value
+
+
+class ConfigLogSettings(BaseModel):
+    retention_days: int = Field(ge=1, le=3650)
+
+
 class StepOut(BaseModel):
     """An activity that does the work itself, with its top-level activity."""
 

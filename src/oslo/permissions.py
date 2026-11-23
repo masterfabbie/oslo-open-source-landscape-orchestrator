@@ -37,7 +37,7 @@ def required_role(method: str, path: str) -> Role:
     if path == "/templates/{template_id}/run":
         # Running a template needs its own role, checked by the handler.
         return Role.OPERATOR
-    if path == "/attention-rules" and method not in ("GET", "HEAD"):
+    if path in ("/attention-rules", "/config-log-settings") and method not in ("GET", "HEAD"):
         return Role.ADMIN
     if path.startswith(
         (

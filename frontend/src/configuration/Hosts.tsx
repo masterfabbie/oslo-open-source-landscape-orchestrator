@@ -4,6 +4,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { api } from "../lib/api";
+import { RecentChanges } from "../lib/changes";
 import { ActionForm, ConfirmButton, CredentialsForm, Messages, PageHead, Section, TagsForm, go, useAction } from "../lib/forms";
 import { StatusBadge, formatTime, useApp } from "../landscape/ui";
 import { CertificateFacts } from "../lib/certificate";
@@ -394,6 +395,7 @@ export function HostPage({ id }: { id: number }) {
           </div>
         )}
       </Section>
+      <RecentChanges type="host" id={id} />
     </div>
   );
 }

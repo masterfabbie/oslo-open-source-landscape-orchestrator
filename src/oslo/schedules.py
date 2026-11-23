@@ -19,6 +19,7 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from . import config_log
 from .catalog import Catalog, OperationDef
 from .customops import ParameterError, parameter_values
 from .models import Activity, Schedule, User
@@ -232,6 +233,8 @@ class Scheduler:
         self.now = now
         self._sleep = sleep
         self.interval = interval
+        # When old entries of the configuration log were last deleted (once an hour).
+        self._purged_at: datetime | None = None
 
     async def run(self) -> None:
         while True:
@@ -260,6 +263,10 @@ class Scheduler:
                 await session.commit()
                 if activity_id is not None:
                     started.append(activity_id)
+            if self._purged_at is None or now - self._purged_at >= timedelta(hours=1):
+                await config_log.purge(session, now)
+                await session.commit()
+                self._purged_at = now
         return started
 
     async def _fire(self, session: AsyncSession, schedule: Schedule) -> int | None:

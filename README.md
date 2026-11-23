@@ -311,7 +311,7 @@ eigenen Seite, danach geht es zur Seite des neuen Eintrags (bei Pools zur Liste)
 |---|---|
 | Übersicht | Kennzahlen, Statusmatrix Produkte × Stufen und „Braucht Aufmerksamkeit“ (siehe unten) |
 | Landscape | Tabelle der Systeme mit aufklappbaren Instanzen und Tabelle der Hosts, Mehrfachauswahl mit Leiste für Operationen, Filter, Detailleiste rechts für System, Instanz (mit den Prozessen) und Host (Systeminformationen, Instanzen), Befehlspalette (siehe unten). Instanzen ohne System erscheinen hier nicht |
-| Activities | Tab „Aktivitäten“ (nur oberste Ebene) mit Filtern (Status, Suche) und Live-Ansicht je Aktivität; Tab „Schritte“ mit allen Aktivitäten, die selbst arbeiten: Zeit, Operation, ID (`O…`), Ziel, Dauer, Aktivität (`A…`). Eine Einzeloperation ist ein Schritt, eine Massenoperation oder Vorlage hat einen je Ziel und Schritt. Nummern: Datenbank-ID + 100000 (`A100002`, `O100002`) |
+| Activities | Tab „Aktivitäten“ (nur oberste Ebene) mit Filtern (Status, Suche) und Live-Ansicht je Aktivität; Tab „Schritte“ mit allen Aktivitäten, die selbst arbeiten: Zeit, Operation, ID (`O…`), Ziel, Dauer, Aktivität (`A…`). Eine Einzeloperation ist ein Schritt, eine Massenoperation oder Vorlage hat einen je Ziel und Schritt. Nummern: Datenbank-ID + 100000 (`A100002`, `O100002`); Tab „Konfiguration“ mit dem Konfigurationsprotokoll (wer hat wann was angelegt, geändert, gelöscht) mit Filtern nach Objekt, Benutzer und Zeitraum. Die Seiten von Host, System, Pool, eigener Operation, Einplanung und Benutzer zeigen ihre letzten 10 Änderungen |
 | Configuration | „Hosts“ (`/configuration/hosts`): anlegen, Verbindung ändern, Discovery, Zugangsdaten, Tags, Instanzen, Datenbanken, löschen. „Systeme“: Reiter „Übersicht“ mit den Systemen, aufklappbar mit ihren Instanzen, und Reiter „Nicht zugeordnete Instanzen“ zum Zuordnen; „System anlegen“ wählt die Instanzen aus allen nicht zugeordneten und schlägt den Namen vor; Seite eines Systems mit Name, Stufe, Beschreibung, Pool, Tags, Abhängigkeiten, Instanzen, Zugangsdaten je SID, Löschen. „Pools“: anlegen und löschen |
 | Operations | „Eigene Operationen“ (`/operations/custom`) und „Operationsvorlagen“ (`/operations/templates`) nur für Admins; „Einplanungen“ (`/operations/schedules`) ab Operator, siehe unten. Operatoren und Konfiguratoren sehen in diesem Bereich nur die Einplanungen |
 | Administration | „Allgemein“: Version und Einstellungen; „Benutzer“: anlegen, bearbeiten, Passwort zurücksetzen; „Braucht Aufmerksamkeit“: die Regeln der Übersicht; „Zertifikate“: vertrauenswürdige Zertifikate für HTTPS zu den Hosts; „Import/Export“: Konfiguration als JSON-Datei (siehe unten) |
@@ -705,7 +705,7 @@ lässt es sich nicht ändern.
 Einschränkungen:
 
 - Keine Anmeldung über LDAP oder SSO, nur lokale Benutzer.
-- Änderungen an der Konfiguration werden noch nicht protokolliert (nur Aktivitäten).
+- Das Konfigurationsprotokoll erfasst nur Änderungen im Namen eines Benutzers (Oberfläche, API, Import), keine An- und Abmeldungen und keine eigenen Einstellungen (Darstellung, Favoriten, API-Tokens). Änderungen an Vorlagenschritten und Parametern eigener Operationen stehen nur als „geändert“ darin, ohne Einzelheiten.
 - Das Cookie wird nur mit dem Attribut `Secure` gesetzt, wenn der Server die Anfrage als
   HTTPS sieht. Hinter einem Reverse-Proxy muss dieser das Protokoll weiterreichen.
 
@@ -780,6 +780,8 @@ keine Inventardaten.
 | GET, PUT | `/api/attention-rules` | Regeln von „Braucht Aufmerksamkeit“ lesen bzw. ändern (nur Admin): `{"rules": {"failed_activities": {"hours": 24, "hide_operations": ["read_logs"]}}}` |
 | GET, PUT | `/api/me/attention` | eigene Ausnahmen: `{"disabled_rules": [], "hidden_systems": [], "hidden_pools": []}` |
 | GET | `/api/steps?limit=300&activity_id=` | Schritte, neueste zuerst, je mit ihrer obersten Aktivität (`activity_id`); mit `activity_id` nur die Schritte dieser Aktivität |
+| GET | `/api/config-changes?limit=300&object_type=&object_id=&username=&days=` | Konfigurationsprotokoll, neueste zuerst; `changes` je Feld `[alt, neu]`, Geheimnisse nur als `"(changed)"`; Einträge zu Benutzern nur für Admins |
+| GET, PUT | `/api/config-log-settings` | `{"retention_days": 365}`: wie lange das Konfigurationsprotokoll aufbewahrt wird (PUT nur Admin, 1–3650) |
 | GET | `/api/systems/suggestion?instance_ids=1&instance_ids=2` | Namensvorschlag für ein neues System |
 | GET | `/api/platform` | Version und Einstellungen (nur Admin) |
 | GET | `/api/instances/{id}/processes` | Prozesse einer Instanz, jetzt gelesen per `GetProcessList`; aktualisiert den gespeicherten Status |

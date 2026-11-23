@@ -5,6 +5,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { api } from "../lib/api";
+import { RecentChanges } from "../lib/changes";
 import { ActionForm, ConfirmButton, CredentialsForm, Messages, PageHead, Section, TagsForm, go, useAction } from "../lib/forms";
 import { StatusBadge, useApp } from "../landscape/ui";
 import { type InstanceInfo, type PoolInfo, STAGES, type SidInfo, type SystemInfo } from "./types";
@@ -559,6 +560,7 @@ export function SystemPage({ id }: { id: number }) {
           </div>
         ))}
       </Section>
+      <RecentChanges type="system" id={id} />
     </div>
   );
 }

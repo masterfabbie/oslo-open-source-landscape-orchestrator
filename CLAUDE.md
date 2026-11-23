@@ -110,6 +110,7 @@ Alles liegt unter `src/oslo/`.
 | `customops.py` | eigene Operationen und Parameter anlegen und prüfen, Parameterwerte prüfen (`parameter_values`) |
 | `api/` | REST-API unter `/api`, geschützt durch persönliche API-Tokens; `create_app` baut die Anwendung |
 | `web/` | Anmeldung, Einrichtung und Passwortwechsel (Jinja2), Hüllen der React-Seiten (`app_page.html`, `routes.app_page`), Seitennavigation der Bereiche, Übersetzungen |
+| `config_log.py` | Konfigurationsprotokoll: Änderungen beim Speichern erfassen (`before_flush`, `SPECS`), Benutzer der Anfrage (`set_actor`), Änderungen ohne ORM (`record`), Aufbewahrung (`purge`) |
 | `attention.py` | Regeln für „Braucht Aufmerksamkeit“ (global in `platform_settings`, Ausnahmen je Benutzer), Spalten der Statusmatrix |
 | `mock/` | simulierter Host Agent und sapstartsrv für Entwicklung und Tests |
 
@@ -450,6 +451,23 @@ Wichtige Entwurfsentscheidungen:
   Eigentümers), Favicon in `base.html`. Jedes Logo gibt es hell und dunkel (`img.logo-light`,
   `img.logo-dark`); `style.css` zeigt das passende nach denselben Regeln wie die Farben.
   Anmeldung und Einrichtung haben kein `data-theme` und folgen damit dem Betriebssystem.
+- **Konfigurationsprotokoll** (Wunsch des Eigentümers, 2026-11-23): Tabelle `config_changes`
+  (Migration 0012), Reiter Aktivitäten → Konfiguration, „Letzte Änderungen“ auf den Seiten von
+  Host, System, Pool, eigener Operation, Einplanung und Benutzer (`frontend/src/lib/changes.tsx`).
+  Erfasst wird automatisch beim Flush (`config_log.install`, Ereignis `before_flush`), nur
+  Felder aus `SPECS` (Konfiguration, nicht Status, Versionen, nächste Läufe) und nur im Namen
+  eines Benutzers: `require_user` und `require_login` setzen ihn per Kontextvariable
+  (`set_actor`); Aktivitäten setzen ihn in `_run` zurück, Scheduler und Discovery-Ergebnisse
+  erscheinen daher nicht. Kindzeilen (Tags, Parameter, Vorlagenschritte) zählen beim Eltern-
+  objekt; neu angehängte haben vor dem Flush noch keinen Fremdschlüssel, entfernte werden erst
+  im Flush als Waisen gelöscht (deshalb über die Historie der Liste). Instanzen zuordnen
+  erscheint beim System. Pools und Abhängigkeiten ändern Zwischentabellen ohne ORM und rufen
+  `config_log.record` selbst; der Import schreibt zusätzlich einen Sammeleintrag. Neue Objekte
+  bekommen ihre Id erst im Flush (`after_flush_postexec` trägt sie nach). Geheimnisse und Werte
+  über 120 Zeichen nur als `(changed)`. Einträge zu Benutzern sieht nur der Admin, sonst ab
+  Viewer. Aufbewahrung `platform_settings` `config_log.retention_days` (Standard 365,
+  Administration → Allgemein), gelöscht im `Scheduler.tick` höchstens stündlich. Neue
+  Konfigurationsmodelle oder -felder in `SPECS` eintragen.
 - **Darstellung je Benutzer** (Wunsch des Eigentümers): `user_settings` `ui.language` (""
   folgt Cookie bzw. Browser) und `ui.theme` (`system`, `light`, `dark`), `users.get_preferences`
   bzw. `set_preferences`, `/api/me/preferences`. `require_login` legt sie in
@@ -520,6 +538,8 @@ Wichtige Entwurfsentscheidungen:
   Operationen ausführen, übergeben `sleep` und `clock` an `create_app`.
 - Pools bearbeiten, mehrere Hosts anlegen und die Darstellung je Benutzer testet
   `tests/test_settings_pages.py` (Fixtures von `test_web.py`).
+- Das Konfigurationsprotokoll testet `tests/test_config_log.py` (Fixtures von `test_mass.py`),
+  die Darstellung der Änderungen `frontend/src/lib/changes.test.ts`.
 - Import und Export testet `tests/test_transfer.py` (Import in ein zweites, leeres OSLO gegen
   dieselbe simulierte Landschaft, `second_oslo`).
 - Zertifikate testet `tests/test_certificates.py` mit echten TLS-Servern auf 127.0.0.1 und
@@ -677,7 +697,8 @@ und freigeben lassen:
 ## Bekannte Lücken
 
 - nur lokale Benutzer, kein LDAP oder SSO
-- Änderungen an der Konfiguration werden nicht protokolliert, nur Aktivitäten
+- Konfigurationsprotokoll ohne Einzelheiten zu Vorlagenschritten und Parametern eigener
+  Operationen (nur „geändert“), ohne An- und Abmeldungen
 - Migrationen nur vorwärts; zurück geht es über die Sicherungskopie
 - Abbrechen von Start und Stopp beendet nur das Warten
 - kein Probelauf für Operationsvorlagen

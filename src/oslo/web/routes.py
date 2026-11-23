@@ -21,6 +21,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from .. import config_log
 from ..catalog import Catalog
 from ..connections import ClientFactory
 from ..crypto import SecretBox
@@ -108,6 +109,7 @@ async def require_login(request: Request, session: DbSessionDep) -> User:
     if not has_role(user, needed):
         raise HTTPException(403, f"Requires the role {needed}")
     request.state.user = user
+    config_log.set_actor(user.username)
     request.state.preferences = await get_preferences(session, user)
     return user
 

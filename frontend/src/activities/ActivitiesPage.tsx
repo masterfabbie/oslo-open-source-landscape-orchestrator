@@ -1,11 +1,13 @@
-// Activities: the top-level activities (newest first, with filters) and their steps, the
+// Activities: the top-level activities (newest first, with filters), their steps, the
 // activities that do the work themselves (one per single operation, one per target and step
-// of a mass operation or template). Live: reloads when the server reports a change.
+// of a mass operation or template), and the configuration log. Live: reloads when the server
+// reports a change.
 
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { api } from "../lib/api";
 import { PageHead } from "../lib/forms";
+import { type ConfigChange, ChangesTable, OBJECT_TYPES, changeLines } from "../lib/changes";
 import { activityNumber, formatDuration, stepNumber } from "../lib/numbers";
 import { StatusBadge, formatTime, useApp, useLiveUpdates } from "../landscape/ui";
 
@@ -33,7 +35,7 @@ interface StepRow {
   finished_at: string | null;
 }
 
-export type ActivitiesTab = "activities" | "steps";
+export type ActivitiesTab = "activities" | "steps" | "changes";
 
 const STATUSES = ["RUNNING", "PENDING", "SUCCEEDED", "PARTIAL", "FAILED", "CANCELLED"];
 
@@ -47,9 +49,10 @@ export function ActivitiesPage({ tab }: { tab: ActivitiesTab }) {
         tabs={[
           { href: "/activities", label: t("tab.activities"), current: tab === "activities" },
           { href: "/activities?tab=steps", label: t("tab.steps"), current: tab === "steps" },
+          { href: "/activities?tab=changes", label: t("tab.changes"), current: tab === "changes" },
         ]}
       />
-      {tab === "activities" ? <ActivityList /> : <StepList />}
+      {tab === "activities" ? <ActivityList /> : tab === "steps" ? <StepList /> : <ChangeList />}
     </div>
   );
 }
@@ -223,6 +226,90 @@ function StepList() {
             </tbody>
           </table>
         </div>
+      )}
+    </>
+  );
+}
+
+const PERIODS = [1, 7, 30, 365];
+
+function ChangeList() {
+  const { t } = useApp();
+  // ?type=host&id=1: only the changes of that object, e.g. from the page of a host.
+  const params = new URLSearchParams(window.location.search);
+  const onlyType = params.get("type");
+  const onlyId = Number(params.get("id")) || null;
+  const [type, setType] = useState(onlyType ?? "");
+  const [user, setUser] = useState("");
+  const [days, setDays] = useState(30);
+  const [text, setText] = useState("");
+  const query = new URLSearchParams({ limit: "1000" });
+  if (type) query.set("object_type", type);
+  if (onlyId) query.set("object_id", String(onlyId));
+  if (days) query.set("days", String(days));
+  const { data, isPending } = useQuery({
+    queryKey: ["activities", "changes", type, onlyId, days],
+    queryFn: () => api<ConfigChange[]>(`/config-changes?${query}`),
+  });
+  const users = useMemo(() => [...new Set((data ?? []).map((c) => c.username ?? ""))].filter(Boolean).sort(), [data]);
+  const rows = useMemo(() => {
+    const words = text.trim().toLowerCase();
+    return (data ?? []).filter(
+      (c) =>
+        (!user || c.username === user) &&
+        (!words || `${c.object_name} ${t(`cfg.type.${c.object_type}`)} ${changeLines(c, t).join(" ")}`.toLowerCase().includes(words)),
+    );
+  }, [data, user, text, t]);
+  return (
+    <>
+      <p className="oslo-muted">{t("cfg.hint")}</p>
+      <div className="oslo-form-buttons">
+        <input className="oslo-filter-input" type="search" value={text} placeholder={t("ui.search")} aria-label={t("ui.search")} onChange={(e) => setText(e.target.value)} />
+        <label className="oslo-inline">
+          {t("cfg.object")}
+          <select value={type} onChange={(e) => setType(e.target.value)} disabled={onlyId !== null}>
+            <option value="">{t("pool.all")}</option>
+            {OBJECT_TYPES.map((o) => (
+              <option key={o} value={o}>
+                {t(`cfg.type.${o}`)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="oslo-inline">
+          {t("field.username")}
+          <select value={user} onChange={(e) => setUser(e.target.value)}>
+            <option value="">{t("pool.all")}</option>
+            {users.map((u) => (
+              <option key={u} value={u}>
+                {u}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="oslo-inline">
+          {t("cfg.period")}
+          <select value={days} onChange={(e) => setDays(Number(e.target.value))}>
+            {PERIODS.map((d) => (
+              <option key={d} value={d}>
+                {d === 1 ? t("cfg.day") : t("cfg.days", { days: d })}
+              </option>
+            ))}
+            <option value={0}>{t("pool.all")}</option>
+          </select>
+        </label>
+        {onlyId !== null && (
+          <span className="oslo-muted">
+            {t("cfg.only")} <a href="/activities?tab=changes">{t("cfg.all")}</a>
+          </span>
+        )}
+      </div>
+      {isPending ? (
+        <p className="oslo-muted">{t("ui.loading")}</p>
+      ) : !rows.length ? (
+        <p className="oslo-empty">{t("cfg.empty")}</p>
+      ) : (
+        <ChangesTable rows={rows} />
       )}
     </>
   );

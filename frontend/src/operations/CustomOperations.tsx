@@ -4,6 +4,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { api } from "../lib/api";
+import { RecentChanges } from "../lib/changes";
 import { ActionForm, ConfirmButton, PageHead, Section, go } from "../lib/forms";
 import { useApp } from "../landscape/ui";
 
@@ -121,7 +122,12 @@ export function CustomOperationPage({ id }: { id: number | null }) {
   const loaded = useQuery({ queryKey: ["custom", id], queryFn: () => api<CustomOperation>(`/custom-operations/${id}`), enabled: id !== null });
   if (id !== null && loaded.isPending) return <p className="oslo-muted">{t("ui.loading")}</p>;
   if (loaded.error) return <p className="flash error">{(loaded.error as Error).message}</p>;
-  return <Editor id={id} initial={loaded.data ?? EMPTY} />;
+  return (
+    <>
+      <Editor id={id} initial={loaded.data ?? EMPTY} />
+      <div className="oslo-page">{id !== null && <RecentChanges type="custom_operation" id={id} />}</div>
+    </>
+  );
 }
 
 function Editor({ id, initial }: { id: number | null; initial: Draft }) {

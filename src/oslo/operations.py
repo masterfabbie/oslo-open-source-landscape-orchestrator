@@ -27,6 +27,7 @@ from sqlalchemy import or_, select, true, update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm import selectinload
 
+from . import config_log
 from .clients import (
     AuthenticationRequiredError,
     InvalidCredentialsError,
@@ -726,6 +727,9 @@ class OperationRunner:
 
     async def _run(self, activity_id: int) -> None:
         _CURRENT_ACTIVITY.set(activity_id)
+        # What an activity writes (status, discovered inventory) is not configuration, even
+        # when a user started it: nothing of it goes into the configuration log.
+        config_log.set_actor(None)
         try:
             await self._run_activity(activity_id)
             # A cancel that came too late: the activity ended before its next safe point.

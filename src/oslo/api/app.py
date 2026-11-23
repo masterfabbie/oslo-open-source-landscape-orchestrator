@@ -23,7 +23,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from .. import __version__
+from .. import __version__, config_log
 from ..attention import (
     DEFAULT_RULES,
     Exceptions,
@@ -52,11 +52,13 @@ from ..landscape import landscape_snapshot, operation_row, overview_snapshot, re
 from ..models import (
     Activity,
     ApiToken,
+    ConfigChange,
     CustomOperation,
     Host,
     HostTag,
     Instance,
     OperationTemplate,
+    PlatformSetting,
     Pool,
     Schedule,
     Sid,
@@ -99,6 +101,7 @@ from ..users import (
     API_REQUEST_HEADER,
     SESSION_COOKIE,
     SESSION_LIFETIME_SECONDS,
+    Role,
     UserError,
     create_token,
     create_user,
@@ -122,6 +125,8 @@ from .schemas import (
     AttentionRulesIn,
     BuildingBlocksOut,
     CertificateOut,
+    ConfigChangeOut,
+    ConfigLogSettings,
     Credentials,
     CustomOperationIn,
     CustomOperationOut,
@@ -246,6 +251,7 @@ def create_app(
     runner = OperationRunner(
         session_factory, clients, poll_interval=poll_interval, sleep=sleep, clock=clock
     )
+    config_log.install()
     # Starts due schedules every 30 seconds; tests call scheduler.tick() themselves.
     scheduler = Scheduler(session_factory, runner, catalog, ZoneInfo(settings.timezone))
 
@@ -308,9 +314,7 @@ def create_app(
                 if request.method not in ("GET", "HEAD") and (
                     request.headers.get(API_REQUEST_HEADER) != "1"
                 ):
-                    raise HTTPException(
-                        status.HTTP_403_FORBIDDEN, "Missing header X-OSLO-Request"
-                    )
+                    raise HTTPException(status.HTTP_403_FORBIDDEN, "Missing header X-OSLO-Request")
                 if user.must_change_password:
                     raise HTTPException(
                         status.HTTP_403_FORBIDDEN, "Change the start password first"
@@ -326,6 +330,8 @@ def create_app(
         if not has_role(user, needed):
             raise HTTPException(status.HTTP_403_FORBIDDEN, f"Requires the role {needed}")
         request.state.user = user
+        # Changes of this request are recorded in the configuration log in the user's name.
+        config_log.set_actor(user.username)
         return user
 
     CurrentUser = Annotated[User, Depends(require_user)]
@@ -416,9 +422,7 @@ def create_app(
             ) from exc
         return host
 
-    @api.post(
-        "/hosts/batch", response_model=list[HostOut], status_code=status.HTTP_201_CREATED
-    )
+    @api.post("/hosts/batch", response_model=list[HostOut], status_code=status.HTTP_201_CREATED)
     async def create_hosts(body: HostBatchCreate, session: Session) -> list[Host]:
         """Create several hosts at once (names separated by commas in the interface), all or
         none. Each host is reached under its name."""
@@ -505,9 +509,7 @@ def create_app(
         except CertificateError as exc:
             raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(exc)) from exc
         trusted_id = await session.scalar(
-            select(TrustedCertificate.id).where(
-                TrustedCertificate.fingerprint == info.fingerprint
-            )
+            select(TrustedCertificate.id).where(TrustedCertificate.fingerprint == info.fingerprint)
         )
         return {**certificate_fields(info), "pem": info.pem, "trusted_id": trusted_id}
 
@@ -638,9 +640,7 @@ def create_app(
     @api.patch("/systems/{system_id}", response_model=SystemOut)
     async def update_system_route(system_id: int, body: SystemUpdate, session: Session) -> System:
         stage = body.stage if "stage" in body.model_fields_set else ...
-        await change(
-            session, update_system(session, system_id, body.name, body.description, stage)
-        )
+        await change(session, update_system(session, system_id, body.name, body.description, stage))
         return await load_system(session, system_id)
 
     @api.delete("/systems/{system_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -994,6 +994,15 @@ def create_app(
             await session.rollback()
             raise HTTPException(422, {"code": exc.code, "message": str(exc)}) from exc
         if body.apply:
+            counts = {k: v for k, v in report.counts().items() if v}
+            config_log.record(
+                session,
+                "import",
+                None,
+                "Import",
+                {k: [None, v] for k, v in counts.items()},
+                action="imported",
+            )
             await session.commit()
         else:
             await session.rollback()
@@ -1001,6 +1010,49 @@ def create_app(
         await catalog.reload(session)
         await clients.load_trusted(session)
         return {"applied": body.apply, "counts": report.counts(), "items": report.items}
+
+    # --- configuration log (Activities → Configuration) -------------------------------------
+
+    @api.get("/config-changes", response_model=list[ConfigChangeOut])
+    async def config_changes(
+        session: Session,
+        user: CurrentUser,
+        limit: Annotated[int, Query(ge=1, le=1000)] = 300,
+        object_type: str | None = None,
+        object_id: int | None = None,
+        username: str | None = None,
+        days: Annotated[int | None, Query(ge=1)] = None,
+    ) -> list[ConfigChange]:
+        """The newest entries of the configuration log. Changes of users only for admins."""
+        query = select(ConfigChange).order_by(ConfigChange.id.desc()).limit(limit)
+        if object_type:
+            query = query.where(ConfigChange.object_type == object_type)
+        if object_id is not None:
+            query = query.where(ConfigChange.object_id == object_id)
+        if username:
+            query = query.where(ConfigChange.username == username)
+        if days is not None:
+            query = query.where(ConfigChange.changed_at >= datetime.now(UTC) - timedelta(days=days))
+        if not has_role(user, Role.ADMIN):
+            query = query.where(ConfigChange.object_type != "user")
+        return list(await session.scalars(query))
+
+    @api.get("/config-log-settings", response_model=ConfigLogSettings)
+    async def get_config_log_settings(session: Session) -> dict[str, int]:
+        return {"retention_days": await config_log.retention_days(session)}
+
+    @api.put("/config-log-settings", response_model=ConfigLogSettings)
+    async def put_config_log_settings(body: ConfigLogSettings, session: Session) -> dict[str, int]:
+        """How long the configuration log keeps its entries (admin)."""
+        row = await session.get(PlatformSetting, config_log.RETENTION_KEY)
+        if row is None:
+            session.add(
+                PlatformSetting(key=config_log.RETENTION_KEY, value=str(body.retention_days))
+            )
+        else:
+            row.value = str(body.retention_days)
+        await session.commit()
+        return {"retention_days": body.retention_days}
 
     @api.get("/server-time")
     async def server_time() -> dict[str, object]:
@@ -1305,9 +1357,7 @@ def create_app(
             query = query.where(Schedule.operation == operation)
         schedules = list(await session.scalars(query))
         statuses = await last_statuses(session, schedules)
-        return [
-            schedule_out(s, statuses.get(s.last_activity_id or 0)) for s in schedules
-        ]
+        return [schedule_out(s, statuses.get(s.last_activity_id or 0)) for s in schedules]
 
     @api.get("/schedules/{schedule_id}", response_model=ScheduleOut)
     async def get_schedule(
@@ -1680,9 +1730,7 @@ def create_app(
             raise HTTPException(status.HTTP_403_FORBIDDEN, f"Requires the role {definition.role}")
         if definition.template is not None:
             # A template runs once with all selected targets as its selection.
-            return await start_template(
-                session, user, definition, body.target_ids, body.parameters
-            )
+            return await start_template(session, user, definition, body.target_ids, body.parameters)
         values = None
         try:
             if definition.custom is not None:
@@ -1818,6 +1866,7 @@ def create_app(
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("Referrer-Policy", "same-origin")
         return response
+
     app.state.catalog = catalog
     app.state.clients = clients
     # Replaced in tests; reads the certificate a host shows (tls.fetch_certificate).

@@ -3,6 +3,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { api } from "../lib/api";
+import { RecentChanges } from "../lib/changes";
 import { ActionForm, ConfirmButton, PageHead, Section, go } from "../lib/forms";
 import { useApp } from "../landscape/ui";
 import type { PoolInfo, SystemInfo } from "./types";
@@ -112,7 +113,12 @@ export function PoolPage({ id }: { id: number }) {
   const systems = useQuery({ queryKey: ["systems"], queryFn: () => api<SystemInfo[]>("/systems") });
   if (pool.isPending) return <p className="oslo-muted">{t("ui.loading")}</p>;
   if (!pool.data) return <p className="flash error">{(pool.error as Error)?.message}</p>;
-  return <PoolEditor pool={pool.data} systems={systems.data ?? []} />;
+  return (
+    <>
+      <PoolEditor pool={pool.data} systems={systems.data ?? []} />
+      <div className="oslo-page"><RecentChanges type="pool" id={id} /></div>
+    </>
+  );
 }
 
 function PoolEditor({ pool, systems }: { pool: PoolInfo; systems: SystemInfo[] }) {

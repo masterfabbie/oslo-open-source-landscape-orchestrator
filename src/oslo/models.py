@@ -14,6 +14,7 @@ from sqlalchemy import (
     Column,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     String,
     Table,
@@ -717,3 +718,22 @@ class Schedule(Base):
     last_run_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
     last_activity_id: Mapped[int | None] = mapped_column(Integer)
     last_error: Mapped[str | None] = mapped_column(Text)
+
+
+class ConfigChange(Base):
+    """An entry of the configuration log (Activities → Configuration): an object created,
+    changed or deleted in a user's name. ``changes``: JSON {field: [old, new]}; secrets only
+    as "(changed)". See config_log.py."""
+
+    __tablename__ = "config_changes"
+    __table_args__ = (Index("ix_config_changes_object", "object_type", "object_id"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    changed_at: Mapped[datetime] = mapped_column(UTCDateTime(), index=True)
+    username: Mapped[str | None] = mapped_column(String(64))
+    object_type: Mapped[str] = mapped_column(String(32))
+    # None for changes of the platform as a whole, e.g. an import.
+    object_id: Mapped[int | None] = mapped_column(Integer)
+    object_name: Mapped[str] = mapped_column(String(255))
+    action: Mapped[str] = mapped_column(String(16))
+    changes: Mapped[str] = mapped_column(Text, default="{}")

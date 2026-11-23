@@ -5,6 +5,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { api } from "../lib/api";
+import { RecentChanges } from "../lib/changes";
 import { CertificateFacts } from "../lib/certificate";
 import { ActionForm, ConfirmButton, PageHead, Section, go } from "../lib/forms";
 import type { CertificateInfo, TrustedCertificate } from "../configuration/types";
@@ -48,7 +49,29 @@ export function GeneralPage() {
           </dl>
         )}
       </Section>
+      <RetentionSection />
     </div>
+  );
+}
+
+function RetentionSection() {
+  const { t } = useApp();
+  const { data } = useQuery({ queryKey: ["config-log-settings"], queryFn: () => api<{ retention_days: number }>("/config-log-settings") });
+  const [days, setDays] = useState<string | null>(null);
+  if (!data) return null;
+  const shown = days ?? String(data.retention_days);
+  return (
+    <Section title={t("cfg.retention")} hint={t("cfg.retention_hint")}>
+      <ActionForm
+        submit={t("action.save")}
+        onSubmit={() => api("/config-log-settings", { method: "PUT", body: { retention_days: Number(shown) } })}
+      >
+        <label>
+          {t("cfg.retention_days")}
+          <input type="number" min={1} max={3650} required value={shown} onChange={(e) => setDays(e.target.value)} />
+        </label>
+      </ActionForm>
+    </Section>
   );
 }
 
@@ -152,7 +175,12 @@ export function UserPage({ id }: { id: number }) {
   const user = data?.find((u) => u.id === id);
   if (isPending) return <p className="oslo-muted">{t("ui.loading")}</p>;
   if (!user) return <p className="flash error">404</p>;
-  return <UserEditor user={user} />;
+  return (
+    <>
+      <UserEditor user={user} />
+      <div className="oslo-page"><RecentChanges type="user" id={id} /></div>
+    </>
+  );
 }
 
 function UserEditor({ user }: { user: UserRow }) {

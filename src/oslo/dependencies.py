@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from sqlalchemy import delete, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from . import config_log
 from .models import System, system_dependencies
 
 Graph = Mapping[int, Iterable[int]]
@@ -57,9 +58,7 @@ def start_order(systems: Iterable[int], graph: Graph, key: Callable[[int], objec
     remaining = set(systems)
     ordered: list[int] = []
     while remaining:
-        ready = sorted(
-            (s for s in remaining if not (set(graph.get(s, ())) & remaining)), key=key
-        )
+        ready = sorted((s for s in remaining if not (set(graph.get(s, ())) & remaining)), key=key)
         if not ready:
             raise ValueError("Dependency cycle between systems")
         ordered += ready
@@ -132,12 +131,28 @@ async def set_dependencies(session: AsyncSession, system_id: int, depends_on: se
         raise DependencyError("unknown", f"Unknown systems: {sorted(unknown)}")
 
     graph = await load_graph(session)
+    before = set(graph.get(system_id, set()))
     graph[system_id] = set()
     for dependency in depends_on:
         if would_create_cycle(system_id, dependency, graph):
             raise DependencyError("cycle", "The dependency would create a cycle")
     graph[system_id] = set(depends_on)
 
+    if before != depends_on:
+        names = dict(
+            (
+                await session.execute(
+                    select(System.id, System.name).where(
+                        System.id.in_(before | depends_on | {system_id})
+                    )
+                )
+            ).all()
+        )
+        removed = ", ".join(sorted(names[i] for i in before - depends_on)) or None
+        added = ", ".join(sorted(names[i] for i in depends_on - before)) or None
+        config_log.record(
+            session, "system", system_id, names[system_id], {"depends_on": [removed, added]}
+        )
     await session.execute(
         delete(system_dependencies).where(system_dependencies.c.system_id == system_id)
     )
