@@ -189,7 +189,8 @@ def _aware(value: datetime) -> datetime:
 def _systems_query():
     return (
         select(System)
-        .order_by(System.name)
+        # Alphabetical regardless of case ("abc" next to "ABD", not after "Z").
+        .order_by(func.lower(System.name), System.name)
         .options(
             selectinload(System.instances).selectinload(Instance.sid),
             selectinload(System.depends_on),

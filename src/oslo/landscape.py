@@ -9,7 +9,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -56,7 +56,7 @@ async def all_systems(session: AsyncSession) -> list[System]:
     return list(
         await session.scalars(
             select(System)
-            .order_by(System.name)
+            .order_by(func.lower(System.name), System.name)
             .options(
                 selectinload(System.instances).selectinload(Instance.host),
                 selectinload(System.instances).selectinload(Instance.sid),

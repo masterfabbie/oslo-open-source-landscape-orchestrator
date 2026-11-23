@@ -1,5 +1,6 @@
 // Systems with their instances; a system opens to show its instances (closed at first, open
-// while the instance type filter is active). Systems or instances can be selected.
+// while the instance type filter is active). Diagnostics agents come last, in their own group
+// that is closed at first. Systems or instances can be selected.
 
 import { useEffect, useState } from "react";
 import type { InstanceRow, SystemRow, TargetType } from "../lib/types";
@@ -39,6 +40,8 @@ export function SystemsTable({
 }: Props) {
   const { t } = useApp();
   const [open, setOpen] = useState<Set<number>>(loadOpen);
+  // Systems whose group of diagnostics agents is open.
+  const [openAgents, setOpenAgents] = useState<Set<number>>(new Set());
   useEffect(() => {
     try {
       sessionStorage.setItem(OPEN_KEY, JSON.stringify([...open]));
@@ -149,44 +152,82 @@ export function SystemsTable({
                   )}
                 </td>
               </tr>
-              {isOpen &&
-                instances.map((instance) => {
-                  const checked = selection.kind === "INSTANCE" && selected.has(instance.id);
-                  return (
-                    <tr
-                      key={instance.id}
-                      className={`oslo-instance${checked ? " oslo-selected" : ""}${instance.agent ? " oslo-agent" : ""}${openInstanceId === instance.id ? " oslo-current-row" : ""}`}
-                    >
-                      <td className="oslo-check">
-                        <input
-                          type="checkbox"
-                          aria-label={t("ui.select", { name: instance.label })}
-                          checked={checked}
-                          onChange={(e) => onSelect("INSTANCE", [instance.id], e.target.checked)}
-                        />
-                      </td>
-                      <td className="oslo-indent">
-                        <button type="button" className="oslo-open oslo-mono" onClick={() => onOpenInstance(instance.id)}>
-                          {instance.label}
-                        </button>
-                        <span className="oslo-sub">
-                          {instance.type ? t(`itype.${instance.type}`) : t(`ui.role.${instance.role}`)}
-                        </span>
-                      </td>
-                      <td>
-                        <StatusBadge status={instance.status} />
-                      </td>
-                      <td>
-                        <a href={`/hosts/${instance.host.id}`}>{instance.host.name}</a>
-                        {instance.hostname !== instance.host.name && <span className="oslo-sub">{instance.hostname}</span>}
-                      </td>
-                      <td></td>
-                      <td className="oslo-mono">{instance.depends_on.join(", ")}</td>
-                      <td></td>
-                      <td></td>
-                    </tr>
-                  );
-                })}
+              {isOpen && (() => {
+                const main = instances.filter((i) => !i.agent);
+                const agents = instances.filter((i) => i.agent).sort((a, b) => a.label.localeCompare(b.label));
+                const agentsOpen = expandAll || openAgents.has(system.id);
+                const renderInstance = (instance: InstanceRow) => {
+                    const checked = selection.kind === "INSTANCE" && selected.has(instance.id);
+                    return (
+                      <tr
+                        key={instance.id}
+                        className={`oslo-instance${checked ? " oslo-selected" : ""}${instance.agent ? " oslo-agent" : ""}${openInstanceId === instance.id ? " oslo-current-row" : ""}`}
+                      >
+                        <td className="oslo-check">
+                          <input
+                            type="checkbox"
+                            aria-label={t("ui.select", { name: instance.label })}
+                            checked={checked}
+                            onChange={(e) => onSelect("INSTANCE", [instance.id], e.target.checked)}
+                          />
+                        </td>
+                        <td className="oslo-indent">
+                          <button type="button" className="oslo-open oslo-mono" onClick={() => onOpenInstance(instance.id)}>
+                            {instance.label}
+                          </button>
+                          <span className="oslo-sub">
+                            {instance.type ? t(`itype.${instance.type}`) : t(`ui.role.${instance.role}`)}
+                          </span>
+                        </td>
+                        <td>
+                          <StatusBadge status={instance.status} />
+                        </td>
+                        <td>
+                          <a href={`/hosts/${instance.host.id}`}>{instance.host.name}</a>
+                          {instance.hostname !== instance.host.name && <span className="oslo-sub">{instance.hostname}</span>}
+                        </td>
+                        <td></td>
+                        <td className="oslo-mono">{instance.depends_on.join(", ")}</td>
+                        <td></td>
+                        <td></td>
+                      </tr>
+                    );
+                };
+                return (
+                  <>
+                    {main.map(renderInstance)}
+                    {agents.length > 0 && (
+                      <tr className="oslo-instance oslo-agent-group">
+                        <td />
+                        <td className="oslo-indent" colSpan={7}>
+                          <button
+                            type="button"
+                            className="oslo-toggle"
+                            aria-expanded={agentsOpen}
+                            disabled={expandAll}
+                            onClick={() =>
+                              setOpenAgents((current) => {
+                                const next = new Set(current);
+                                if (next.has(system.id)) next.delete(system.id);
+                                else next.add(system.id);
+                                return next;
+                              })
+                            }
+                          >
+                            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+                              <path d={agentsOpen ? "M2 4l4 4 4-4" : "M4 2l4 4-4 4"} fill="none" stroke="currentColor" strokeWidth="1.6" />
+                            </svg>
+                          </button>{" "}
+                          <span className="oslo-muted">
+                            {t("agents.group")} ({agents.length})
+                          </span>
+                        </td>
+                      </tr>
+                    )}
+                    {agentsOpen && agents.map(renderInstance)}
+                  </>
+                );
+              })()}
             </tbody>
           );
         })}

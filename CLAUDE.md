@@ -133,7 +133,10 @@ Wichtige Entwurfsentscheidungen:
   (`roles.py`): Datenbank und zentrale Dienste starten parallel, Anwendungsserver erst danach;
   Stopp umgekehrt. Innerhalb einer Rolle ordnet die Startpriorität. Diagnostics Agents
   (`SMDAGENT`) gehören zum System, sind aber nicht Teil von Systemoperationen und zählen nicht
-  zum Systemstatus; einzeln bleiben sie bedienbar. Wunsch des Eigentümers, angelehnt an LaMa.
+  zum Systemstatus; einzeln bleiben sie bedienbar. In der Landschaft, der Systemliste und auf
+  der Seite eines Systems stehen sie zuletzt in einer eigenen, zunächst zugeklappten Gruppe
+  „Diagnostics-Agents“ (beim Umstieg auf React verloren gegangen, 2026-11-23 wiederhergestellt;
+  in der Landschaft offen, solange der Filter „Instanztyp“ aktiv ist). Wunsch des Eigentümers, angelehnt an LaMa.
   `StartSystem` und `StopSystem` des sapstartsrv werden nicht genutzt, weil echte Systeme sie
   für `sapadm` ablehnen. Den sapstartsrv liest das Tool
   nur (`GetProcessList`, `GetSystemInstanceList`).
@@ -417,6 +420,10 @@ Wichtige Entwurfsentscheidungen:
   Servergerendert bleiben Anmeldung, Einrichtung, Sprachwechsel und der Passwortwechsel
   (`/account/password`, auch für Startpasswörter). Die alten Jinja-Seiten, ihre POST-Routen und
   Tests sind entfernt; Tests prüfen die API und in `test_web.py` die Hüllen der Seiten.
+- **Systeme alphabetisch**, ohne Rücksicht auf Groß- und Kleinschreibung
+  (`order_by(func.lower(System.name))` in `api/app.py` und `landscape.py`, im Browser
+  zusätzlich `byName` in `configuration/Systems.tsx`), z. B. in der Auswahl „Einem System
+  zuordnen“.
 - **Pools** gruppieren zusammengehörige Systeme (z. B. Entwicklung, Test, Produktion eines
   Produkts). Ein System gehört zu höchstens einem Pool (Tabelle `pool_systems`). Name und
   Beschreibung lassen sich ändern (`PATCH /api/pools/{id}`, Seite `/configuration/pools/{id}`).

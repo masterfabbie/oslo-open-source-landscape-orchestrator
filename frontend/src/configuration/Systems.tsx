@@ -11,8 +11,21 @@ import { type InstanceInfo, type PoolInfo, STAGES, type SidInfo, type SystemInfo
 
 const LIST = "/configuration/systems";
 
+/** Main instances in their order, then the diagnostics agents by label. */
+function splitAgents(instances: InstanceInfo[]): { main: InstanceInfo[]; agents: InstanceInfo[] } {
+  return {
+    main: instances.filter((i) => i.role !== "agent"),
+    agents: instances.filter((i) => i.role === "agent").sort((a, b) => a.label.localeCompare(b.label)),
+  };
+}
+
+/** Systems in alphabetical order, regardless of case. */
+function byName<T extends { name: string }>(list: T[] | undefined): T[] {
+  return [...(list ?? [])].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base", numeric: true }));
+}
+
 function useSystemsData() {
-  const systems = useQuery({ queryKey: ["systems"], queryFn: () => api<SystemInfo[]>("/systems") });
+  const systems = useQuery({ queryKey: ["systems"], queryFn: async () => byName(await api<SystemInfo[]>("/systems")) });
   const instances = useQuery({ queryKey: ["instances"], queryFn: () => api<InstanceInfo[]>("/instances") });
   const pools = useQuery({ queryKey: ["pools"], queryFn: () => api<PoolInfo[]>("/pools") });
   const hosts = useQuery({ queryKey: ["hosts"], queryFn: () => api<{ id: number; name: string }[]>("/hosts") });
@@ -42,6 +55,8 @@ export function SystemsPage() {
   const { t } = useApp();
   const { systems, instances, pools, hosts } = useSystemsData();
   const [open, setOpen] = useState<Set<number>>(new Set());
+  // Systems whose diagnostics agents are shown (closed at first).
+  const [openAgents, setOpenAgents] = useState<Set<number>>(new Set());
   const poolName = new Map((pools.data ?? []).map((p) => [p.id, p.name]));
   const hostName = new Map((hosts.data ?? []).map((h) => [h.id, h.name]));
   const unassigned = (instances.data ?? []).filter((i) => i.system_id === null).length;
@@ -95,19 +110,49 @@ export function SystemsPage() {
                     <td>{s.tags.join(", ")}</td>
                   </tr>
                   {open.has(s.id) &&
-                    s.instances.map((i) => (
-                      <tr key={`i${i.id}`} className="oslo-nested">
-                        <td />
-                        <td className="oslo-mono">{i.label}</td>
-                        <td colSpan={2}>
-                          <InstanceType instance={i} />
-                        </td>
-                        <td>{hostName.get(i.host_id) ?? ""}</td>
-                        <td colSpan={2}>
-                          <StatusBadge status={i.last_status} />
-                        </td>
-                      </tr>
-                    ))}
+                    (() => {
+                      const { main, agents } = splitAgents(s.instances);
+                      const row = (i: InstanceInfo) => (
+                        <tr key={`i${i.id}`} className="oslo-nested">
+                          <td />
+                          <td className="oslo-mono">{i.label}</td>
+                          <td colSpan={2}>
+                            <InstanceType instance={i} />
+                          </td>
+                          <td>{hostName.get(i.host_id) ?? ""}</td>
+                          <td colSpan={2}>
+                            <StatusBadge status={i.last_status} />
+                          </td>
+                        </tr>
+                      );
+                      const agentsOpen = openAgents.has(s.id);
+                      return (
+                        <>
+                          {main.map(row)}
+                          {agents.length > 0 && (
+                            <tr className="oslo-nested">
+                              <td />
+                              <td colSpan={6}>
+                                <button
+                                  type="button"
+                                  className="link"
+                                  aria-expanded={agentsOpen}
+                                  onClick={() => {
+                                    const next = new Set(openAgents);
+                                    if (agentsOpen) next.delete(s.id);
+                                    else next.add(s.id);
+                                    setOpenAgents(next);
+                                  }}
+                                >
+                                  {agentsOpen ? "▾" : "▸"} {t("agents.group")} ({agents.length})
+                                </button>
+                              </td>
+                            </tr>
+                          )}
+                          {agentsOpen && agents.map(row)}
+                        </>
+                      );
+                    })()}
                 </Fragment>
               ))}
             </tbody>
@@ -428,52 +473,71 @@ export function SystemPage({ id }: { id: number }) {
         {!system.instances.length ? (
           <p className="oslo-muted">{t("system.no_instances")}</p>
         ) : (
-          <div className="oslo-table-wrap">
-            <table className="oslo-table oslo-compact">
-              <thead>
-                <tr>
-                  <th>{t("field.instance")}</th>
-                  <th>{t("field.type")}</th>
-                  <th>{t("field.host")}</th>
-                  <th>{t("field.priority")}</th>
-                  <th>{t("field.status")}</th>
-                  <th>{t("field.actions")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {system.instances.map((i) => (
-                  <tr key={i.id}>
-                    <td className="oslo-mono">{i.label}</td>
-                    <td>
-                      <InstanceType instance={i} />
-                    </td>
-                    <td>{hostName.get(i.host_id) ?? ""}</td>
-                    <td className="oslo-mono">{i.start_priority ?? ""}</td>
-                    <td>
-                      <StatusBadge status={i.last_status} />
-                    </td>
-                    <td>
-                      <button
-                        type="button"
-                        className="link"
-                        disabled={remove.busy}
-                        onClick={() => {
-                          if (window.confirm(t("system.remove_instance_confirm")))
-                            void remove.run(async () => {
-                              await api(`/systems/${id}/instances/${i.id}`, { method: "DELETE" });
-                              await reload();
-                              await queries.invalidateQueries({ queryKey: ["instances"] });
-                            });
-                        }}
-                      >
-                        {t("system.remove_instance")}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          (() => {
+            const { main, agents } = splitAgents(system.instances);
+            const table = (list: InstanceInfo[]) => (
+              <div className="oslo-table-wrap">
+                <table className="oslo-table oslo-compact">
+                  <thead>
+                    <tr>
+                      <th>{t("field.instance")}</th>
+                      <th>{t("field.type")}</th>
+                      <th>{t("field.host")}</th>
+                      <th>{t("field.priority")}</th>
+                      <th>{t("field.status")}</th>
+                      <th>{t("field.actions")}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {list.map((i) => (
+                      <tr key={i.id}>
+                        <td className="oslo-mono">{i.label}</td>
+                        <td>
+                          <InstanceType instance={i} />
+                        </td>
+                        <td>{hostName.get(i.host_id) ?? ""}</td>
+                        <td className="oslo-mono">{i.start_priority ?? ""}</td>
+                        <td>
+                          <StatusBadge status={i.last_status} />
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            className="link"
+                            disabled={remove.busy}
+                            onClick={() => {
+                              if (window.confirm(t("system.remove_instance_confirm")))
+                                void remove.run(async () => {
+                                  await api(`/systems/${id}/instances/${i.id}`, { method: "DELETE" });
+                                  await reload();
+                                  await queries.invalidateQueries({ queryKey: ["instances"] });
+                                });
+                            }}
+                          >
+                            {t("system.remove_instance")}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            );
+            return (
+              <>
+                {main.length > 0 && table(main)}
+                {agents.length > 0 && (
+                  <details className="oslo-agent-group">
+                    <summary>
+                      {t("agents.group")} ({agents.length})
+                    </summary>
+                    <p className="oslo-muted">{t("agents.hint")}</p>
+                    {table(agents)}
+                  </details>
+                )}
+              </>
+            );
+          })()
         )}
         <p>
           <a href={`${LIST}/unassigned`}>{t("unassigned.title")}</a>

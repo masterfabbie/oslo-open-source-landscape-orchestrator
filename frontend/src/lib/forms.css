@@ -42,3 +42,4 @@ td.oslo-fingerprint { min-width: 220px; max-width: 300px; white-space: normal; w
 .oslo-plain-list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
 tr.oslo-disabled-row > td { opacity: 0.6; }
 .oslo-table-caption { caption-side: top; text-align: left; padding: 10px 10px 6px; font-weight: 650; }
+details.oslo-agent-group > summary { cursor: pointer; font-weight: 600; margin: 10px 0 6px; }

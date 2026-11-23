@@ -215,3 +215,20 @@ async def test_times_carry_their_zone(browser, app):  # noqa: F811
     assert boot_of((await browser.get("/landscape")).text)["time_display"] == "browser"
     await browser.put("/api/me/preferences", json={"time": "utc"}, headers=HEADERS)
     assert boot_of((await browser.get("/landscape")).text)["time_display"] == "utc"
+
+
+async def test_systems_in_alphabetical_order(browser):  # noqa: F811
+    """Regardless of case, in the configuration and in the landscape."""
+    from test_web import add_hosts
+
+    await add_hosts(browser)  # systems 1 (DEV) and 2 (HDV)
+    # Sorted by bytes, "Zeta" would come before "beta".
+    for system_id, name in ((1, "beta"), (2, "Zeta")):
+        renamed = await browser.patch(
+            f"/api/systems/{system_id}", json={"name": name}, headers=HEADERS
+        )
+        assert renamed.status_code == 200, renamed.text
+    expected = ["beta", "Zeta"]
+    assert [s["name"] for s in (await browser.get("/api/systems")).json()] == expected
+    landscape = (await browser.get("/api/landscape")).json()
+    assert [s["name"] for s in landscape["systems"]] == expected

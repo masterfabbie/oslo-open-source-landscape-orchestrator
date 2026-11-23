@@ -1,7 +1,7 @@
 // Test data shaped like /api/landscape for the simulated landscape: DEV (ABAP) and HDV.
 import type { InstanceRow, OperationDef, Snapshot, SystemRow } from "../lib/types";
 
-const instance = (id: number, label: string, type: string, host: [number, string, string[]], role: InstanceRow["role"]): InstanceRow => ({
+export const instance = (id: number, label: string, type: string, host: [number, string, string[]], role: InstanceRow["role"]): InstanceRow => ({
   id,
   label,
   sid: label.split("/")[0],
