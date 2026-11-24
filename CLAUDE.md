@@ -749,6 +749,10 @@ und freigeben lassen:
 12. ~~Pools bearbeiten (Name, Beschreibung).~~ Erledigt 2026-11-22.
 13. HTTPS zum Instanz-Agent (sapstartsrv, Port 5NN14) als Einstellung je System oder Instanz,
     mit eigener Zertifikatsprüfung (gewünscht 2026-11-22).
+14. Landschaft → Hosts: Version des Bündels der OSLO-Operationen je Host anzeigen (mit Zustand,
+    gewünscht 2026-11-24).
+15. Konfiguration: Filter für die Listen der Hosts und Systeme (gewünscht 2026-11-24).
+16. Hosts einem Pool zuordnen können, nicht nur Systeme (gewünscht 2026-11-24).
 
 ## Bekannte Lücken
 
