@@ -1,10 +1,12 @@
-// The bar at the bottom while something is selected: the operations that fit the whole
-// selection. Several targets run as one mass operation (no extra question, as wished);
-// stopping or restarting asks once more with a second click on the same button.
+// The bar at the bottom while something is selected: start, stop and restart as buttons, the
+// other operations in menus by category (OperationMenus). Several targets run as one mass
+// operation (no extra question, as wished); stopping or restarting asks once more with a
+// second click on the same button.
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { InstanceRow, OperationDef } from "../lib/types";
-import { type RunOptions, type Selection, operationLabel, operationsFor } from "./selection";
+import { OperationMenus } from "./OperationMenus";
+import { type RunOptions, type Selection, operationsFor } from "./selection";
 import { useApp } from "./ui";
 
 interface Props {
@@ -13,22 +15,16 @@ interface Props {
   instances: Map<number, InstanceRow>;
   onRun: (op: OperationDef, selection: Selection, options?: RunOptions) => void;
   onClear: () => void;
+  // Whether the OSLO operations are current on the hosts of these targets.
+  bundleReady?: (ids: number[]) => boolean;
 }
 
 const PARALLEL = [1, 2, 5, 10, 20];
 
-export function ActionBar({ selection, operations, instances, onRun, onClear }: Props) {
+export function ActionBar({ selection, operations, instances, onRun, onClear, bundleReady }: Props) {
   const { t } = useApp();
-  const [armed, setArmed] = useState<string | null>(null);
   const [parallel, setParallel] = useState(5);
   const [stopOnError, setStopOnError] = useState(false);
-
-  useEffect(() => setArmed(null), [selection]);
-  useEffect(() => {
-    if (!armed) return;
-    const timer = window.setTimeout(() => setArmed(null), 4000);
-    return () => window.clearTimeout(timer);
-  }, [armed]);
 
   if (!selection.ids.length) return null;
   const available = operationsFor(operations, selection, instances);
@@ -41,32 +37,15 @@ export function ActionBar({ selection, operations, instances, onRun, onClear }: 
         {t(`ui.selected_${selection.kind.toLowerCase()}`, { count })}
       </span>
       <div className="oslo-actionbar-ops">
-        {available.length ? (
-          available.map((op) => {
-            const label = operationLabel(op, selection.kind, t);
-            const isArmed = armed === op.key;
-            return (
-              <button
-                key={op.key}
-                type="button"
-                className={`${op.danger ? "oslo-danger" : ""}${isArmed ? " oslo-armed" : ""}`}
-                onClick={() => {
-                  if (op.danger && !isArmed) {
-                    setArmed(op.key);
-                    return;
-                  }
-                  setArmed(null);
-                  onRun(op, selection, several ? { parallel, stopOnError } : {});
-                }}
-              >
-                {isArmed ? t("ui.confirm_operation", { operation: label }) : label}
-                {op.custom && (op.parameters.length || op.template) ? "…" : ""}
-              </button>
-            );
-          })
-        ) : (
-          <span className="oslo-muted">{t("ui.no_operations")}</span>
-        )}
+        <OperationMenus
+          kind={selection.kind}
+          ids={selection.ids}
+          operations={operations}
+          instances={instances}
+          bundleReady={bundleReady}
+          direction="up"
+          onRun={(op) => onRun(op, selection, several ? { parallel, stopOnError } : {})}
+        />
       </div>
       {several && available.length > 0 && (
         <div className="oslo-actionbar-options">

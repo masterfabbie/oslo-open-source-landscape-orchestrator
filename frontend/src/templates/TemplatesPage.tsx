@@ -9,6 +9,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { type Edge, type Node, type NodeProps, Handle, Position, ReactFlow, ReactFlowProvider, useReactFlow } from "@xyflow/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ApiError, api } from "../lib/api";
+import { CategoryInput } from "../lib/CategoryInput";
 import type { BuildingBlocks, OperationDef, Snapshot, Template, TemplateStep, TargetType } from "../lib/types";
 import { useApp } from "../landscape/ui";
 import { NODE_HEIGHT, NODE_WIDTH, addStep, canConnect, connect, disconnect, layout, removeStep, selectionType } from "./graph";
@@ -17,7 +18,7 @@ import { Schedules } from "./Schedules";
 
 type Draft = Omit<Template, "id" | "valid" | "selection"> & { id: number | null };
 
-const EMPTY: Draft = { id: null, key: "", name: "", description: "", role: "operator", steps: [] };
+const EMPTY: Draft = { id: null, key: "", name: "", description: "", role: "operator", category: "", steps: [] };
 const ROLES = ["viewer", "operator", "configurator", "admin"];
 
 function currentId(): number | "new" | null {
@@ -175,6 +176,7 @@ function Editor({ id, onOpen }: { id: number | "new"; onOpen: (id: number | "new
       name: draft.name,
       description: draft.description || null,
       role: draft.role,
+      category: draft.category ?? "",
       steps: draft.steps.map((s) => ({
         position: s.position,
         operation: s.operation,
@@ -318,6 +320,7 @@ function Editor({ id, onOpen }: { id: number | "new"; onOpen: (id: number | "new
             {t("field.description")}
             <input value={draft.description ?? ""} maxLength={1000} onChange={(e) => change({ description: e.target.value })} />
           </label>
+          <CategoryInput className="oslo-wide" value={draft.category ?? ""} onChange={(category) => change({ category })} />
         </section>
       )}
 

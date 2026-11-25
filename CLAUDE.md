@@ -320,6 +320,16 @@ Wichtige Entwurfsentscheidungen:
   (`@xyflow/react` 12, mitgeliefert), Anordnung in `frontend/src/templates/graph.ts`,
   Operationsauswahl mit Favoriten (`user_settings` `favorites.operations`) und den 5
   meistgenutzten der letzten 90 Tage (`/api/templates-blocks`). Annahme: kein Probelauf.
+- **Kategorien der Operationen** (Wunsch des Eigentümers, 2026-11-25, nach dem Vorbild der
+  Menüs in LaMa): Spalte `category` an `custom_operations` und `operation_templates`
+  (Migration 0014), höchstens zwei Ebenen mit `/` (`catalog.check_category`). Eingebaute
+  Kategorien sind Textschlüssel (`cat.instance_agent`, `cat.oslo`; Präfix `cat.` für eigene
+  gesperrt). Start, Stopp, Neustart und Discovery bleiben Knöpfe (eingebaut ohne Kategorie),
+  alles andere in Menüs (`frontend/src/lib/categories.ts`, `landscape/OperationMenus.tsx`,
+  in Leiste und Detailleiste); ohne Kategorie unter „Weitere“, keine Favoriten in der Leiste
+  (Entscheidung des Eigentümers). Unpassende Operationen bleiben grau mit Grund
+  (`op.reason.*`). Die zweite Ebene klappt neben dem Menü auf, nicht in ihm (sonst schneidet
+  das scrollende Menü sie ab; `position: fixed` geht nicht, weil die Leiste `transform` nutzt).
 - **Merkmale eigener Operationen** (Wunsch des Eigentümers, wie in LaMa): `locks` („Sperrt
   Instanz oder Host“, Standard an; aus: läuft neben anderen Aktivitäten und blockiert keine,
   Spalte `activities.locks`, die Konfliktprüfung in `_submit` beachtet nur sperrende) und

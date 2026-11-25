@@ -37,6 +37,10 @@ class OperationDef:
     template: TemplateSpec | None = None
     # False: only as a step of a template, not in menus, the landscape or schedules.
     standalone: bool = True
+    # Menu in the landscape: "Kernel" or "Automation/Kernel"; built-in ones use translation
+    # keys ("cat.instance_agent"); empty for the main buttons (start, stop, restart,
+    # discovery) and for custom operations without a category ("More").
+    category: str = ""
 
     @property
     def name(self) -> str | None:
@@ -61,6 +65,29 @@ class OperationDef:
 
 
 _SYSTEM_AND_INSTANCE = frozenset({TargetType.SYSTEM, TargetType.INSTANCE})
+INSTANCE_AGENT = "cat.instance_agent"
+OSLO_CATEGORY = "cat.oslo"
+MAX_CATEGORY_PART = 40
+
+
+class CategoryError(ValueError):
+    pass
+
+
+def check_category(text: str | None) -> str:
+    """A category as stored: at most two levels separated by "/", e.g. "Automation/Kernel";
+    spaces around the levels are removed. Raises CategoryError."""
+    if not text or not text.strip():
+        return ""
+    parts = [" ".join(part.split()) for part in text.split("/")]
+    if len(parts) > 2:
+        raise CategoryError("A category has at most two levels, e.g. Automation/Kernel")
+    if any(not part or len(part) > MAX_CATEGORY_PART for part in parts):
+        raise CategoryError(f"Each level of a category has 1 to {MAX_CATEGORY_PART} characters")
+    if any(part.startswith("cat.") for part in parts):
+        raise CategoryError("Categories starting with 'cat.' are reserved")
+    return "/".join(parts)
+
 _INSTANCE = frozenset({TargetType.INSTANCE})
 
 BUILT_IN: tuple[OperationDef, ...] = (
@@ -73,12 +100,32 @@ BUILT_IN: tuple[OperationDef, ...] = (
         "discover", OperationKind.DISCOVER, frozenset({TargetType.HOST}), Role.CONFIGURATOR
     ),
     # The instance agent (sapstartsrv) through the host agent.
-    OperationDef("register", OperationKind.REGISTER, _INSTANCE, Role.OPERATOR),
-    OperationDef("unregister", OperationKind.UNREGISTER, _INSTANCE, Role.OPERATOR, danger=True),
-    OperationDef("reregister", OperationKind.REREGISTER, _INSTANCE, Role.OPERATOR, danger=True),
+    OperationDef(
+        "register", OperationKind.REGISTER, _INSTANCE, Role.OPERATOR, category=INSTANCE_AGENT
+    ),
+    OperationDef(
+        "unregister",
+        OperationKind.UNREGISTER,
+        _INSTANCE,
+        Role.OPERATOR,
+        danger=True,
+        category=INSTANCE_AGENT,
+    ),
+    OperationDef(
+        "reregister",
+        OperationKind.REREGISTER,
+        _INSTANCE,
+        Role.OPERATOR,
+        danger=True,
+        category=INSTANCE_AGENT,
+    ),
     # Installs the active OSLO operations bundle into operations.d (bundles.py).
     OperationDef(
-        "update_bundle", OperationKind.UPDATE_BUNDLE, frozenset({TargetType.HOST}), Role.ADMIN
+        "update_bundle",
+        OperationKind.UPDATE_BUNDLE,
+        frozenset({TargetType.HOST}),
+        Role.ADMIN,
+        category=OSLO_CATEGORY,
     ),
 )
 BUILT_IN_KEYS = frozenset(op.key for op in BUILT_IN)
@@ -113,6 +160,7 @@ def definition_of(operation: CustomOperation) -> OperationDef:
         mass=operation.mass,
         custom=spec_of(operation),
         standalone=operation.standalone,
+        category=operation.category or "",
     )
 
 
@@ -168,6 +216,7 @@ def template_definition(
         role=Role(template.role),
         mass=True,
         template=spec,
+        category=template.category or "",
     )
 
 

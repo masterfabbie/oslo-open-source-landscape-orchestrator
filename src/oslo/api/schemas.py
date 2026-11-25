@@ -336,6 +336,7 @@ class OperationOut(BaseModel):
     # False: only as a step of an operation template.
     standalone: bool = True
     parameters: list[ParameterDef] = []
+    category: str = ""
 
 
 class CustomOperationIn(BaseModel):
@@ -355,6 +356,8 @@ class CustomOperationIn(BaseModel):
     standalone: bool = True
     timeout_seconds: int = Field(default=600, ge=10, le=86400)
     parameters: list[ParameterDef] = Field(default=[], max_length=50)
+    # Menu in the landscape, e.g. "Automation/Kernel" (at most two levels); empty: "More".
+    category: str = Field(default="", max_length=128)
 
 
 class CustomOperationOut(CustomOperationIn):
@@ -524,6 +527,7 @@ class TemplateIn(BaseModel):
     description: str | None = None
     role: Literal["viewer", "operator", "configurator", "admin"] = "operator"
     steps: list[TemplateStepIn] = Field(min_length=1, max_length=50)
+    category: str = Field(default="", max_length=128)
 
 
 class StepTargetOut(BaseModel):
@@ -548,6 +552,7 @@ class TemplateOut(BaseModel):
     # every step has fixed targets.
     selection: str | None
     role: str
+    category: str = ""
     steps: list[TemplateStepOut]
     # False if a step uses an operation that no longer exists; the template is then not
     # offered for running.

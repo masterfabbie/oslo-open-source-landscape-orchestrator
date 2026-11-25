@@ -1296,6 +1296,7 @@ def create_app(
             "key": template.key,
             "name": template.name,
             "description": template.description,
+            "category": template.category or "",
             "selection": template.target or None,
             "role": template.role,
             "valid": catalog.get(template.key) is not None,
@@ -1335,6 +1336,7 @@ def create_app(
                 description=body.description,
                 role=body.role,
                 steps=[step.model_dump() for step in body.steps],
+                category=body.category,
             )
         except TemplateError as exc:
             await session.rollback()
@@ -1671,6 +1673,7 @@ def create_app(
                 "custom": operation.custom is not None,
                 "locks": operation.custom.locks if operation.custom else True,
                 "standalone": operation.standalone,
+                "category": operation.category,
                 "parameters": [p.__dict__ for p in operation.custom.parameters]
                 if operation.custom
                 else [],
@@ -1695,6 +1698,7 @@ def create_app(
             "mass": operation.mass,
             "locks": operation.locks,
             "standalone": operation.standalone,
+            "category": operation.category or "",
             "timeout_seconds": operation.timeout_seconds,
             "parameters": [
                 {
@@ -1729,6 +1733,7 @@ def create_app(
                 timeout_seconds=body.timeout_seconds,
                 locks=body.locks,
                 standalone=body.standalone,
+                category=body.category,
             )
             # The parameters are replaced as a whole, in the given order.
             operation.parameters.clear()

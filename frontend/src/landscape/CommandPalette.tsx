@@ -2,6 +2,7 @@
 // another page. Arrow keys choose, Enter runs, Escape closes.
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { categoryPath } from "../lib/categories";
 import { hasRole } from "../lib/i18n";
 import type { InstanceRow, OperationDef, Snapshot } from "../lib/types";
 import { type Selection, operationLabel, operationsFor } from "./selection";
@@ -30,7 +31,7 @@ const MAX_PER_GROUP = 8;
 
 export function CommandPalette(props: Props) {
   const { open, onClose, snapshot, selection, instances, onRun, onOpenSystem, onOpenHost } = props;
-  const { t, role } = useApp();
+  const { t, role, language } = useApp();
   const dialog = useRef<HTMLDialogElement>(null);
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
@@ -58,8 +59,10 @@ export function CommandPalette(props: Props) {
         operationsFor(snapshot.operations, selection, instances).map((op) => ({
           id: `op-${op.key}`,
           group: t("ui.palette_operations"),
-          label: operationLabel(op, selection.kind, t),
-          hint: t(`ui.selected_${selection.kind.toLowerCase()}`, { count: selection.ids.length }),
+          label: operationLabel(op, selection.kind, t, language),
+          hint: [categoryPath(op.category ?? "", t), t(`ui.selected_${selection.kind.toLowerCase()}`, { count: selection.ids.length })]
+            .filter(Boolean)
+            .join(" · "),
           run: () => {
             if (!op.danger || window.confirm(t("op.confirm"))) onRun(op, selection);
           },

@@ -598,6 +598,9 @@ class CustomOperation(Base):
     locks: Mapped[bool] = mapped_column(Boolean, default=True)
     # False: only as a step of an operation template, not in menus or the landscape.
     standalone: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Where the operation is listed in menus, e.g. "Kernel" or "Automation/Kernel"; empty:
+    # under "More" (catalog.check_category).
+    category: Mapped[str] = mapped_column(String(128), default="", server_default="")
     timeout_seconds: Mapped[int] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime())
 
@@ -652,6 +655,8 @@ class OperationTemplate(Base):
     target: Mapped[str] = mapped_column(String(16))
     # Role needed to run the template; at least the highest role of its steps.
     role: Mapped[str] = mapped_column(String(16))
+    # As for custom operations: the menu the template is listed in.
+    category: Mapped[str] = mapped_column(String(128), default="", server_default="")
     # Unused since migration 0008: a selection of several targets is one run.
     mass: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime())

@@ -18,7 +18,7 @@ from datetime import UTC, datetime
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .catalog import BUILT_IN_KEYS, Catalog, OperationDef
+from .catalog import BUILT_IN_KEYS, Catalog, CategoryError, OperationDef, check_category
 from .customops import KEY_PATTERN, ParameterError, parameter_values
 from .models import CustomOperation, OperationTemplate, TemplateStep
 from .operations import NotAssignedError, TargetNotFoundError, TargetType, lock_scope
@@ -89,6 +89,7 @@ async def save_template(
     description: str | None,
     role: str,
     steps: Sequence[Mapping],
+    category: str = "",
 ) -> OperationTemplate:
     """Create (``template`` None) or replace a template with its steps. The caller commits.
 
@@ -178,6 +179,10 @@ async def save_template(
     template.key = key
     template.name = name
     template.description = (description or "").strip() or None
+    try:
+        template.category = check_category(category)
+    except CategoryError as exc:
+        raise TemplateError("category", str(exc)) from exc
     template.target = next(iter(selection), "")
     template.role = role
     template.steps.clear()

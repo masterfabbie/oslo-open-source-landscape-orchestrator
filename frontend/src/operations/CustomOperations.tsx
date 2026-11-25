@@ -4,6 +4,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { api } from "../lib/api";
+import { CategoryInput } from "../lib/CategoryInput";
 import { RecentChanges } from "../lib/changes";
 import { ActionForm, ConfirmButton, PageHead, Section, go } from "../lib/forms";
 import { useApp } from "../landscape/ui";
@@ -43,6 +44,7 @@ interface CustomOperation {
   standalone: boolean;
   timeout_seconds: number;
   parameters: Parameter[];
+  category: string;
 }
 
 type Draft = Omit<CustomOperation, "id">;
@@ -61,6 +63,7 @@ const EMPTY: Draft = {
   standalone: true,
   timeout_seconds: 600,
   parameters: [],
+  category: "",
 };
 
 export function CustomOperationsPage() {
@@ -224,6 +227,7 @@ function Editor({ id, initial }: { id: number | null; initial: Draft }) {
               {t("field.description")}
               <input value={draft.description ?? ""} maxLength={1000} onChange={(e) => set({ description: e.target.value })} />
             </label>
+            <CategoryInput value={draft.category ?? ""} onChange={(category) => set({ category })} />
           </div>
           <fieldset className="oslo-checks">
             <legend>{t("custom.instance_types")}</legend>

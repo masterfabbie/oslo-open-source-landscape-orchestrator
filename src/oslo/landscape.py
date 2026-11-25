@@ -123,6 +123,7 @@ def operation_row(operation: OperationDef) -> dict[str, Any]:
         "template": template is not None,
         "locks": custom.locks if custom else True,
         "standalone": operation.standalone,
+        "category": operation.category,
         "role": operation.role.value,
         # Translation keys (built-in) or names (custom operations) of the steps.
         "steps": [step.label_key() for step in template.steps] if template else [],

@@ -8,7 +8,8 @@ import { api } from "../lib/api";
 import { hasRole } from "../lib/i18n";
 import type { Activity, HostRow, InstanceRow, OperationDef, ProcessList, SystemRow } from "../lib/types";
 import { reachOf } from "./filter";
-import { type Selection, operationLabel, operationsFor } from "./selection";
+import { OperationMenus } from "./OperationMenus";
+import type { Selection } from "./selection";
 import { Tags } from "./SystemsTable";
 import type { Toast } from "./Toasts";
 import { StatusBadge, StatusDot, formatTime, useApp } from "./ui";
@@ -43,25 +44,28 @@ function Header({ title, subtitle, onClose, children }: { title: string; subtitl
   );
 }
 
-function Operations({ operations, selection, onRun }: { operations: OperationDef[]; selection: Selection; onRun: Run }) {
-  const { t } = useApp();
-  const available = operationsFor(operations, selection, new Map());
-  if (!available.length) return null;
+function Operations({
+  operations,
+  selection,
+  onRun,
+  instance,
+}: {
+  operations: OperationDef[];
+  selection: Selection;
+  onRun: Run;
+  instance?: InstanceRow;
+}) {
+  const instances = new Map(instance ? [[instance.id, instance]] : []);
   return (
     <div className="oslo-drawer-ops">
-      {available.map((op) => (
-        <button
-          key={op.key}
-          type="button"
-          className={op.danger ? "oslo-danger" : "secondary"}
-          onClick={() => {
-            if (!op.danger || window.confirm(t("op.confirm"))) onRun(op, selection);
-          }}
-        >
-          {operationLabel(op, selection.kind, t)}
-          {op.custom && (op.parameters.length || op.template) ? "…" : ""}
-        </button>
-      ))}
+      <OperationMenus
+        kind={selection.kind}
+        ids={selection.ids}
+        operations={operations}
+        instances={instances}
+        direction="down"
+        onRun={(op) => onRun(op, selection)}
+      />
     </div>
   );
 }
@@ -359,7 +363,7 @@ export function InstanceDrawer({
             <dt>{t("field.checked")}</dt>
             <dd>{formatTime(instance.status_checked_at, language) || "–"}</dd>
           </dl>
-          <Operations operations={operations} selection={{ kind: "INSTANCE", ids: [instance.id] }} onRun={onRun} />
+          <Operations operations={operations} selection={{ kind: "INSTANCE", ids: [instance.id] }} onRun={onRun} instance={instance} />
         </>
       )}
       {tab === "status" && <Processes instance={instance} />}

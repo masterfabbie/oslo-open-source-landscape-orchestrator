@@ -262,6 +262,7 @@ async def export_configuration(
                 "ordering": o.ordering,
                 "role": o.role,
                 "mass": o.mass,
+                "category": o.category or "",
                 "locks": o.locks,
                 "standalone": o.standalone,
                 "timeout_seconds": o.timeout_seconds,
@@ -310,6 +311,7 @@ async def export_configuration(
                     "name": t.name,
                     "description": t.description,
                     "role": t.role,
+                    "category": t.category or "",
                     "steps": steps,
                 }
             )
@@ -618,6 +620,7 @@ async def _custom_operation(ctx: _Context, item: dict) -> tuple[str, str]:
         mass=bool(item.get("mass", True)),
         timeout_seconds=int(item.get("timeout_seconds") or 3600),
         locks=bool(item.get("locks", True)),
+        category=str(item.get("category") or ""),
         standalone=bool(item.get("standalone", True)),
     )
     if created:
@@ -704,6 +707,7 @@ async def _template(ctx: _Context, item: dict) -> tuple[str, str]:
         description=item.get("description"),
         role=str(item.get("role") or "operator"),
         steps=steps,
+        category=str(item.get("category") or ""),
     )
     await ctx.catalog.reload(ctx.session)
     return ("created" if created else "updated"), ""

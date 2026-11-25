@@ -412,12 +412,19 @@ REST-API; ohne JavaScript zeigen sie nur einen Hinweis.
 - **Auswählen:** Systeme, Instanzen oder Hosts lassen sich ankreuzen, auch alle angezeigten
   auf einmal; gemischt wird nicht (eine Instanz anzukreuzen hebt eine Auswahl von Systemen
   nicht auf, sie wird nur nicht ergänzt). Esc hebt die Auswahl auf.
-- **Leiste unten:** Sie zeigt die Operationen, die zur ganzen Auswahl passen (Zieltyp,
-  Rolle des Benutzers, Instanztypen eigener Operationen). Ein Ziel läuft direkt, mehrere als
+- **Leiste unten:** Starten, Stoppen und Neu starten (bei Hosts die Discovery) sind Knöpfe;
+  alle anderen Operationen stehen in **Menüs nach Kategorie** (z. B. „Instanz-Agent“,
+  „OSLO“, eigene wie „Automation“), mit höchstens einer zweiten Ebene, die seitlich
+  aufklappt („Automation › Kernel“). Jedes Menü hat ein Suchfeld; bei einer Suche erscheinen
+  die Treffer der zweiten Ebene als Gruppen. Operationen ohne Kategorie stehen unter
+  „Weitere“. Was zur Auswahl nicht passt (Instanztyp, mehrere Ziele ohne Massenoperation),
+  bleibt grau sichtbar, mit dem Grund. Gezeigt werden nur Operationen für den Zieltyp und
+  die Rolle des Benutzers. Ein Ziel läuft direkt, mehrere als
   Massenoperation, dann mit Einstellung „gleichzeitig“ (Standard 5) und „bei Fehler
-  anhalten“. Stopp und Neustart brauchen einen zweiten Klick auf denselben Knopf
+  anhalten“. Stopp und Neustart brauchen einen zweiten Klick auf denselben Eintrag
   („Wirklich: …“). Eigene Operationen mit Parametern öffnen erst ein Formular. Danach
-  erscheint eine Meldung mit Link zur Aktivität.
+  erscheint eine Meldung mit Link zur Aktivität. Die Detailleiste zeigt dieselben Menüs, die
+  Befehlspalette nennt die Kategorie neben dem Namen.
 - **Detailleiste rechts:** Ein Klick auf den Namen öffnet sie.
   - **System:** kurze Übersicht. Grob der Status („2 von 2 Instanzen laufen“, grün nur wenn
     alle laufen; Diagnostics Agents zählen nicht), Pool, Abhängigkeiten, Hosts, Tags, die
@@ -596,7 +603,12 @@ auf und liest die Ausgabe laufend ins Protokoll.
 - **Anlegen** dürfen nur Admins: Operations → Eigene Operationen. Je Operation: Name, Schlüssel
   (für URLs und API), Host-Agent-Operation (der `Name:` der Konfigurationsdatei), Ziel
   (Instanz, System oder Host), Instanztypen, Reihenfolge bei Systemen, Rolle zum Ausführen,
-  Zeitlimit, ob sie als Massenoperation erlaubt ist, und zwei Merkmale wie in LaMa:
+  Zeitlimit, ob sie als Massenoperation erlaubt ist, **Kategorie** und zwei Merkmale wie in
+  LaMa:
+  - **Kategorie** (auch für Operationsvorlagen): ordnet die Operation in die Menüs der
+    Landschaft ein, höchstens zwei Ebenen, getrennt durch `/` (`Automation/Kernel`), je Ebene
+    bis 40 Zeichen; das Feld schlägt die schon benutzten Kategorien vor. Leer: „Weitere“.
+    Namen mit `cat.` am Anfang sind für die eingebauten Kategorien reserviert.
   - **Sperrt Instanz oder Host** (Standard an): Die Operation wartet auf andere Aktivitäten
     ihrer Ziele und hält sie vom Start ab, wie Start und Stopp. Für Skripte, die nur lesen
     (z. B. Protokolle), abschalten; sie laufen dann neben anderen Aktivitäten.

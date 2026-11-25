@@ -127,6 +127,14 @@ async def test_define_templates(app, api):
     assert app.state.catalog.get("kernel_update") is None
 
 
+async def test_category_of_a_template(app, api):
+    created = await define(api, chain("stop") | {"category": "Kernel"})
+    assert created["category"] == "Kernel"
+    listed = {op["key"]: op for op in (await api.get("/api/operations")).json()}
+    assert listed["kernel_update"]["category"] == "Kernel"
+    await refused(api, chain("stop") | {"key": "other", "category": "a/b/c"}, 422, "category")
+
+
 async def test_run_a_chain(app, api, landscape):
     await api.post("/api/custom-operations", json=SYSTEM_LO_TEST)
     first = {"operation": "oslo_test", "parameters": {"RC": "0", "SLEEP": "1", "A": "prep"}}

@@ -8,6 +8,7 @@ import pytest
 
 import test_mass
 from conftest import hold_activities, make_user
+from oslo.catalog import CategoryError, check_category
 from oslo.customops import ParameterError, parameter_values
 from oslo.customspec import CustomSpec, ParameterSpec, service_subtype
 from oslo.models import Instance, System
@@ -118,6 +119,35 @@ async def test_define_custom_operations(app, api):
 
     assert (await api.delete(f"/api/custom-operations/{operation['id']}")).status_code == 204
     assert app.state.catalog.get("oslo_test") is None
+
+
+def test_check_category():
+    assert check_category(None) == "" and check_category("  ") == ""
+    assert check_category(" Automation /  Kernel  update ") == "Automation/Kernel update"
+    for bad in ("a/b/c", "a/", "/b", "x" * 41, "cat.oslo", "Automation/cat.x"):
+        with pytest.raises(CategoryError):
+            check_category(bad)
+
+
+async def test_categories_of_operations(app, api):
+    body = OSLO_TEST | {"category": "Automation / Kernel"}
+    response = await api.post("/api/custom-operations", json=body)
+    assert response.status_code == 201, response.text
+    assert response.json()["category"] == "Automation/Kernel"
+    for bad in ("a/b/c", "cat.instance_agent"):
+        body = OSLO_TEST | {"key": "x", "category": bad}
+        response = await api.post("/api/custom-operations", json=body)
+        assert response.status_code == 422, response.text
+
+    listed = {op["key"]: op for op in (await api.get("/api/operations")).json()}
+    assert listed["oslo_test"]["category"] == "Automation/Kernel"
+    # Built-in operations: start, stop, restart stay without a category (buttons).
+    assert listed["start"]["category"] == ""
+    assert listed["register"]["category"] == "cat.instance_agent"
+    assert listed["update_bundle"]["category"] == "cat.oslo"
+    landscape = (await api.get("/api/landscape")).json()
+    rows = {op["key"]: op for op in landscape["operations"]}
+    assert rows["oslo_test"]["category"] == "Automation/Kernel"
 
 
 async def test_run_on_instance(app, api, landscape):

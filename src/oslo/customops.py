@@ -20,7 +20,7 @@ from datetime import UTC, datetime
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .catalog import BUILT_IN_KEYS
+from .catalog import BUILT_IN_KEYS, CategoryError, check_category
 from .customspec import CustomSpec, ParameterSpec
 from .filters import TYPE_VALUES
 from .models import CustomOperation, CustomOperationParameter, OperationTemplate
@@ -139,6 +139,7 @@ async def save_operation(
     timeout_seconds: int,
     locks: bool = True,
     standalone: bool = True,
+    category: str = "",
 ) -> CustomOperation:
     """Create (``operation`` None) or change a custom operation. The caller commits."""
     key, agent_operation = key.strip(), agent_operation.strip()
@@ -165,6 +166,10 @@ async def save_operation(
     operation.mass = mass
     operation.locks = locks
     operation.standalone = standalone
+    try:
+        operation.category = check_category(category)
+    except CategoryError as exc:
+        raise CustomOperationError("category", str(exc)) from exc
     operation.timeout_seconds = timeout_seconds
     await session.flush()
     return operation

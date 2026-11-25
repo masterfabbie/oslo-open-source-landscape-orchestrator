@@ -79,6 +79,13 @@ export interface OperationDef {
   // False: only as a step of an operation template.
   standalone?: boolean;
   role?: string;
+  // Menu in the landscape: "Automation/Kernel", built-in ones a translation key; empty: main
+  // button (built-in) or "More" (custom operations).
+  category?: string;
+  // An OSLO operation from the bundle: runs only on hosts with the current bundle.
+  bundle?: boolean;
+  // Names per language of OSLO operations, e.g. {"de": "...", "en": "..."}.
+  names?: Record<string, string>;
 }
 
 export interface Snapshot {
@@ -165,6 +172,7 @@ export interface Template {
   // Type of the selection the steps without fixed targets run on; null: fixed targets only.
   selection: TargetType | null;
   role: string;
+  category?: string;
   steps: TemplateStep[];
   valid: boolean;
 }

@@ -114,11 +114,14 @@ SPECS: dict[type, Spec] = {
             "locks",
             "standalone",
             "timeout_seconds",
+            "category",
         ),
         lambda o: o.name,
     ),
     OperationTemplate: Spec(
-        "template", ("key", "name", "description", "target", "role"), lambda o: o.name
+        "template",
+        ("key", "name", "description", "target", "role", "category"),
+        lambda o: o.name,
     ),
     Schedule: Spec(
         "schedule",

@@ -60,10 +60,12 @@ async def configure(api) -> None:
     await api.put("/api/systems/1/pool", json={"pool_id": pool["id"]})
     await api.put("/api/systems/1/tags", json={"tags": ["dev", "sla=1"]})
     await api.patch("/api/systems/3", json={"name": "C", "stage": "production"})
-    assert (await api.post("/api/custom-operations", json=OSLO_TEST)).status_code == 201
+    custom = OSLO_TEST | {"category": "Automation/Test"}
+    assert (await api.post("/api/custom-operations", json=custom)).status_code == 201
     template = {
         "key": "stop_and_test",
         "name": "Stop and test",
+        "category": "Automation",
         "role": "operator",
         "steps": [
             {"operation": "stop", "target_type": "SYSTEM", "targets": [1]},
@@ -123,6 +125,8 @@ async def test_export_holds_names_and_encrypted_passwords(api):
     assert steps[1]["targets"] == [{"host": "sapapp1", "sid": "DEV", "number": "00"}]
     assert data["schedules"][0]["name"] == "Nightly stop"
     assert data["custom_operations"][0]["parameters"][2]["name"] == "RC"
+    assert data["custom_operations"][0]["category"] == "Automation/Test"
+    assert data["templates"][0]["category"] == "Automation"
 
     # Without a password no passwords at all; parts can be left out.
     plain = await export(api, ["hosts"], password=None)
@@ -162,6 +166,9 @@ async def test_import_into_another_oslo(api, tmp_path, transport, clock):
         assert actions(second, "systems") == {"A": "created", "B": "created", "C": "created"}
         assert actions(second, "templates") == {"stop_and_test": "created"}
         assert actions(second, "schedules") == {"Nightly stop": "created"}
+        operations = {op["key"]: op for op in (await admin.get("/api/operations")).json()}
+        assert operations["oslo_test"]["category"] == "Automation/Test"
+        assert operations["stop_and_test"]["category"] == "Automation"
         systems = {s["name"]: s for s in (await admin.get("/api/systems")).json()}
         assert systems["C"]["stage"] == "production"
         assert systems["A"]["tags"] == ["dev", "sla=1"]

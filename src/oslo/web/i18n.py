@@ -564,6 +564,26 @@ TEXTS: dict[str, tuple[str, str]] = {
     "tab.transfer": ("Import/Export", "Import/Export"),
     "tab.bundle": ("OSLO operations", "OSLO-Operationen"),
     "tab.tls": ("HTTPS", "HTTPS"),
+    "cat.instance_agent": ("Instance agent", "Instanz-Agent"),
+    "cat.oslo": ("OSLO operations", "OSLO-Operationen"),
+    "cat.more": ("More", "Weitere"),
+    "op.reason.not_mass": (
+        "Only for one target at a time",
+        "Nur für ein Ziel auf einmal",
+    ),
+    "op.reason.instance_type": (
+        "Not for this instance type",
+        "Nicht für diesen Instanztyp",
+    ),
+    "op.reason.bundle": (
+        "OSLO operations on the host are not current",
+        "OSLO-Operationen auf dem Host nicht aktuell",
+    ),
+    "field.category": ("Category", "Kategorie"),
+    "category.hint": (
+        "Menu in the landscape, at most two levels, e.g. Automation/Kernel. Empty: More.",
+        "Menü in der Landschaft, höchstens zwei Ebenen, z. B. Automation/Kernel. Leer: Weitere.",
+    ),
     "tls.intro": (
         "The certificate OSLO serves HTTPS with. The private key is created on this server and "
         "never leaves it: create a self-signed certificate, or a request for your own CA and "
