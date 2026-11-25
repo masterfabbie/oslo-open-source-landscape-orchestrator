@@ -50,6 +50,12 @@ describe("host filters", () => {
     expect(names({ reach: ["UNKNOWN"] })).toEqual(["sapdb1"]);
     expect(names({ agent: ["7.22 PL72"] })).toEqual(["sapapp1"]);
   });
+  it("filters by pool and stage", () => {
+    expect(names({ hpool: ["1"] })).toEqual(["sapapp1"]);
+    expect(names({ hpool: ["none"] })).toEqual(["sapdb1"]);
+    expect(names({ hstage: ["development", "none"] })).toEqual(["sapapp1", "sapdb1"]);
+    expect(names({ hstage: ["production"] })).toEqual([]);
+  });
 });
 
 describe("address", () => {

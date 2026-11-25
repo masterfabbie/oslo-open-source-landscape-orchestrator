@@ -153,13 +153,9 @@ async def test_fetch_certificate(tmp_path):
 async def test_certificates_in_the_api(app, tmp_path):
     pem, key = self_signed()
     async with client(app, await make_user(app)) as admin:
-        check = await admin.post(
-            "/api/trusted-certificates/check", json={"name": "x", "pem": pem}
-        )
+        check = await admin.post("/api/trusted-certificates/check", json={"name": "x", "pem": pem})
         assert check.status_code == 200 and check.json()["self_signed"] is True
-        bad = await admin.post(
-            "/api/trusted-certificates", json={"name": "x", "pem": pem + key}
-        )
+        bad = await admin.post("/api/trusted-certificates", json={"name": "x", "pem": pem + key})
         assert bad.status_code == 422 and "private key" in bad.text
 
         added = await admin.post(

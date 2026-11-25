@@ -363,10 +363,16 @@ Die Hauptmenüpunkte heißen auf Englisch Overview, Landscape, Activities, Confi
 Operations und Administration, auf Deutsch Übersicht, Landschaft, Aktivitäten, Konfiguration,
 Operationen und Administration. Alte Adressen wie `/configuration?tab=systems` leiten weiter.
 
-**Pools** fassen Systeme zusammen, die zusammengehören, z. B. Entwicklungs-, Test- und
-Produktivsystem eines Produkts. Ein System gehört zu höchstens einem Pool. Auf der Seite eines
-Pools (Klick auf den Namen in der Liste) lassen sich Name und Beschreibung ändern; die Systeme
-ordnet man auf der Seite des Systems zu.
+**Pools** fassen Systeme und Hosts zusammen, die zusammengehören, z. B. Entwicklungs-, Test-
+und Produktivsystem eines Produkts. Ein System oder Host gehört zu höchstens einem Pool; der
+Pool eines Hosts ist unabhängig von den Pools seiner Systeme. Auf der Seite eines Pools (Klick
+auf den Namen in der Liste) lassen sich Name und Beschreibung ändern; Systeme und Hosts ordnet
+man auf ihrer eigenen Seite zu. Die Statusmatrix der Übersicht zeigt weiter nur Systeme.
+
+**Stufe eines Hosts:** Wie Systeme haben Hosts eine Stufe (Sandbox, Entwicklung, Qualität,
+Vorproduktion, Produktion). Stufe und Pool stellt man unter Konfiguration → Hosts auf der Seite
+des Hosts ein („Stufe und Pool“); die Landschaft filtert Hosts danach, und Skripte bekommen sie
+als `OSLO_STAGE` und `OSLO_POOL` (siehe Eigene Operationen).
 
 **Mehrere Hosts auf einmal:** Unter „Host anlegen“ nimmt das Feld „Name“ mehrere Namen durch
 Kommas getrennt (`sapapp1, sapapp2, sapdb1`). Alle bekommen dieselben Einstellungen und
@@ -376,7 +382,7 @@ ein Name schon oder steht er doppelt in der Liste, wird nichts angelegt.
 ### Übersicht
 
 - **Statusmatrix:** Zeilen sind die Produkte (Pools, dazu „ohne Pool“), Spalten die Stufen
-  der Systeme: Entwicklung, Qualität und Produktion immer, Sandbox und PreProd nur, wenn ein
+  der Systeme: Entwicklung, Qualität und Produktion immer, Sandbox und Vorproduktion nur, wenn ein
   System sie hat, „Ohne Stufe“ bei Bedarf. Die Stufe stellt man auf der Seite eines Systems ein
   (Configuration → Systeme). Jede Instanz ist ein farbiges Kästchen; ein Klick öffnet das System
   in der Landschaft. Darüber Kennzahlen zu Systemen, Instanzen, Hosts und Aktivitäten der
@@ -390,7 +396,7 @@ ein Name schon oder steht er doppelt in der Liste, wird nichts angelegt.
   | Systeme mit Fehlern | Status Fehler und im Übergang (nicht während einer Aktivität); nur gewählte Stufen |
   | Gestoppte Systeme | Stufe Produktion |
   | Lang laufende Aktivitäten | länger als 60 Minuten |
-  | Nicht erreichbare Hosts | – |
+  | Nicht erreichbare Hosts | alle Stufen (Hosts ohne Stufe immer) |
   | Einplanungen ohne Start | letzter Lauf konnte nicht starten |
   | Hosts ohne aktuelle Discovery | seit 7 Tagen (Standard aus) |
 
@@ -444,7 +450,7 @@ REST-API; ohne JavaScript zeigen sie nur einen Hinweis.
   Seite neu aufzubauen; Auswahl, Filter und offene Systeme bleiben erhalten.
 - **Filter:** Suchfeld (Taste `/`) für System, Beschreibung, SID, Instanz, Host und Tags;
   dazu Listen für Status, Pool, Instanztyp, Tags und Host-Tags (Hosts: Erreichbar, Host
-  Agent, Tags). Innerhalb eines Filters reicht ein Treffer (Pool A oder B, Tag `dev` oder
+  Agent, Tags, Pool, Stufe). Innerhalb eines Filters reicht ein Treffer (Pool A oder B, Tag `dev` oder
   `sla=2`; `sla` passt zu jedem Wert), alle gesetzten Filter müssen zutreffen. Mit dem Filter
   „Instanztyp“ sind die passenden Systeme aufgeklappt und zeigen nur die passenden Instanzen,
   z. B. um alle ABAP-Anwendungsserver auszuwählen. Die Filter stehen in der Adresse; eine
@@ -627,6 +633,11 @@ auf und liest die Ausgabe laufend ins Protokoll.
   Systeme `SAPSYSTEMNAME`, `SAPSYSTEM`, `SAPLOCALHOST`, `PHYSICAL_HOSTNAME`,
   `SERVICE_CLASS` (`Instance`) und `SERVICE_SUBTYPE`; für Hosts `PHYSICAL_HOSTNAME`,
   `RealHostName`, `OS_TYPE`, `OS_VERSION`, `CPUS`, `MEMAV`.
+- **`OSLO_STAGE` und `OSLO_POOL`** übergibt OSLO zusätzlich: die Stufe als Kürzel (`sbx`
+  Sandbox, `dev` Entwicklung, `qas` Qualität, `pre` Vorproduktion, `prd` Produktion) und den
+  Namen des Pools. Bei Instanzen und Systemen gelten die des Systems; hat das System keine
+  Stufe bzw. keinen Pool, die des Hosts. Bei Hosts die des Hosts. Ohne Wert fehlen sie, wie
+  leere optionale Parameter. In der `.conf` z. B. `Command: … $[OSLO_STAGE] $[OSLO_POOL]`.
 - **`SERVICE_SUBTYPE`** (Annahme): Der Teil vor dem Schrägstrich kommt aus dem Instanztyp
   (`Instance_Application_Server`, `Instance_SCS`, `Instance_ERS`, `Instance_System_HDB`,
   `Instance_Diag_Agnt/SolMan`), der Teil danach (`ABAP`, `J2EE`, `Shared`) aus den
@@ -734,7 +745,8 @@ OSLO reserviert: eigene Operationen der Kunden dürfen nicht so heißen.
 **Administration → Import/Export** (nur Admins) lädt die Konfiguration als JSON-Datei herunter
 und liest sie in dasselbe oder ein anderes OSLO wieder ein.
 
-- **Teile**, einzeln wählbar: Hosts (Verbindung, Tags, Zugangsdaten), Zugangsdaten je SID,
+- **Teile**, einzeln wählbar: Hosts (Verbindung, Stufe, Pool, Tags, Zugangsdaten; den Pool
+  ordnet der Import nach den Pools zu), Zugangsdaten je SID,
   Pools, Systeme (Stufe, Pool, Tags, Abhängigkeiten, Instanzen), eigene Operationen,
   Operationsvorlagen, Einplanungen, Regeln für „Braucht Aufmerksamkeit“, vertrauenswürdige
   Zertifikate. Aktivitäten, Protokolle und Benutzer sind nie dabei.
@@ -909,11 +921,13 @@ keine Inventardaten.
 | DELETE | `/api/systems/{id}/instances/{instance_id}` | Instanz aus dem System entfernen |
 | PUT | `/api/systems/{id}/dependencies` | Abhängigkeiten eines Systems setzen (`{"depends_on": [ids]}`) |
 | PUT | `/api/systems/{id}/pool` | System einem Pool zuordnen (`{"pool_id": id}`, `null` entfernt) |
-| GET | `/api/pools` | Pools mit ihren Systemen |
+| PUT | `/api/hosts/{id}/pool` | Host einem Pool zuordnen (`{"pool_id": id}`, `null` entfernt) |
+| PUT | `/api/hosts/{id}/stage` | Stufe eines Hosts (`{"stage": "quality"}`, `null` entfernt); auch während einer Aktivität |
+| GET | `/api/pools` | Pools mit ihren Systemen und Hosts (`system_ids`, `host_ids`) |
 | POST | `/api/pools` | Pool anlegen (`{"name": "...", "description": "..."}`) |
 | GET | `/api/pools/{id}` | ein Pool mit seinen Systemen |
 | PATCH | `/api/pools/{id}` | Name und/oder Beschreibung ändern (leere Beschreibung entfernt sie); Name vergeben: HTTP 409 |
-| DELETE | `/api/pools/{id}` | Pool löschen; seine Systeme bleiben erhalten |
+| DELETE | `/api/pools/{id}` | Pool löschen; seine Systeme und Hosts bleiben erhalten |
 | POST | `/api/instances/{id}/start`, `/stop`, `/restart` | Operation für eine Instanz anstoßen; nur für Instanzen eines Systems, sonst HTTP 409 |
 | POST | `/api/systems/{id}/start`, `/stop`, `/restart` | Operation für ein ganzes System anstoßen |
 | GET | `/api/activities` | Aktivitäten, neueste zuerst (`?limit=`); `?system_id=` die eines Systems (auch über Abhängigkeiten), `?instance_id=` die einer Instanz und ihres Systems, `?host_id=` die Host-Operationen eines Hosts |

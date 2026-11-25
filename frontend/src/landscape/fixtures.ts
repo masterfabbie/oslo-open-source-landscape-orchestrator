@@ -76,7 +76,7 @@ export const SNAPSHOT: Snapshot = {
   user: { name: "admin", role: "admin" },
   systems: [DEV, HDV],
   hosts: [
-    { id: 1, name: "sapapp1", address: "127.0.0.1", reachable: true, hostagent_version: "7.22 PL72", os: "Linux", tags: [], last_discovery_at: null, last_error: null, instance_count: 2, activity: null },
+    { id: 1, name: "sapapp1", address: "127.0.0.1", reachable: true, hostagent_version: "7.22 PL72", os: "Linux", tags: [], last_discovery_at: null, last_error: null, instance_count: 2, activity: null, stage: "development", pool: { id: 1, name: "ERP" } },
     { id: 2, name: "sapdb1", address: "127.0.0.1", reachable: null, hostagent_version: "7.22 PL70", os: "Linux", tags: ["db"], last_discovery_at: null, last_error: null, instance_count: 1, activity: null },
   ],
   pools: [{ id: 1, name: "xDV" }],

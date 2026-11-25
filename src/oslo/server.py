@@ -84,8 +84,7 @@ def main() -> None:
     parser.add_argument(
         "--tls",
         action="store_true",
-        help="serve HTTPS with the certificate stored under Administration → HTTPS "
-        "(or OSLO_TLS=1)",
+        help="serve HTTPS with the certificate stored under Administration → HTTPS (or OSLO_TLS=1)",
     )
     parser.add_argument("--ssl-certfile", help="serve HTTPS with this certificate (chain)")
     parser.add_argument("--ssl-keyfile", help="the private key of --ssl-certfile")

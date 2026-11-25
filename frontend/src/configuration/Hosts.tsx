@@ -9,7 +9,8 @@ import { RecentChanges } from "../lib/changes";
 import { ActionForm, ConfirmButton, CredentialsForm, Messages, PageHead, Section, TagsForm, go, useAction } from "../lib/forms";
 import { StatusBadge, formatTime, useApp } from "../landscape/ui";
 import { CertificateFacts } from "../lib/certificate";
-import type { HostCertificate, HostDetail, HostInfo } from "./types";
+import { StageField } from "./Systems";
+import type { HostCertificate, HostDetail, HostInfo, PoolInfo } from "./types";
 
 const LIST = "/configuration/hosts";
 
@@ -26,6 +27,8 @@ function memory(kb: number | null): string {
 export function HostsPage() {
   const { t, language } = useApp();
   const { data, isPending } = useQuery({ queryKey: ["hosts"], queryFn: () => api<HostInfo[]>("/hosts") });
+  const pools = useQuery({ queryKey: ["pools"], queryFn: () => api<PoolInfo[]>("/pools") });
+  const poolName = new Map((pools.data ?? []).map((p) => [p.id, p.name]));
   return (
     <div className="oslo-page">
       <PageHead title={t("tab.hosts")} action={{ href: `${LIST}/new`, label: t("hosts.add") }} tabs={[{ href: LIST, label: t("tab.overview"), current: true }]} />
@@ -44,6 +47,8 @@ export function HostsPage() {
                 <th>{t("credentials.title")}</th>
                 <th>{t("field.reachable")}</th>
                 <th>{t("field.last_discovery")}</th>
+                <th>{t("field.stage")}</th>
+                <th>{t("field.pool")}</th>
                 <th>{t("field.tags")}</th>
               </tr>
             </thead>
@@ -62,6 +67,8 @@ export function HostsPage() {
                     <ReachBadge host={h} />
                   </td>
                   <td className="oslo-muted">{h.last_discovery_at ? formatTime(h.last_discovery_at, language) : t("hosts.never")}</td>
+                  <td>{h.stage ? t(`stage.${h.stage}`) : <span className="oslo-muted">{t("stage.none")}</span>}</td>
+                  <td>{h.pool_id ? poolName.get(h.pool_id) : <span className="oslo-muted">{t("pool.none")}</span>}</td>
                   <td>{h.tags.join(", ")}</td>
                 </tr>
               ))}
@@ -314,6 +321,9 @@ export function HostPage({ id }: { id: number }) {
               }}
             />
           </Section>
+          <Section title={t("host.stage_pool")} hint={t("host.stage_pool_hint")}>
+            <StagePoolForm host={host} onSaved={reload} />
+          </Section>
           <Section title={t("field.tags")}>
             <TagsForm
               tags={host.tags}
@@ -405,6 +415,38 @@ export function HostPage({ id }: { id: number }) {
       </Section>
       <RecentChanges type="host" id={id} />
     </div>
+  );
+}
+
+function StagePoolForm({ host, onSaved }: { host: HostInfo; onSaved: () => Promise<unknown> }) {
+  const { t } = useApp();
+  const queries = useQueryClient();
+  const pools = useQuery({ queryKey: ["pools"], queryFn: () => api<PoolInfo[]>("/pools") });
+  const [stage, setStage] = useState(host.stage ?? "");
+  const [pool, setPool] = useState<number | "">(host.pool_id ?? "");
+  return (
+    <ActionForm
+      submit={t("action.save")}
+      onSubmit={async () => {
+        await api(`/hosts/${host.id}/stage`, { method: "PUT", body: { stage: stage || null } });
+        await api(`/hosts/${host.id}/pool`, { method: "PUT", body: { pool_id: pool === "" ? null : pool } });
+        await queries.invalidateQueries({ queryKey: ["pools"] });
+        await onSaved();
+      }}
+    >
+      <StageField value={stage} onChange={setStage} />
+      <label className="oslo-field">
+        {t("field.pool")}
+        <select value={pool} onChange={(e) => setPool(e.target.value ? Number(e.target.value) : "")}>
+          <option value="">{t("pool.none")}</option>
+          {(pools.data ?? []).map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
+      </label>
+    </ActionForm>
   );
 }
 

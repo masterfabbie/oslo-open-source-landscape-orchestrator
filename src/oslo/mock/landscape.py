@@ -446,6 +446,8 @@ def default_landscape_config() -> dict[str, Any]:
                     "PARAM-A",
                     "PARAM-SLEEP",
                     "PARAM-RC",
+                    "OSLO_STAGE",
+                    "OSLO_POOL",
                 ],
             }
         ],

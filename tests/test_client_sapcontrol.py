@@ -86,6 +86,7 @@ async def test_system_instance_list(single_sid_landscape):
 
 async def test_start_and_stop_system(single_sid_landscape, clock):
     landscape = single_sid_landscape
+
     async def colors(client: SapControlClient) -> dict[int, StateColor]:
         return {i.instance_nr: i.dispstatus for i in await client.get_system_instance_list()}
 

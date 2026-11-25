@@ -17,10 +17,12 @@ export interface HostFilter {
   reach: string[]; // GREEN, RED, UNKNOWN
   agent: string[];
   htag: string[];
+  hpool: string[]; // pool ids as text, "none" for hosts without pool
+  hstage: string[]; // stages, "none" for hosts without stage
 }
 
 export const SYSTEM_FILTER_KEYS = ["status", "pool", "type", "tag", "hosttag"] as const;
-export const HOST_FILTER_KEYS = ["reach", "agent", "htag"] as const;
+export const HOST_FILTER_KEYS = ["reach", "agent", "htag", "hpool", "hstage"] as const;
 
 const contains = (value: string | null | undefined, q: string) =>
   !!value && value.toLowerCase().includes(q);
@@ -30,7 +32,7 @@ export function emptySystemFilter(): SystemFilter {
 }
 
 export function emptyHostFilter(): HostFilter {
-  return { q: "", reach: [], agent: [], htag: [] };
+  return { q: "", reach: [], agent: [], htag: [], hpool: [], hstage: [] };
 }
 
 function tagMatches(tags: string[], wanted: string[]): boolean {
@@ -81,6 +83,8 @@ export function filterHosts(hosts: HostRow[], f: HostFilter): HostRow[] {
     if (f.reach.length && !f.reach.includes(reachOf(h))) return false;
     if (f.agent.length && !f.agent.includes(h.hostagent_version ?? "")) return false;
     if (f.htag.length && !tagMatches(h.tags, f.htag)) return false;
+    if (f.hpool.length && !f.hpool.includes(h.pool ? String(h.pool.id) : "none")) return false;
+    if (f.hstage.length && !f.hstage.includes(h.stage ?? "none")) return false;
     if (q && !(contains(h.name, q) || contains(h.address, q) || contains(h.os, q) || h.tags.some((t) => contains(t, q))))
       return false;
     return true;

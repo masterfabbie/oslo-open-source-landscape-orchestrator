@@ -87,6 +87,7 @@ SPECS: dict[type, Spec] = {
             "sapcontrol_port_offset",
             "username",
             "password_encrypted",
+            "stage",
         ),
         lambda o: o.name,
         secrets=("password_encrypted",),

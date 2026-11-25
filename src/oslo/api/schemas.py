@@ -122,6 +122,9 @@ class HostOut(BaseModel):
     bundle_version: str | None = None
     bundle_integrity: str | None = None
     bundle_checked_at: datetime | None = None
+    # Like systems: stage (context parameter OSLO_STAGE) and pool.
+    stage: str | None = None
+    pool_id: int | None = None
 
 
 class HostDetail(HostOut):
@@ -463,10 +466,15 @@ class PoolOut(BaseModel):
     name: str
     description: str | None
     system_ids: list[int]
+    host_ids: list[int] = []
 
 
 class PoolAssignment(BaseModel):
     pool_id: int | None
+
+
+class StageIn(BaseModel):
+    stage: Stage | None
 
 
 class UserOut(BaseModel):

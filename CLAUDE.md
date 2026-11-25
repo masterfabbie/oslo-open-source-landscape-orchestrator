@@ -456,6 +456,18 @@ Wichtige Entwurfsentscheidungen:
 - **Pools** gruppieren zusammengehörige Systeme (z. B. Entwicklung, Test, Produktion eines
   Produkts). Ein System gehört zu höchstens einem Pool (Tabelle `pool_systems`). Name und
   Beschreibung lassen sich ändern (`PATCH /api/pools/{id}`, Seite `/configuration/pools/{id}`).
+- **Hosts in Pools und Stufe eines Hosts** (ToDo 16, Wunsch des Eigentümers 2026-11-25):
+  Tabelle `pool_hosts` (höchstens ein Pool je Host, unabhängig von den Pools der Systeme) und
+  `hosts.stage` (Migration 0015). `Host.pool` lädt per `selectin`; neue Hosts bekommen
+  `host.pool = None` (sonst Lazy Load beim Ausgeben). `pools.assign_host_pool` mit
+  `config_log.record`, API `PUT /api/hosts/{id}/pool` und `/stage` (Stufe auch während einer
+  Aktivität). Kontextparameter `OSLO_STAGE` (`models.STAGE_CODES`: sbx, dev, qas, pre, prd)
+  und `OSLO_POOL` in `customspec.instance_arguments`/`host_arguments`: bei Instanzen und
+  Systemen die des Systems, ohne Wert die des Hosts (Entscheidung des Eigentümers); fehlen
+  ohne Wert. Regel `host_unreachable` mit `stages` (Hosts ohne Stufe immer). Import: Stufe mit
+  dem Host, Pool in einem zweiten Durchgang nach den Pools (`host_pools`). Landschaft: Spalte
+  Pool, Filter `hpool`/`hstage`. Die Statusmatrix bleibt bei Systemen. Deutsch heißt
+  `preprod` „Vorproduktion“ (vorher „PreProd“).
 - **Mehrere Hosts auf einmal** (`POST /api/hosts/batch`, Wunsch des Eigentümers): Namen durch
   Kommas im Feld „Name“ (`hostNames` in `Hosts.tsx`), gleiche Einstellungen und Zugangsdaten,
   Adresse = Name, alle oder keiner (vorhandene oder doppelte Namen, auch in anderer
@@ -618,6 +630,9 @@ Wichtige Entwurfsentscheidungen:
   `openssl`, `tar`, `sha256sum`), API, Download der Hosts und Update gegen den Mock.
 - HTTPS von OSLO testet `tests/test_servertls.py` (Test-CA signiert die CSR, Startoptionen mit
   echtem TLS-Handshake, HSTS, `oslo-tls-cert`).
+- Hosts in Pools, Stufe eines Hosts und `OSLO_STAGE`/`OSLO_POOL` testet
+  `tests/test_host_pools.py` (Fixtures von `test_mass.py`; die simulierte Operation
+  `OSLO_TEST` gibt beide als letzte Argumente aus).
 - Import und Export testet `tests/test_transfer.py` (Import in ein zweites, leeres OSLO gegen
   dieselbe simulierte Landschaft, `second_oslo`).
 - Zertifikate testet `tests/test_certificates.py` mit echten TLS-Servern auf 127.0.0.1 und
@@ -779,7 +794,8 @@ und freigeben lassen:
 14. Landschaft → Hosts: Version des Bündels der OSLO-Operationen je Host anzeigen (mit Zustand,
     gewünscht 2026-11-24).
 15. Konfiguration: Filter für die Listen der Hosts und Systeme (gewünscht 2026-11-24).
-16. Hosts einem Pool zuordnen können, nicht nur Systeme (gewünscht 2026-11-24).
+16. ~~Hosts einem Pool zuordnen können, nicht nur Systeme (gewünscht 2026-11-24).~~ Erledigt
+    2026-11-25, dazu eine Stufe je Host und `OSLO_STAGE`/`OSLO_POOL` für Skripte.
 
 ## Bekannte Lücken
 

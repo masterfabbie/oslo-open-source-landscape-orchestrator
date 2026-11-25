@@ -35,6 +35,7 @@ export function HostsTable({ rows, selection, onSelect, onOpen, openId }: Props)
             <th>{t("field.hostagent")}</th>
             <th>{t("field.os")}</th>
             <th>{t("field.instances")}</th>
+            <th>{t("field.pool")}</th>
             <th>{t("field.tags")}</th>
             <th>{t("field.last_discovery")}</th>
             <th>{t("ui.activity")}</th>
@@ -66,6 +67,7 @@ export function HostsTable({ rows, selection, onSelect, onOpen, openId }: Props)
               <td>{host.hostagent_version ?? ""}</td>
               <td>{host.os ?? ""}</td>
               <td>{host.instance_count}</td>
+              <td>{host.pool?.name ?? ""}</td>
               <td>
                 <Tags tags={host.tags} />
               </td>

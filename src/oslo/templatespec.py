@@ -103,9 +103,9 @@ class StepSpec:
             else tuple(data.get("after") or ()),
             on_error=data.get("on_error", "stop"),
             parameters=dict(data.get("parameters") or {}),
-            ask=tuple(p.name for p in custom.parameters) if legacy and custom else tuple(
-                data.get("ask") or ()
-            ),
+            ask=tuple(p.name for p in custom.parameters)
+            if legacy and custom
+            else tuple(data.get("ask") or ()),
             custom=custom,
         )
 

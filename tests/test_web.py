@@ -369,7 +369,7 @@ async def test_logo_and_favicon(anonymous):
     # The small logo in the header, on every page.
     assert "/static/oslo-header.png" in page and "/static/oslo-header-dark.png" in page
     # Without a signed-in user the page follows the colors of the operating system.
-    assert "<html lang=\"en\">" in page
+    assert '<html lang="en">' in page
     names = ("favicon.png", "apple-touch-icon.png", "oslo-logo.png", "oslo-logo-dark.png")
     for name in (*names, "oslo-header.png", "oslo-header-dark.png"):
         image = await anonymous.get(f"/static/{name}")

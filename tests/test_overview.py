@@ -131,9 +131,7 @@ async def test_exceptions_per_user(app, api):
 
 
 async def test_unreachable_host_and_stale_discovery(app, api, landscape):
-    host = (
-        await api.post("/api/hosts", json={"name": "offline", "hostagent_port": 4711})
-    ).json()
+    host = (await api.post("/api/hosts", json={"name": "offline", "hostagent_port": 4711})).json()
     await api.post(f"/api/hosts/{host['id']}/discover")
     data = await overview(api)
     unreachable = [i for i in data["attention"] if i["rule"] == "host_unreachable"]

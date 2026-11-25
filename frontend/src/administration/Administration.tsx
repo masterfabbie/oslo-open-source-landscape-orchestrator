@@ -250,7 +250,7 @@ const SETTINGS: Record<string, [string, "number" | "bool" | "stages" | "statuses
   ],
   stopped_systems: [["stages", "stages"]],
   long_running: [["minutes", "number"]],
-  host_unreachable: [],
+  host_unreachable: [["stages", "stages"]],
   schedule_errors: [],
   stale_discovery: [["days", "number"]],
   bundle_outdated: [],

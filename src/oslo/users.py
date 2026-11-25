@@ -269,9 +269,7 @@ def parse_session(
     return int(user_id), int(epoch)
 
 
-async def session_user(
-    session: AsyncSession, secret_key: str, value: str | None
-) -> User | None:
+async def session_user(session: AsyncSession, secret_key: str, value: str | None) -> User | None:
     parsed = parse_session(secret_key, value)
     if parsed is None:
         return None

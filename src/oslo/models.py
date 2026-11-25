@@ -59,8 +59,17 @@ class UTCDateTime(TypeDecorator[datetime]):
             return None
         return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
 
+
 # Stages of systems, in the order of the overview's columns.
 STAGES = ("sandbox", "development", "quality", "preprod", "production")
+# Short names of the stages, passed to scripts as OSLO_STAGE (customspec.py).
+STAGE_CODES = {
+    "sandbox": "sbx",
+    "development": "dev",
+    "quality": "qas",
+    "preprod": "pre",
+    "production": "prd",
+}
 STATUS_UNKNOWN = "UNKNOWN"
 
 
@@ -80,6 +89,14 @@ pool_systems = Table(
     "pool_systems",
     Base.metadata,
     Column("system_id", ForeignKey("systems.id", ondelete="CASCADE"), primary_key=True),
+    Column("pool_id", ForeignKey("pools.id", ondelete="CASCADE"), nullable=False, index=True),
+)
+
+# A host belongs to at most one pool, independent of the pools of its systems.
+pool_hosts = Table(
+    "pool_hosts",
+    Base.metadata,
+    Column("host_id", ForeignKey("hosts.id", ondelete="CASCADE"), primary_key=True),
     Column("pool_id", ForeignKey("pools.id", ondelete="CASCADE"), nullable=False, index=True),
 )
 
@@ -131,7 +148,12 @@ class Host(Base):
     bundle_version: Mapped[str | None] = mapped_column(String(32))
     bundle_integrity: Mapped[str | None] = mapped_column(String(16))
     bundle_checked_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
+    # Like the stage of a system (STAGES); for the context parameters of operations.
+    stage: Mapped[str | None] = mapped_column(String(16))
 
+    pool: Mapped[Pool | None] = relationship(
+        secondary=pool_hosts, back_populates="hosts", uselist=False, lazy="selectin"
+    )
     instances: Mapped[list[Instance]] = relationship(
         back_populates="host",
         cascade="all, delete-orphan",
@@ -161,6 +183,10 @@ class Host(Base):
     @property
     def tag_list(self) -> list[str]:
         return [tag.text for tag in self.tags]
+
+    @property
+    def pool_id(self) -> int | None:
+        return self.pool.id if self.pool else None
 
     @property
     def hostagent_version(self) -> str | None:
@@ -311,10 +337,17 @@ class Pool(Base):
     systems: Mapped[list[System]] = relationship(
         secondary=pool_systems, back_populates="pool", order_by="System.name"
     )
+    hosts: Mapped[list[Host]] = relationship(
+        secondary=pool_hosts, back_populates="pool", order_by="Host.name"
+    )
 
     @property
     def system_ids(self) -> list[int]:
         return [system.id for system in self.systems]
+
+    @property
+    def host_ids(self) -> list[int]:
+        return [host.id for host in self.hosts]
 
 
 class Instance(Base):

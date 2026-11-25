@@ -419,6 +419,10 @@ export function HostDrawer({
         <dd>{host.hostagent_version ?? "–"}</dd>
         <dt>{t("field.os")}</dt>
         <dd>{host.os ?? "–"}</dd>
+        <dt>{t("field.stage")}</dt>
+        <dd>{host.stage ? t(`stage.${host.stage}`) : t("stage.none")}</dd>
+        <dt>{t("field.pool")}</dt>
+        <dd>{host.pool?.name ?? t("pool.none")}</dd>
         <dt>{t("field.last_discovery")}</dt>
         <dd>{formatTime(host.last_discovery_at, language) || t("hosts.never")}</dd>
         {host.last_error && (

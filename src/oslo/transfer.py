@@ -43,6 +43,7 @@ from .customops import CustomOperationError, save_operation, save_parameter
 from .dependencies import DependencyError, set_dependencies
 from .hosts import Connection, HostChangeError, update_connection
 from .models import (
+    STAGES,
     CustomOperation,
     Host,
     HostTag,
@@ -57,7 +58,7 @@ from .models import (
     TrustedCertificate,
     User,
 )
-from .pools import assign_pool
+from .pools import assign_host_pool, assign_pool
 from .schedules import ScheduleError, save_schedule
 from .systems import SystemChangeError, update_system
 from .tags import TagError, parse_tags, replace_tags, tag_texts
@@ -209,6 +210,8 @@ async def export_configuration(
                 "verify_hostname": h.verify_hostname,
                 "sapcontrol_port_offset": h.sapcontrol_port_offset,
                 "tags": tag_texts(h.tags),
+                "stage": h.stage,
+                "pool": h.pool.name if h.pool else None,
                 **secret(h),
             }
             for h in hosts
@@ -446,6 +449,7 @@ async def _host(ctx: _Context, item: dict) -> tuple[str, str]:
         host = Host(name=name, address=str(item.get("address") or name))
         host.tags = []
         host.agent_info = None
+        host.pool = None
         ctx.session.add(host)
         host.hostagent_port = item.get("hostagent_port")
         host.https = bool(item.get("https", False))
@@ -468,6 +472,10 @@ async def _host(ctx: _Context, item: dict) -> tuple[str, str]:
             ),
         )
     replace_tags(host.tags, HostTag, parse_tags(item.get("tags") or []))
+    stage = item.get("stage") or None
+    if stage not in (None, *STAGES):
+        raise ValueError(f"Unknown stage {stage}")
+    host.stage = stage
     note = _set_credentials(ctx, host, item)
     await ctx.session.flush()
     return ("created" if created else "updated"), note
@@ -508,6 +516,21 @@ async def _pool(ctx: _Context, item: dict) -> tuple[str, str]:
     )
     await ctx.session.flush()
     return "created", ""
+
+
+async def _host_pool(ctx: _Context, item: dict) -> tuple[str, str]:
+    """Second pass over the hosts, once the pools exist."""
+    host = await ctx.session.scalar(
+        select(Host).where(func.lower(Host.name) == str(item["name"]).strip().lower())
+    )
+    if host is None:
+        return "skipped", "host not imported"
+    name = item.get("pool")
+    pool = await ctx.session.scalar(select(Pool).where(Pool.name == name)) if name else None
+    if name and pool is None:
+        return "skipped", f"not found: pool {name}"
+    await assign_host_pool(ctx.session, host.id, pool.id if pool else None)
+    return "updated", ""
 
 
 async def _find_instance(session: AsyncSession, ref: Mapping[str, Any]) -> Instance | None:
@@ -865,6 +888,19 @@ async def import_configuration(
         await _each(ctx, "sids", data["sids"], lambda i: i.get("name", "?"), _sid)
     if "pools" in data:
         await _each(ctx, "pools", data["pools"], lambda i: i.get("name", "?"), _pool)
+    if "hosts" in data:
+        # Only hosts the import itself handled (not skipped as existing in mode "add").
+        handled = {
+            i["name"]
+            for i in ctx.report.items
+            if i["part"] == "hosts" and i["action"] in ("created", "updated")
+        }
+        pooled = [
+            h
+            for h in data["hosts"]
+            if isinstance(h, dict) and "pool" in h and str(h.get("name", "?")) in handled
+        ]
+        await _each(ctx, "host_pools", pooled, lambda i: i.get("name", "?"), _host_pool)
     if "systems" in data:
         await _each(ctx, "systems", data["systems"], lambda i: i.get("name", "?"), _system)
         dependencies = [s for s in data["systems"] if isinstance(s, dict) and s.get("depends_on")]

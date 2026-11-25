@@ -33,9 +33,7 @@ def suggest_name(instances: Iterable[Instance]) -> str:
     """Name proposal: the SID of the ABAP or Java instances, else of the central services,
     else the first SID. Database instances and diagnostics agents come last."""
     preference = {Role.APPLICATION: 0, Role.CENTRAL: 1, Role.DATABASE: 2, Role.AGENT: 3}
-    ordered = sorted(
-        instances, key=lambda i: (preference[i.role], i.sid.name, i.number)
-    )
+    ordered = sorted(instances, key=lambda i: (preference[i.role], i.sid.name, i.number))
     return ordered[0].sid.name if ordered else ""
 
 

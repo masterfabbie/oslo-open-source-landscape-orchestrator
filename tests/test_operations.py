@@ -288,8 +288,7 @@ async def test_dependency_without_instances_fails(app, api):
 
     assert activity["status"] == "FAILED"
     assert activity["error"] == (
-        "System HDV has no instances in the inventory that are started or stopped with "
-        "the system"
+        "System HDV has no instances in the inventory that are started or stopped with the system"
     )
     assert (await statuses(api))["00"] == "GRAY"
 
@@ -507,9 +506,7 @@ async def test_invalid_requests(api, path, expected):
     assert (await api.request(method, path)).status_code == expected
 
 
-async def test_activities_interrupted_by_restart_are_marked_failed(
-    make_app, settings, landscape
-):
+async def test_activities_interrupted_by_restart_are_marked_failed(make_app, settings, landscape):
     landscape.start_duration = 10_000
 
     first = make_app()

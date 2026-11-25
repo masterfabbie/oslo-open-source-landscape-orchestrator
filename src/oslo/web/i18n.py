@@ -54,12 +54,25 @@ TEXTS: dict[str, tuple[str, str]] = {
         "Systems are put into a pool on the page of the system.",
         "Systeme ordnest du auf der Seite des Systems einem Pool zu.",
     ),
+    "pool.hosts_hint": (
+        "Hosts are put into a pool on the page of the host.",
+        "Hosts ordnest du auf der Seite des Hosts einem Pool zu.",
+    ),
+    "host.stage_pool": ("Stage and pool", "Stufe und Pool"),
+    "host.stage_pool_hint": (
+        "Passed to scripts as OSLO_STAGE (sbx, dev, qas, pre, prd) and OSLO_POOL; for "
+        "instances only if their system has no stage or pool.",
+        "Wird an Skripte als OSLO_STAGE (sbx, dev, qas, pre, prd) und OSLO_POOL übergeben; "
+        "bei Instanzen nur, wenn ihr System keine Stufe bzw. keinen Pool hat.",
+    ),
     "pool.none_defined": ("No pools are defined yet.", "Es sind noch keine Pools angelegt."),
     "pool.explanation": (
-        "A pool groups systems that belong together, for example the development, test and "
-        "production system of one product. A system belongs to at most one pool.",
-        "Ein Pool fasst Systeme zusammen, die zusammengehören, zum Beispiel Entwicklungs-, "
-        "Test- und Produktivsystem eines Produkts. Ein System gehört zu höchstens einem Pool.",
+        "A pool groups systems and hosts that belong together, for example the development, "
+        "test and production system of one product. A system or host belongs to at most one "
+        "pool.",
+        "Ein Pool fasst Systeme und Hosts zusammen, die zusammengehören, zum Beispiel "
+        "Entwicklungs-, Test- und Produktivsystem eines Produkts. Ein System oder Host gehört "
+        "zu höchstens einem Pool.",
     ),
     "config.systems_hint": (
         "A system groups instances that are started and stopped together, for example an "
@@ -145,6 +158,7 @@ TEXTS: dict[str, tuple[str, str]] = {
     "filter.name": ("Name", "Name"),
     "filter.status": ("Status", "Status"),
     "filter.pool": ("Pool", "Pool"),
+    "filter.stage": ("Stage", "Stufe"),
     "filter.host": ("Host", "Host"),
     "filter.type": ("Instance type", "Instanztyp"),
     "filter.tag": ("Tags", "Tags"),
@@ -281,6 +295,7 @@ TEXTS: dict[str, tuple[str, str]] = {
     "cfg.field.depends_on": ("Depends on", "Hängt ab von"),
     "cfg.field.pool": ("Pool", "Pool"),
     "cfg.field.systems": ("Systems", "Systeme"),
+    "cfg.field.hosts": ("Hosts", "Hosts"),
     "cfg.field.key": ("Key", "Schlüssel"),
     "cfg.field.agent_operation": ("Host agent operation", "Operation am Host Agent"),
     "cfg.field.target": ("Target", "Ziel"),
@@ -728,8 +743,8 @@ TEXTS: dict[str, tuple[str, str]] = {
     "bundle.state.installed": ("installed", "installiert"),
     "bundle.on_host": ("OSLO operations", "OSLO-Operationen"),
     "transfer.part.hosts": (
-        "Hosts (connection, tags, credentials)",
-        "Hosts (Verbindung, Tags, Zugangsdaten)",
+        "Hosts (connection, stage, pool, tags, credentials)",
+        "Hosts (Verbindung, Stufe, Pool, Tags, Zugangsdaten)",
     ),
     "transfer.part.sids": ("Credentials per SID", "Zugangsdaten je SID"),
     "transfer.part.pools": ("Pools", "Pools"),
@@ -746,6 +761,7 @@ TEXTS: dict[str, tuple[str, str]] = {
     ),
     "transfer.part.certificates": ("Trusted certificates", "Vertrauenswürdige Zertifikate"),
     "transfer.part.dependencies": ("Dependencies", "Abhängigkeiten"),
+    "transfer.part.host_pools": ("Pools of the hosts", "Pools der Hosts"),
     "transfer.part.credentials": ("Credentials", "Zugangsdaten"),
     "transfer.export": ("Export", "Export"),
     "transfer.export_hint": (
@@ -1473,7 +1489,7 @@ TEXTS: dict[str, tuple[str, str]] = {
     "admin.timezone": ("Time zone of schedules", "Zeitzone der Einplanungen"),
     "token.none": ("No tokens yet.", "Noch keine Tokens."),
     "att.rules_intro": (
-        "The rules decide what the overview shows under \"needs attention\", for everyone. "
+        'The rules decide what the overview shows under "needs attention", for everyone. '
         "Each user can switch rules off and hide systems or pools for themselves.",
         "Die Regeln bestimmen, was die Übersicht unter „Braucht Aufmerksamkeit“ zeigt, für "
         "alle. Jeder Benutzer kann Regeln für sich abschalten und Systeme oder Pools "
@@ -1497,8 +1513,10 @@ TEXTS: dict[str, tuple[str, str]] = {
         "Aktivitäten, die länger als angegeben laufen.",
     ),
     "att.hint.host_unreachable": (
-        "Hosts whose host agent could not be reached at the last discovery.",
-        "Hosts, deren Host Agent bei der letzten Discovery nicht erreichbar war.",
+        "Hosts whose host agent could not be reached at the last discovery; only hosts of the "
+        "chosen stages (none chosen: all; hosts without a stage always).",
+        "Hosts, deren Host Agent bei der letzten Discovery nicht erreichbar war; nur Hosts der "
+        "gewählten Stufen (keine gewählt: alle; Hosts ohne Stufe immer).",
     ),
     "att.hint.schedule_errors": (
         "Schedules whose last run could not start.",
@@ -1559,7 +1577,7 @@ TEXTS: dict[str, tuple[str, str]] = {
     "stage.sandbox": ("Sandbox", "Sandbox"),
     "stage.development": ("Development", "Entwicklung"),
     "stage.quality": ("Quality", "Qualität"),
-    "stage.preprod": ("Pre-production", "PreProd"),
+    "stage.preprod": ("Pre-production", "Vorproduktion"),
     "stage.production": ("Production", "Produktion"),
     "stage.none": ("No stage", "Ohne Stufe"),
     "att.rule.failed_activities": ("Failed activities", "Fehlgeschlagene Aktivitäten"),

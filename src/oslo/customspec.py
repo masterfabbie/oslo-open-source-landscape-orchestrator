@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .models import Host, Instance, System
+from .models import STAGE_CODES, Host, Instance, System
 from .roles import Role as InstanceRole
 from .roles import instance_type_key
 
@@ -117,21 +117,37 @@ def service_subtype(instance: Instance, system: System | None) -> str:
     return "Instance_Application_Server/None"
 
 
+def _oslo_arguments(stage: str | None, pool: str | None) -> dict[str, str]:
+    """OSLO_STAGE (sbx, dev, qas, pre, prd) and OSLO_POOL; left out when not set, like empty
+    optional parameters."""
+    arguments = {}
+    if stage in STAGE_CODES:
+        arguments["OSLO_STAGE"] = STAGE_CODES[stage]
+    if pool:
+        arguments["OSLO_POOL"] = pool
+    return arguments
+
+
 def instance_arguments(instance: Instance, system: System | None) -> dict[str, str]:
-    """Context parameters of an instance, named as in LaMa."""
+    """Context parameters of an instance, named as in LaMa, plus OSLO_STAGE and OSLO_POOL:
+    those of the system, or of the host where the system has none."""
+    host = instance.host
+    stage = (system.stage if system else None) or host.stage
+    pool = system.pool if system is not None and system.pool is not None else host.pool
     return {
         "SAPSYSTEMNAME": instance.sid.name,
         "SAPSYSTEM": instance.number,
         "SAPLOCALHOST": instance.hostname,
-        "PHYSICAL_HOSTNAME": instance.host.name,
+        "PHYSICAL_HOSTNAME": host.name,
         "SERVICE_CLASS": "Instance",
         "SERVICE_SUBTYPE": service_subtype(instance, system),
-    }
+    } | _oslo_arguments(stage, pool.name if pool else None)
 
 
 def host_arguments(host: Host) -> dict[str, str]:
-    """Context parameters of a host, named as in LaMa."""
+    """Context parameters of a host, named as in LaMa, plus OSLO_STAGE and OSLO_POOL."""
     arguments = {"PHYSICAL_HOSTNAME": host.name, "RealHostName": host.name}
+    arguments |= _oslo_arguments(host.stage, host.pool.name if host.pool else None)
     if host.os_name:
         arguments["OS_TYPE"] = host.os_name
     if host.os_version:

@@ -214,6 +214,8 @@ async def landscape_snapshot(session: AsyncSession, catalog: Catalog, user: User
             # OSLO operations installed on the host compared with the active bundle; only
             # "current" hosts run operations of the bundle.
             "bundle_state": host_state(h, active_bundle),
+            "stage": h.stage,
+            "pool": {"id": h.pool.id, "name": h.pool.name} if h.pool else None,
         }
         for h in hosts
     ]

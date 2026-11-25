@@ -34,7 +34,7 @@ export const OBJECT_TYPES = [
 ];
 
 // Fields that are lists: their entries are added ("+") or removed ("−").
-const LISTS = new Set(["tags", "instances", "systems", "depends_on"]);
+const LISTS = new Set(["tags", "instances", "systems", "hosts", "depends_on"]);
 
 // Shown as "(changed)": secrets and long values.
 const CHANGED = "(changed)";

@@ -379,7 +379,7 @@ export function SystemNewPage() {
   );
 }
 
-function StageField({ value, onChange }: { value: string; onChange: (stage: string) => void }) {
+export function StageField({ value, onChange }: { value: string; onChange: (stage: string) => void }) {
   const { t } = useApp();
   return (
     <label className="oslo-field">

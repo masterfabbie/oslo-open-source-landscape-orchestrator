@@ -62,7 +62,8 @@ DEFAULT_RULES: dict[str, dict[str, Any]] = {
     # Activities running longer than this.
     "long_running": {"enabled": True, "minutes": 60},
     # Hosts whose host agent could not be reached at the last discovery.
-    "host_unreachable": {"enabled": True},
+    # Only hosts of these stages; empty: all (hosts without a stage always).
+    "host_unreachable": {"enabled": True, "stages": []},
     # Schedules whose last run could not start.
     "schedule_errors": {"enabled": True},
     # Hosts without a discovery for this many days.
@@ -380,7 +381,12 @@ async def attention_items(
                         host.id,
                     )
                 )
-        if "host_unreachable" in on and host.reachable is False:
+        unreachable_stages = rules["host_unreachable"]["stages"]
+        if (
+            "host_unreachable" in on
+            and host.reachable is False
+            and (not unreachable_stages or not host.stage or host.stage in unreachable_stages)
+        ):
             items.append(
                 Item(
                     "host_unreachable",

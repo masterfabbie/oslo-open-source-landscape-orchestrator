@@ -42,6 +42,8 @@ export interface HostInfo {
   bundle_integrity: string | null;
   bundle_checked_at: string | null;
   tags: string[];
+  stage: string | null;
+  pool_id: number | null;
 }
 
 export interface DatabaseInfo {
@@ -76,6 +78,7 @@ export interface PoolInfo {
   name: string;
   description: string | null;
   system_ids: number[];
+  host_ids: number[];
 }
 
 export interface SidInfo {

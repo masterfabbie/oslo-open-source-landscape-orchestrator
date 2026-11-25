@@ -16,6 +16,7 @@ interface Props {
 }
 
 const STATUS = ["GREEN", "YELLOW", "RED", "GRAY", "UNKNOWN"];
+const STAGES = ["sandbox", "development", "quality", "preprod", "production"];
 const TYPES = ["hana", "scs", "ers", "abap", "java", "dual", "agent"];
 
 export function FilterBar({ kind, filter, onChange, snapshot, summary }: Props) {
@@ -71,6 +72,16 @@ export function FilterBar({ kind, filter, onChange, snapshot, summary }: Props) 
               .map((v) => ({ value: v, label: v })),
           },
           { key: "htag", label: t("filter.tag"), options: tagOptions(snapshot.hosts).map((v) => ({ value: v, label: v })) },
+          {
+            key: "hpool",
+            label: t("filter.pool"),
+            options: [...snapshot.pools.map((p) => ({ value: String(p.id), label: p.name })), { value: "none", label: t("pool.none") }],
+          },
+          {
+            key: "hstage",
+            label: t("filter.stage"),
+            options: [...STAGES.map((s) => ({ value: s, label: t(`stage.${s}`) })), { value: "none", label: t("stage.none") }],
+          },
         ];
 
   const values = filter as unknown as Record<string, string[]> & { q: string };

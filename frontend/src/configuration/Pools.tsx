@@ -6,7 +6,7 @@ import { api } from "../lib/api";
 import { RecentChanges } from "../lib/changes";
 import { ActionForm, ConfirmButton, PageHead, Section, go } from "../lib/forms";
 import { useApp } from "../landscape/ui";
-import type { PoolInfo, SystemInfo } from "./types";
+import type { HostInfo, PoolInfo, SystemInfo } from "./types";
 
 const LIST = "/configuration/pools";
 
@@ -15,7 +15,9 @@ export function PoolsPage() {
   const queries = useQueryClient();
   const pools = useQuery({ queryKey: ["pools"], queryFn: () => api<PoolInfo[]>("/pools") });
   const systems = useQuery({ queryKey: ["systems"], queryFn: () => api<SystemInfo[]>("/systems") });
+  const hosts = useQuery({ queryKey: ["hosts"], queryFn: () => api<HostInfo[]>("/hosts") });
   const name = new Map((systems.data ?? []).map((s) => [s.id, s.name]));
+  const hostName = new Map((hosts.data ?? []).map((h) => [h.id, h.name]));
   return (
     <div className="oslo-page">
       <PageHead title={t("tab.pools")} action={{ href: `${LIST}/new`, label: t("pool.add") }} tabs={[{ href: LIST, label: t("tab.overview"), current: true }]} />
@@ -32,6 +34,7 @@ export function PoolsPage() {
                 <th>{t("field.name")}</th>
                 <th>{t("field.description")}</th>
                 <th>{t("tab.systems")}</th>
+                <th>{t("tab.hosts")}</th>
                 <th>{t("field.actions")}</th>
               </tr>
             </thead>
@@ -50,6 +53,18 @@ export function PoolsPage() {
                         <span key={id}>
                           {i > 0 && ", "}
                           <a href={`/configuration/systems/${id}`}>{name.get(id) ?? `#${id}`}</a>
+                        </span>
+                      ))
+                    ) : (
+                      <span className="oslo-muted">{t("deps.none")}</span>
+                    )}
+                  </td>
+                  <td>
+                    {p.host_ids.length ? (
+                      p.host_ids.map((id, i) => (
+                        <span key={id}>
+                          {i > 0 && ", "}
+                          <a href={`/configuration/hosts/${id}`}>{hostName.get(id) ?? `#${id}`}</a>
                         </span>
                       ))
                     ) : (
@@ -111,22 +126,24 @@ export function PoolPage({ id }: { id: number }) {
   const { t } = useApp();
   const pool = useQuery({ queryKey: ["pool", id], queryFn: () => api<PoolInfo>(`/pools/${id}`) });
   const systems = useQuery({ queryKey: ["systems"], queryFn: () => api<SystemInfo[]>("/systems") });
+  const hosts = useQuery({ queryKey: ["hosts"], queryFn: () => api<HostInfo[]>("/hosts") });
   if (pool.isPending) return <p className="oslo-muted">{t("ui.loading")}</p>;
   if (!pool.data) return <p className="flash error">{(pool.error as Error)?.message}</p>;
   return (
     <>
-      <PoolEditor pool={pool.data} systems={systems.data ?? []} />
+      <PoolEditor pool={pool.data} systems={systems.data ?? []} hosts={hosts.data ?? []} />
       <div className="oslo-page"><RecentChanges type="pool" id={id} /></div>
     </>
   );
 }
 
-function PoolEditor({ pool, systems }: { pool: PoolInfo; systems: SystemInfo[] }) {
+function PoolEditor({ pool, systems, hosts }: { pool: PoolInfo; systems: SystemInfo[]; hosts: HostInfo[] }) {
   const { t } = useApp();
   const queries = useQueryClient();
   const [name, setName] = useState(pool.name);
   const [description, setDescription] = useState(pool.description ?? "");
   const members = systems.filter((s) => pool.system_ids.includes(s.id));
+  const memberHosts = hosts.filter((h) => pool.host_ids.includes(h.id));
   return (
     <div className="oslo-page">
       <PageHead
@@ -168,6 +185,19 @@ function PoolEditor({ pool, systems }: { pool: PoolInfo; systems: SystemInfo[] }
               {members.map((s) => (
                 <li key={s.id}>
                   <a href={`/configuration/systems/${s.id}`}>{s.name}</a>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="oslo-muted">{t("deps.none")}</p>
+          )}
+        </Section>
+        <Section title={t("tab.hosts")} hint={t("pool.hosts_hint")}>
+          {memberHosts.length ? (
+            <ul className="oslo-plain-list">
+              {memberHosts.map((h) => (
+                <li key={h.id}>
+                  <a href={`/configuration/hosts/${h.id}`}>{h.name}</a>
                 </li>
               ))}
             </ul>

@@ -94,7 +94,7 @@ from ..operations import (
     TargetType,
 )
 from ..permissions import required_role
-from ..pools import UnknownPoolError, assign_pool
+from ..pools import UnknownPoolError, assign_host_pool, assign_pool
 from ..schedules import ScheduleError, Scheduler, save_schedule
 from ..settings import Settings
 from ..status import refresh_system
@@ -179,6 +179,7 @@ from .schemas import (
     ScheduleIn,
     ScheduleOut,
     SidOut,
+    StageIn,
     StepOut,
     SystemCreate,
     SystemOut,
@@ -439,6 +440,7 @@ def create_app(
         )
         host.agent_info = None  # nothing read yet; avoids a lazy load
         host.tags = []
+        host.pool = None
         session.add(host)
         try:
             await session.commit()
@@ -486,6 +488,7 @@ def create_app(
             )
             host.agent_info = None
             host.tags = []
+            host.pool = None
             session.add(host)
             hosts.append(host)
         await session.commit()
@@ -709,12 +712,16 @@ def create_app(
 
     @api.get("/pools", response_model=list[PoolOut])
     async def list_pools(session: Session) -> list[Pool]:
-        query = select(Pool).order_by(Pool.name).options(selectinload(Pool.systems))
+        query = (
+            select(Pool)
+            .order_by(Pool.name)
+            .options(selectinload(Pool.systems), selectinload(Pool.hosts))
+        )
         return list(await session.scalars(query))
 
     @api.post("/pools", response_model=PoolOut, status_code=status.HTTP_201_CREATED)
     async def create_pool(body: PoolCreate, session: Session) -> Pool:
-        pool = Pool(name=body.name.strip(), description=body.description, systems=[])
+        pool = Pool(name=body.name.strip(), description=body.description, systems=[], hosts=[])
         session.add(pool)
         try:
             await session.commit()
@@ -726,7 +733,9 @@ def create_app(
 
     async def load_pool(session: AsyncSession, pool_id: int) -> Pool:
         pool = await session.scalar(
-            select(Pool).where(Pool.id == pool_id).options(selectinload(Pool.systems))
+            select(Pool)
+            .where(Pool.id == pool_id)
+            .options(selectinload(Pool.systems), selectinload(Pool.hosts))
         )
         if pool is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Pool not found")
@@ -853,6 +862,25 @@ def create_app(
         await session.commit()
         await clients.load_trusted(session)
         return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+    @api.put("/hosts/{host_id}/pool", response_model=HostOut)
+    async def set_host_pool(host_id: int, body: PoolAssignment, session: Session) -> Host:
+        """Put a host into a pool; ``null`` takes it out."""
+        await load_host(session, host_id)
+        try:
+            await assign_host_pool(session, host_id, body.pool_id)
+        except UnknownPoolError as exc:
+            raise HTTPException(422, str(exc)) from exc
+        await session.commit()
+        return await load_host(session, host_id)
+
+    @api.put("/hosts/{host_id}/stage", response_model=HostOut)
+    async def set_host_stage(host_id: int, body: StageIn, session: Session) -> Host:
+        """Stage of a host (also during activities: it is no connection data)."""
+        host = await load_host(session, host_id)
+        host.stage = body.stage
+        await session.commit()
+        return await load_host(session, host_id)
 
     @api.put("/systems/{system_id}/pool", response_model=SystemOut)
     async def set_system_pool(system_id: int, body: PoolAssignment, session: Session) -> System:
@@ -1217,9 +1245,7 @@ def create_app(
         """Create a key and a self-signed certificate (admin); used after a restart with
         --tls."""
         try:
-            await servertls.store_self_signed(
-                session, secret_box, body.names, body.ips, body.days
-            )
+            await servertls.store_self_signed(session, secret_box, body.names, body.ips, body.days)
         except servertls.TlsError as exc:
             raise tls_error(exc) from exc
         await session.commit()
@@ -2128,6 +2154,7 @@ def create_app(
     app.state.fetch_certificate = fetch_certificate
     app.state.setup_code = None
     app.state.session_factory = session_factory
+
     # Downloads of the hosts (oslo_update.sh): no sign-in, the bundle is signed and holds no
     # secrets.
     @app.get("/bundle/{name}", include_in_schema=False)

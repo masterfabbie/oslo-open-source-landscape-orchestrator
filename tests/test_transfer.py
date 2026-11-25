@@ -58,6 +58,8 @@ async def configure(api) -> None:
     """A pool, tags, a custom operation, a template with fixed targets and a schedule."""
     pool = (await api.post("/api/pools", json={"name": "ERP", "description": "Product"})).json()
     await api.put("/api/systems/1/pool", json={"pool_id": pool["id"]})
+    await api.put("/api/hosts/1/pool", json={"pool_id": pool["id"]})
+    await api.put("/api/hosts/1/stage", json={"stage": "quality"})
     await api.put("/api/systems/1/tags", json={"tags": ["dev", "sla=1"]})
     await api.patch("/api/systems/3", json={"name": "C", "stage": "production"})
     custom = OSLO_TEST | {"category": "Automation/Test"}
@@ -114,6 +116,8 @@ async def test_export_holds_names_and_encrypted_passwords(api):
     assert data["format"] == "oslo-export" and data["version"] == 1
     hosts = {h["name"]: h for h in data["hosts"]}
     assert hosts["sapapp1"]["username"] == "devadm"
+    assert hosts["sapapp1"]["stage"] == "quality" and hosts["sapapp1"]["pool"] == "ERP"
+    assert hosts["sapdb1"]["pool"] is None
     text = json.dumps(data)
     assert '"mock"' not in text  # the password of the hosts, never in plain text
     system = next(s for s in data["systems"] if s["name"] == "A")
@@ -150,6 +154,10 @@ async def test_import_into_another_oslo(api, tmp_path, transport, clock):
         hosts = (await admin.get("/api/hosts")).json()
         assert all(h["has_credentials"] for h in hosts)
         assert actions(first, "pools") == {"ERP": "created"}
+        assert actions(first, "host_pools") == {"sapapp1": "updated", "sapdb1": "updated"}
+        imported = {h["name"]: h for h in (await admin.get("/api/hosts")).json()}
+        assert imported["sapapp1"]["stage"] == "quality" and imported["sapapp1"]["pool_id"]
+        assert imported["sapdb1"]["pool_id"] is None
         # Instances come from a discovery, which the import does not run.
         assert set(actions(first, "systems").values()) == {"failed"}
         assert (

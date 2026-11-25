@@ -51,6 +51,8 @@ export interface HostRow {
   activity: ActivityRef | null;
   // OSLO operations on the host compared with the active bundle (lib/bundle.ts).
   bundle_state?: string;
+  stage?: string | null;
+  pool?: { id: number; name: string } | null;
 }
 
 export interface Parameter {

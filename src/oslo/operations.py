@@ -1287,8 +1287,11 @@ class OperationRunner:
                             )
                         )
                         await session.commit()
-                if stopped is None and not running and pending and not any(
-                    set(s.after) <= passed for s in pending
+                if (
+                    stopped is None
+                    and not running
+                    and pending
+                    and not any(set(s.after) <= passed for s in pending)
                 ):
                     break  # cannot happen without a cycle; save_template rejects those
         except asyncio.CancelledError:
@@ -1420,6 +1423,8 @@ class OperationRunner:
                 .options(
                     selectinload(System.instances).selectinload(Instance.host),
                     selectinload(System.instances).selectinload(Instance.sid),
+                    # For OSLO_POOL (customspec.instance_arguments).
+                    selectinload(System.pool),
                 )
             )
             if system is None:
