@@ -65,7 +65,6 @@ def test_start_unknown_instance_returns_fault(client):
 
 def test_get_computer_system(client):
     _, result = soap_call(client, NS, "GetComputerSystem")
-
     def attributes(cim_object) -> dict[str, str]:
         return {p.findtext("mName"): p.findtext("mValue") for p in cim_object.find("mProperties")}
 
@@ -97,7 +96,8 @@ def test_databases_on_database_host(landscape, clock):
     hdb = "<aInstance><mSid>HDV</mSid><mSystemNumber>02</mSystemNumber></aInstance>"
     soap_call(client, NS, "StartInstance", hdb, auth=AUTH)
     arguments = (
-        "<aArguments><item><mKey>Database/Name</mKey><mValue>HDV@HDV</mValue></item></aArguments>"
+        "<aArguments><item><mKey>Database/Name</mKey><mValue>HDV@HDV</mValue></item>"
+        "</aArguments>"
     )
     _, result = soap_call(client, NS, "GetDatabaseStatus", arguments)
     assert result.findtext("status") == "SAPHostControl-DB-STARTING"

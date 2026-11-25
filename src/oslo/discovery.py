@@ -159,9 +159,9 @@ async def discover_host(
         info.checked_at = now
 
     rows = await session.execute(
-        select(Instance, Sid)
-        .join(Sid, Instance.sid_id == Sid.id)
-        .where(Instance.host_id == host.id)
+        select(Instance, Sid).join(Sid, Instance.sid_id == Sid.id).where(
+            Instance.host_id == host.id
+        )
     )
     known_instances = {(sid.name, instance.number): instance for instance, sid in rows}
     sids = {sid.name: sid for sid in await session.scalars(select(Sid))}

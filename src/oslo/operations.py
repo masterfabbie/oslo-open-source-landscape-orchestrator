@@ -1287,11 +1287,8 @@ class OperationRunner:
                             )
                         )
                         await session.commit()
-                if (
-                    stopped is None
-                    and not running
-                    and pending
-                    and not any(set(s.after) <= passed for s in pending)
+                if stopped is None and not running and pending and not any(
+                    set(s.after) <= passed for s in pending
                 ):
                     break  # cannot happen without a cycle; save_template rejects those
         except asyncio.CancelledError:

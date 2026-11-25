@@ -264,7 +264,9 @@ async def load_key_and_chain(session: AsyncSession, box: SecretBox) -> tuple[str
     try:
         return box.decrypt(key), cert
     except SecretError as exc:
-        raise TlsError("The stored key cannot be decrypted; was OSLO_SECRET_KEY changed?") from exc
+        raise TlsError(
+            "The stored key cannot be decrypted; was OSLO_SECRET_KEY changed?"
+        ) from exc
 
 
 def write_private_files(key_pem: str, chain_pem: str) -> tuple[str, str]:

@@ -1245,7 +1245,9 @@ def create_app(
         """Create a key and a self-signed certificate (admin); used after a restart with
         --tls."""
         try:
-            await servertls.store_self_signed(session, secret_box, body.names, body.ips, body.days)
+            await servertls.store_self_signed(
+                session, secret_box, body.names, body.ips, body.days
+            )
         except servertls.TlsError as exc:
             raise tls_error(exc) from exc
         await session.commit()
@@ -2154,7 +2156,6 @@ def create_app(
     app.state.fetch_certificate = fetch_certificate
     app.state.setup_code = None
     app.state.session_factory = session_factory
-
     # Downloads of the hosts (oslo_update.sh): no sign-in, the bundle is signed and holds no
     # secrets.
     @app.get("/bundle/{name}", include_in_schema=False)

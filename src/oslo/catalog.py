@@ -226,7 +226,8 @@ def bundle_definition(entry: dict, version: str, override: dict | None = None) -
             "names": entry["names"],
             "descriptions": entry["descriptions"],
             "parameters": {
-                p["name"]: {"labels": p["labels"], "helps": p["helps"]} for p in entry["parameters"]
+                p["name"]: {"labels": p["labels"], "helps": p["helps"]}
+                for p in entry["parameters"]
             },
         },
     )

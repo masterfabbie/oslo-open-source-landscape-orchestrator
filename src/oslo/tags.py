@@ -26,7 +26,7 @@ class TagError(ValueError):
 
 
 def parse_tag(text: str) -> tuple[str, str]:
-    """ "Sla = 1" -> ("sla", "1"); "Dev" -> ("dev", "")."""
+    """"Sla = 1" -> ("sla", "1"); "Dev" -> ("dev", "")."""
     key, _, value = text.partition("=")
     key, value = key.strip().lower(), value.strip()
     if not KEY_PATTERN.fullmatch(key):
