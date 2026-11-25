@@ -4,6 +4,7 @@
 // second click on the same button.
 
 import { useState } from "react";
+import type { BundleReady } from "../lib/categories";
 import type { InstanceRow, OperationDef } from "../lib/types";
 import { OperationMenus } from "./OperationMenus";
 import { type RunOptions, type Selection, operationsFor } from "./selection";
@@ -16,7 +17,7 @@ interface Props {
   onRun: (op: OperationDef, selection: Selection, options?: RunOptions) => void;
   onClear: () => void;
   // Whether the OSLO operations are current on the hosts of these targets.
-  bundleReady?: (ids: number[]) => boolean;
+  bundleReady?: BundleReady;
 }
 
 const PARALLEL = [1, 2, 5, 10, 20];

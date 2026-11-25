@@ -643,9 +643,9 @@ auf und liest die Ausgabe laufend ins Protokoll.
 ### OSLO-Operationen (eigene Dateien in `operations.d`)
 
 OSLO bringt einige eigene Operationen für den Host Agent mit, als **signiertes Bündel**. Es
-enthält bisher `oslo_version` (meldet Version und ob die Dateien unverändert sind) und
-`oslo_update` (holt und installiert eine neue Version). Weitere OSLO-eigene Operationen, z. B.
-den Instanz-Agent neu starten, kommen in dieses Bündel.
+enthält `oslo_version` (meldet Version und ob die Dateien unverändert sind), `oslo_update`
+(holt und installiert eine neue Version) und den Neustart des Instanz-Agents
+(`oslo_restart_service`, `oslo_restart_service_force`, siehe unten).
 
 Der Host Agent nimmt keine Dateien von außen an: `DeployConfiguration` wurde an einem echten
 Host abgelehnt („Remote deployment not permitted“, auch lokal als root, ohne erkennbare
@@ -697,6 +697,31 @@ Einstellung in `host_profile`). Deshalb holen sich die Hosts das Bündel selbst:
 Sicherheit: Wer OSLO übernimmt, kann damit keinen eigenen Code auf die Hosts bringen, weil
 die Hosts nur Bündel mit gültiger Signatur installieren und der private Schlüssel nicht auf dem
 OSLO-Server liegt. Schlüssel und `oslo.cfg` ändern sich nur durch eine neue Erstinstallation.
+
+**Operationen des Bündels im Katalog:** `oslo/operations.json` im Bündel beschreibt, welche
+Operationen OSLO anbietet, ohne dass ein Admin sie als eigene Operation anlegt: Name und
+Beschreibung je Sprache, Host-Agent-Operation (`oslo_*`, ihre `.conf` muss im Bündel liegen),
+Ziel, Rolle (mindestens Operator), Kategorie, Massenoperation, „gefährlich“ (zweiter Klick),
+Sperren, Zeitlimit, Instanztypen, Reihenfolge und Parameter (Texte je Sprache).
+`oslo-bundle build` und das Hochladen prüfen die Datei. Im Katalog heißen sie
+`oslo.<Schlüssel>` (eigene Operationen können keinen Punkt enthalten, also keine
+Überschneidung) und laufen wie eigene Operationen, aber nur auf Hosts, auf denen **genau
+diese Version** unverändert installiert ist (Stand der letzten Discovery oder Aktualisierung);
+sonst bricht die Aktivität mit einem Hinweis ab, und die Landschaft zeigt den Eintrag grau
+mit „OSLO-Operationen auf dem Host nicht aktuell“. Unter Administration → OSLO-Operationen
+kann ein Admin sie aus den Menüs nehmen (als Schritt von Vorlagen bleiben sie nutzbar) oder
+eine höhere Rolle verlangen, nie eine niedrigere (`platform_settings` `bundle.overrides`).
+
+**Instanz-Agent neu starten** (Menü „Instanz-Agent“, je Instanz, auch als Massenoperation):
+
+- **normal:** `sapcontrol -nr <NR> -function RestartService`, danach wartet das Skript bis zu
+  5 Minuten mit `WaitforServiceStarted`. Die Instanz läuft weiter.
+- **forciert** (zweiter Klick): für einen sapstartsrv, der nicht mehr antwortet. Das Skript
+  beendet den Prozess (TERM, nach 10 Sekunden KILL) und startet ihn mit
+  `sapcontrol -nr <NR> -function StartService <SID>`; die Instanz läuft weiter.
+- Annahmen, an einem echten Host noch nicht geprüft: Das `sapcontrol` des Host Agents
+  (`/usr/sap/hostctrl/exe/sapcontrol`) erreicht den sapstartsrv als root lokal; der Prozess
+  ist an seinem Profil `pf=/usr/sap/<SID>/SYS/profile/<SID>_<Name><NR>_<Host>` zu erkennen.
 
 Annahmen und Voraussetzungen: Die Operationen laufen als root (ohne `Username:` in der
 `.conf`); auf den Hosts gibt es `curl`, `tar`, `sha256sum` und OpenSSL ab 1.1.1 (Ed25519); nur

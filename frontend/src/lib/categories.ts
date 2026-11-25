@@ -3,9 +3,35 @@
 // ("Automation/Kernel"). Built-in categories are translation keys ("cat.instance_agent");
 // custom operations and templates without a category go to "More".
 
-import type { InstanceRow, OperationDef, TargetType } from "./types";
+import type { HostRow, InstanceRow, OperationDef, SystemRow, TargetType } from "./types";
 
 export const MORE = "cat.more";
+
+/** Whether the OSLO operations are current on every host of the targets. */
+export type BundleReady = (kind: TargetType, ids: number[]) => boolean;
+
+export function bundleReadiness(systems: SystemRow[], hosts: HostRow[]): BundleReady {
+  const current = new Set(hosts.filter((h) => h.bundle_state === "current").map((h) => h.id));
+  const instanceHost = new Map<number, number>();
+  const systemHosts = new Map<number, number[]>();
+  for (const system of systems) {
+    // Diagnostics agents are not part of system operations.
+    systemHosts.set(
+      system.id,
+      system.instances.filter((i) => !i.agent).map((i) => i.host.id),
+    );
+    for (const instance of system.instances) instanceHost.set(instance.id, instance.host.id);
+  }
+  return (kind, ids) => {
+    const needed =
+      kind === "HOST"
+        ? ids
+        : kind === "INSTANCE"
+          ? ids.map((id) => instanceHost.get(id) ?? -1)
+          : ids.flatMap((id) => systemHosts.get(id) ?? [-1]);
+    return needed.every((id) => current.has(id));
+  };
+}
 
 export interface Choice {
   op: OperationDef;
@@ -50,7 +76,7 @@ export function operationChoices(
   kind: TargetType,
   ids: number[],
   instances: Map<number, InstanceRow>,
-  bundleReady: (ids: number[]) => boolean = () => true,
+  bundleReady: BundleReady = () => true,
 ): Choice[] {
   return operations
     .filter((op) => op.targets.includes(kind) && op.standalone !== false)
@@ -64,7 +90,7 @@ export function operationChoices(
         });
         if (!fits) reason = "op.reason.instance_type";
       }
-      if (!reason && op.bundle && !bundleReady(ids)) reason = "op.reason.bundle";
+      if (!reason && op.bundle && !bundleReady(kind, ids)) reason = "op.reason.bundle";
       return { op, reason };
     });
 }

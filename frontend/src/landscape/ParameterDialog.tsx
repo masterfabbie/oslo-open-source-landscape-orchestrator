@@ -2,7 +2,7 @@
 // optional field is not passed (see customops.parameter_values on the server).
 
 import { type FormEvent, useEffect, useRef, useState } from "react";
-import type { OperationDef } from "../lib/types";
+import type { OperationDef, Parameter } from "../lib/types";
 import type { Selection } from "./selection";
 import { useApp } from "./ui";
 
@@ -14,7 +14,9 @@ interface Props {
 }
 
 export function ParameterDialog({ operation, selection, onCancel, onRun }: Props) {
-  const { t } = useApp();
+  const { t, language } = useApp();
+  const label = (p: Parameter) => p.labels?.[language] ?? p.label;
+  const help = (p: Parameter) => p.helps?.[language] ?? p.help;
   const dialog = useRef<HTMLDialogElement>(null);
   const [values, setValues] = useState<Record<string, string | boolean>>(() =>
     Object.fromEntries(
@@ -57,12 +59,12 @@ export function ParameterDialog({ operation, selection, onCancel, onRun }: Props
                   checked={values[p.name] === true}
                   onChange={(e) => setValues({ ...values, [p.name]: e.target.checked })}
                 />
-                {p.label} <span className="oslo-mono oslo-muted">{p.name}</span>
+                {label(p)} <span className="oslo-mono oslo-muted">{p.name}</span>
               </label>
             ) : (
               <label key={p.name}>
                 <span>
-                  {p.label}
+                  {label(p)}
                   {p.required ? " *" : ""} <span className="oslo-mono oslo-muted">{p.name}</span>
                 </span>
                 <input
@@ -73,7 +75,7 @@ export function ParameterDialog({ operation, selection, onCancel, onRun }: Props
                   maxLength={1024}
                   onChange={(e) => setValues({ ...values, [p.name]: e.target.value })}
                 />
-                {p.help && <small className="oslo-muted">{p.help}</small>}
+                {help(p) && <small className="oslo-muted">{help(p)}</small>}
               </label>
             ),
           )}

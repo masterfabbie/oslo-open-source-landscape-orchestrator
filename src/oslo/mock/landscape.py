@@ -300,13 +300,41 @@ class MockLandscape:
         self.operation_runs[run.id] = run
         return run
 
-    def run_bundle_operation(self, host: MockHost, name: str) -> MockOperationRun:
-        """oslo_version or oslo_update, like the scripts of the bundle do on a real host."""
+    def _restart_service(
+        self, host: MockHost, name: str, arguments: dict[str, str]
+    ) -> tuple[list[str], int]:
+        """oslo_restart_service(_force): the instance agent runs again afterwards; without
+        "force" only if it answered before (sapcontrol RestartService needs it)."""
+        sid, nr = arguments.get("SAPSYSTEMNAME", ""), arguments.get("SAPSYSTEM", "")
+        inst = next((i for i in host.instances if i.sid == sid and f"{i.nr:02d}" == nr), None)
+        if inst is None:
+            return [f"[ERROR]: no instance {sid}/{nr} on this host"], 1
+        force = name.endswith("_force")
+        if not force and not inst.service_running:
+            return [
+                f"Restarting the instance agent of {sid}/{nr}",
+                "[ERROR]: RestartService failed",
+            ], 1
+        inst.service_running = True
+        first = (
+            f"Ending the instance agent of {sid}/{nr}"
+            if force
+            else f"Restarting the instance agent of {sid}/{nr}"
+        )
+        return [first, f"Instance agent of {sid}/{nr} is running again"], 0
+
+    def run_bundle_operation(
+        self, host: MockHost, name: str, arguments: dict[str, str] | None = None
+    ) -> MockOperationRun:
+        """An operation of the bundle (BUNDLE_OPERATIONS), like its script does on a real
+        host."""
         from ..bundle import BundleError, check_bundle
 
         lines: list[str]
         exit_code = 0
-        if name == "oslo_version":
+        if name.startswith("oslo_restart_service"):
+            lines, exit_code = self._restart_service(host, name, arguments or {})
+        elif name == "oslo_version":
             lines = [
                 f"oslo_bundle version={host.bundle_version or 'none'}",
                 f"oslo_bundle integrity={'modified' if host.bundle_modified else 'ok'}",

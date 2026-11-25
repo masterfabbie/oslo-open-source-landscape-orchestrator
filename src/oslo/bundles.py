@@ -13,7 +13,14 @@ from datetime import UTC, datetime
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .bundle import BundleError, Manifest, check_bundle, normalized_key, parse_output
+from .bundle import (
+    BundleError,
+    Manifest,
+    check_bundle,
+    normalized_key,
+    parse_output,
+    read_manifest,
+)
 from .clients.base import SoapFaultError
 from .clients.hostagent import FAULT_TIMEOUT, HostAgentClient, OperationFault
 from .models import Host, OperationBundle, PlatformSetting
@@ -44,6 +51,8 @@ class ActiveBundle:
     version: str
     payload: bytes
     signature: bytes
+    # Entries of oslo/operations.json (bundle.parse_operations), offered in the catalog.
+    operations: tuple[dict, ...] = ()
 
 
 class BundleStore:
@@ -56,9 +65,13 @@ class BundleStore:
     async def load(self, session: AsyncSession) -> None:
         """Read the active bundle and the key again, after every change."""
         row = await session.scalar(select(OperationBundle).where(OperationBundle.active))
-        self.active = (
-            ActiveBundle(row.id, row.version, row.payload, row.signature) if row else None
-        )
+        self.active = None
+        if row is not None:
+            try:
+                operations = read_manifest(row.payload).operations
+            except BundleError:
+                operations = ()  # stored before operations.json was checked
+            self.active = ActiveBundle(row.id, row.version, row.payload, row.signature, operations)
         self.public_key = await get_setting(session, KEY_SETTING)
 
     def files(self) -> tuple[bytes, bytes] | None:

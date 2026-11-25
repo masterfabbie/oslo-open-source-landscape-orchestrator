@@ -35,12 +35,19 @@ from ..attention import (
     save_exceptions,
     save_rules,
 )
-from ..bundle import BundleError, bootstrap_archive
+from ..bundle import BUNDLE_KEY_PREFIX, BundleError, bootstrap_archive
 from ..bundles import BundleStore, save_bundle
 from ..bundles import activate as activate_stored_bundle
 from ..bundles import load_settings as load_bundle_settings
 from ..bundles import save_settings as save_bundle_settings
-from ..catalog import Catalog, OperationDef
+from ..bundles import set_setting as set_bundle_setting
+from ..catalog import (
+    BUNDLE_OVERRIDES,
+    Catalog,
+    OperationDef,
+    bundle_overrides,
+    has_role_value,
+)
 from ..connections import ClientFactory
 from ..crypto import SecretBox
 from ..customops import (
@@ -132,6 +139,8 @@ from .schemas import (
     AttentionExceptionsIn,
     AttentionRulesIn,
     BuildingBlocksOut,
+    BundleOperationIn,
+    BundleOperationOut,
     BundleSettingsIn,
     BundleUploadIn,
     CertificateOut,
@@ -259,7 +268,6 @@ def create_app(
     clients = ClientFactory(secret_box, transport=transport)
     engine = create_engine(settings.database_url)
     session_factory = create_session_factory(engine)
-    catalog = Catalog()
     runner = OperationRunner(
         session_factory, clients, poll_interval=poll_interval, sleep=sleep, clock=clock
     )
@@ -267,6 +275,8 @@ def create_app(
     # The active OSLO operations bundle, which hosts download (bundles.py).
     bundle_store = BundleStore()
     runner.bundle_store = bundle_store
+    # Built-in, bundle, custom operations and templates.
+    catalog = Catalog(bundle_store)
     # Starts due schedules every 30 seconds; tests call scheduler.tick() themselves.
     scheduler = Scheduler(session_factory, runner, catalog, ZoneInfo(settings.timezone))
 
@@ -275,9 +285,9 @@ def create_app(
         await upgrade_database(engine, settings.database_url)
         await runner.recover_interrupted()
         async with session_factory() as session:
+            await bundle_store.load(session)
             await catalog.reload(session)
             await clients.load_trusted(session)
-            await bundle_store.load(session)
             if await user_count(session) == 0:
                 # One-time code for creating the first admin on the page /setup.
                 code = "-".join(secrets.token_hex(3).upper() for _ in range(3))
@@ -1083,6 +1093,7 @@ def create_app(
             raise HTTPException(422, str(exc)) from exc
         await session.commit()
         await bundle_store.load(session)
+        await catalog.reload(session)
         return bundle_out(row)
 
     @api.post("/bundles/{bundle_id}/activate")
@@ -1094,7 +1105,56 @@ def create_app(
         await activate_stored_bundle(session, row)
         await session.commit()
         await bundle_store.load(session)
+        await catalog.reload(session)
         return bundle_out(row)
+
+    def bundle_operation_out(entry: dict, overrides: dict[str, dict]) -> dict[str, object]:
+        key = BUNDLE_KEY_PREFIX + entry["key"]
+        definition = catalog.get(key)
+        override = overrides.get(key, {})
+        return {
+            "key": key,
+            "names": entry["names"],
+            "descriptions": entry["descriptions"],
+            "agent_operation": entry["agent_operation"],
+            "target": entry["target"],
+            "category": entry["category"],
+            "bundle_role": entry["role"],
+            "role": definition.role.value if definition else entry["role"],
+            "hidden": bool(override.get("hidden")),
+        }
+
+    @api.get("/bundle-operations", response_model=list[BundleOperationOut])
+    async def list_bundle_operations(session: Session) -> list[dict[str, object]]:
+        """The operations of the active bundle (operations.json) with the admin's changes."""
+        active = bundle_store.active
+        overrides = await bundle_overrides(session)
+        return [bundle_operation_out(e, overrides) for e in (active.operations if active else ())]
+
+    @api.put("/bundle-operations/{key}", response_model=BundleOperationOut)
+    async def put_bundle_operation(
+        key: str, body: BundleOperationIn, session: Session
+    ) -> dict[str, object]:
+        """Hide an operation of the bundle from menus or require a higher role (admin)."""
+        active = bundle_store.active
+        entries = active.operations if active else ()
+        entry = next((e for e in entries if BUNDLE_KEY_PREFIX + e["key"] == key), None)
+        if entry is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Not an operation of the active bundle")
+        if body.role and not has_role_value(Role(body.role), Role(entry["role"])):
+            raise HTTPException(422, f"The bundle requires at least the role {entry['role']}")
+        overrides = await bundle_overrides(session)
+        change = {"hidden": True} if body.hidden else {}
+        if body.role and body.role != entry["role"]:
+            change["role"] = body.role
+        if change:
+            overrides[key] = change
+        else:
+            overrides.pop(key, None)
+        await set_bundle_setting(session, BUNDLE_OVERRIDES, json.dumps(overrides, sort_keys=True))
+        await session.commit()
+        await catalog.reload(session)
+        return bundle_operation_out(entry, overrides)
 
     @api.get("/bundles/bootstrap")
     async def bootstrap(session: Session) -> Response:
@@ -1674,6 +1734,8 @@ def create_app(
                 "locks": operation.custom.locks if operation.custom else True,
                 "standalone": operation.standalone,
                 "category": operation.category,
+                "bundle": operation.bundle,
+                "names": (operation.texts or {}).get("names", {}),
                 "parameters": [p.__dict__ for p in operation.custom.parameters]
                 if operation.custom
                 else [],

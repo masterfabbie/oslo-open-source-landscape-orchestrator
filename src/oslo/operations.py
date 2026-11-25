@@ -1519,6 +1519,18 @@ class OperationRunner:
                 await log(_LEVELS.get(line.severity.lower(), "INFO"), line.display)
             logged = max(logged, len(lasting))
 
+        if spec.bundle_version is not None and (
+            host.bundle_version != spec.bundle_version or host.bundle_integrity != "ok"
+        ):
+            # The script on the host must be the one OSLO describes; the state is from the
+            # last discovery or update of the host.
+            installed = host.bundle_version or "unknown"
+            if host.bundle_integrity == "modified":
+                installed += ", files changed"
+            raise OperationFailedError(
+                f"{prefix}{host.name} needs the OSLO operations {spec.bundle_version} "
+                f"(installed: {installed}); update the OSLO operations of the host first"
+            )
         try:
             async with self._clients.hostagent(host) as agent:
                 started = await agent.execute_async(spec.agent_operation, arguments)

@@ -244,6 +244,14 @@ HOSTCONTROL_PROTECTED = frozenset(
 
 # Output of the operation "versioninfo" of a real host agent 7.22, shortened. The real host
 # agent returned these lines as log messages; the message key used per line is an assumption.
+# Operations of the OSLO operations bundle the mock knows (only on hosts with a bundle).
+BUNDLE_OPERATIONS = (
+    "oslo_version",
+    "oslo_update",
+    "oslo_restart_service",
+    "oslo_restart_service_force",
+)
+
 HOSTAGENT_VERSION_LINES = (
     "Retrieve version info: *************************** Component ********************",
     "Retrieve version info: /usr/sap/hostctrl/exe/saphostexec: 722 (EXT), patch 1611, "
@@ -509,18 +517,18 @@ def create_hostagent_app(landscape: MockLandscape, host_name: str) -> FastAPI:
 
     def execute_operation(params: dict[str, Any]) -> dict[str, Any]:
         name = params.get("aOperation")
-        if name in ("oslo_version", "oslo_update"):
+        arguments = {
+            item.get("mKey"): item.get("mValue") or ""
+            for item in items(params.get("aArguments"))
+            if isinstance(item, dict)
+        }
+        if name in BUNDLE_OPERATIONS:
             if host.bundle_version is None:
                 raise SoapFault(f"Operation '{name}' not found")
-            run = landscape.run_bundle_operation(host, name)
+            run = landscape.run_bundle_operation(host, name, arguments)
             return {"result": {"mOperationID": run.id, "mOperationResults": []}}
         custom = landscape.custom_operations.get(name or "")
         if custom is not None:
-            arguments = {
-                item.get("mKey"): item.get("mValue") or ""
-                for item in items(params.get("aArguments"))
-                if isinstance(item, dict)
-            }
             run = landscape.start_operation(host, custom, arguments)
             return {"result": {"mOperationID": run.id, "mOperationResults": []}}
         if name != "versioninfo":

@@ -22,6 +22,9 @@ key configured by an admin, so a self-made archive is refused by OSLO and by the
 A bundle file is an uncompressed tar with ``payload.tar.gz`` and ``payload.sig``. The
 payload holds ``oslo_*.conf`` and the directory ``oslo/`` with the scripts, ``VERSION`` and
 ``SHA256SUMS``.
+
+``oslo/operations.json`` (optional) describes the operations of the bundle that OSLO offers
+in its catalog (``parse_operations``), so they need not be created as custom operations.
 """
 
 from __future__ import annotations
@@ -30,6 +33,7 @@ import argparse
 import gzip
 import hashlib
 import io
+import json
 import re
 import sys
 import tarfile
@@ -58,6 +62,141 @@ class BundleError(ValueError):
 class Manifest:
     version: str
     files: dict[str, str]  # path in operations.d → SHA-256 (hex)
+    # The operations of oslo/operations.json, checked (parse_operations).
+    operations: tuple[dict, ...] = ()
+
+
+OPERATIONS_FILE = "oslo/operations.json"
+# The catalog key is "oslo." + key: own operations and templates cannot use a dot, so the
+# keys of a bundle never collide with them.
+BUNDLE_KEY_PREFIX = "oslo."
+_OP_KEY = re.compile(r"^[a-z][a-z0-9_]{0,40}$")
+_AGENT_OPERATION = re.compile(r"^oslo_[a-z0-9_]{1,40}$")
+_PARAMETER = re.compile(r"^[A-Z0-9][A-Z0-9_]{0,63}$")
+_RESERVED_AGENT_OPERATIONS = ("oslo_version", "oslo_update")
+_TARGETS = ("INSTANCE", "SYSTEM", "HOST")
+_ROLES = ("operator", "configurator", "admin")
+_ORDERINGS = ("parallel", "roles", "sequential")
+_TYPES = ("STRING", "INTEGER", "BOOLEAN")
+_LANGUAGES = ("en", "de")
+
+
+def _texts(value: object, what: str, *, required: bool) -> dict[str, str]:
+    """A text in each language: {"en": ..., "de": ...}; English is required."""
+    if value is None and not required:
+        return {}
+    if not isinstance(value, dict) or not isinstance(value.get("en"), str) or not value["en"]:
+        raise BundleError(f"{what}: an English text is required")
+    texts = {}
+    for language, text in value.items():
+        if language not in _LANGUAGES or not isinstance(text, str) or len(text) > 300:
+            raise BundleError(f"{what}: texts in {', '.join(_LANGUAGES)}, at most 300 characters")
+        texts[language] = text
+    return texts
+
+
+def _flag(entry: dict, name: str, default: bool, what: str) -> bool:
+    value = entry.get(name, default)
+    if not isinstance(value, bool):
+        raise BundleError(f"{what}: {name} must be true or false")
+    return value
+
+
+def _category(value: object, what: str) -> str:
+    """Up to two levels like the categories of custom operations; built-in categories
+    ("cat.instance_agent") are allowed here."""
+    if value in (None, ""):
+        return ""
+    parts = value.split("/") if isinstance(value, str) else []
+    if not 1 <= len(parts) <= 2 or any(not 1 <= len(part.strip()) <= 40 for part in parts):
+        raise BundleError(f"{what}: a category has one or two levels of 1 to 40 characters")
+    return "/".join(part.strip() for part in parts)
+
+
+def _parameter(entry: object, what: str) -> dict:
+    if not isinstance(entry, dict) or not _PARAMETER.match(str(entry.get("name", ""))):
+        raise BundleError(f"{what}: a parameter needs a name of A-Z, 0-9 and _")
+    what = f"{what}, parameter {entry['name']}"
+    kind = entry.get("type", "STRING")
+    if kind not in _TYPES:
+        raise BundleError(f"{what}: type must be one of {', '.join(_TYPES)}")
+    default, pattern = entry.get("default"), entry.get("pattern")
+    if default is not None and not isinstance(default, str):
+        raise BundleError(f"{what}: the default is a text")
+    if pattern is not None:
+        try:
+            re.compile(pattern)
+        except (re.error, TypeError) as exc:
+            raise BundleError(f"{what}: invalid pattern") from exc
+    return {
+        "name": entry["name"],
+        "labels": _texts(entry.get("labels"), what, required=True),
+        "helps": _texts(entry.get("helps"), what, required=False),
+        "type": kind,
+        "required": _flag(entry, "required", False, what),
+        "default": default,
+        "pattern": pattern,
+    }
+
+
+def parse_operations(data: bytes, files: set[str] | dict[str, str]) -> tuple[dict, ...]:
+    """The checked entries of operations.json. Each operation runs a host agent operation
+    of the bundle (``oslo_<name>.conf`` must be part of it). Raises BundleError."""
+    try:
+        document = json.loads(data.decode())
+    except (UnicodeDecodeError, ValueError) as exc:
+        raise BundleError("operations.json is not valid JSON") from exc
+    if not isinstance(document, dict) or document.get("format") != 1:
+        raise BundleError('operations.json needs "format": 1')
+    entries = document.get("operations", [])
+    if not isinstance(entries, list):
+        raise BundleError("operations.json: operations must be a list")
+    operations, keys = [], set()
+    for entry in entries:
+        if not isinstance(entry, dict) or not _OP_KEY.match(str(entry.get("key", ""))):
+            raise BundleError("operations.json: each operation needs a key of a-z, 0-9 and _")
+        key = entry["key"]
+        what = f"operations.json, {key}"
+        if key in keys:
+            raise BundleError(f"{what}: the key is used twice")
+        keys.add(key)
+        agent = str(entry.get("agent_operation", ""))
+        if not _AGENT_OPERATION.match(agent) or agent in _RESERVED_AGENT_OPERATIONS:
+            raise BundleError(f"{what}: agent_operation must be an oslo_* operation of the bundle")
+        if f"{agent}.conf" not in files:
+            raise BundleError(f"{what}: {agent}.conf is missing in the bundle")
+        target, role = entry.get("target"), entry.get("role", "operator")
+        ordering = entry.get("ordering", "parallel")
+        if target not in _TARGETS or role not in _ROLES or ordering not in _ORDERINGS:
+            raise BundleError(f"{what}: unknown target, role or ordering")
+        timeout = entry.get("timeout_seconds", 600)
+        if not isinstance(timeout, int) or not 10 <= timeout <= 86400:
+            raise BundleError(f"{what}: timeout_seconds from 10 to 86400")
+        types = entry.get("instance_types", [])
+        if not isinstance(types, list) or not all(isinstance(t, str) for t in types):
+            raise BundleError(f"{what}: instance_types must be a list of texts")
+        parameters = entry.get("parameters", [])
+        if not isinstance(parameters, list):
+            raise BundleError(f"{what}: parameters must be a list")
+        operations.append(
+            {
+                "key": key,
+                "agent_operation": agent,
+                "names": _texts(entry.get("names"), what, required=True),
+                "descriptions": _texts(entry.get("descriptions"), what, required=False),
+                "target": target,
+                "role": role,
+                "category": _category(entry.get("category"), what),
+                "mass": _flag(entry, "mass", True, what),
+                "danger": _flag(entry, "danger", False, what),
+                "locks": _flag(entry, "locks", True, what),
+                "timeout_seconds": timeout,
+                "instance_types": types,
+                "ordering": ordering,
+                "parameters": [_parameter(p, what) for p in parameters],
+            }
+        )
+    return tuple(operations)
 
 
 def source_dir() -> Path:
@@ -97,6 +236,8 @@ def build_payload(version: str, source: Path | None = None) -> bytes:
             if name in HOST_ONLY or not _MEMBER.match(name):
                 raise BundleError(f"Unexpected file in the bundle sources: {name}")
             files[name] = path.read_bytes()
+    if OPERATIONS_FILE in files:
+        parse_operations(files[OPERATIONS_FILE], set(files))
     files["oslo/VERSION"] = f"{version}\n".encode()
     sums = "".join(f"{hashlib.sha256(data).hexdigest()}  {name}\n" for name, data in files.items())
     files["oslo/SHA256SUMS"] = sums.encode()
@@ -225,7 +366,10 @@ def read_manifest(payload: bytes) -> Manifest:
     for needed in ("oslo_version.conf", "oslo_update.conf", "oslo/oslo_update.sh"):
         if needed not in files:
             raise BundleError(f"{needed} is missing in the bundle")
-    return Manifest(version, files)
+    operations = (
+        parse_operations(contents[OPERATIONS_FILE], files) if OPERATIONS_FILE in files else ()
+    )
+    return Manifest(version, files, operations)
 
 
 def check_bundle(data: bytes, public_pem: str) -> tuple[bytes, bytes, Manifest]:

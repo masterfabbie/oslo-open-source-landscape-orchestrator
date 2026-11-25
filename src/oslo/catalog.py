@@ -5,7 +5,9 @@ whether it may run as a mass operation. Menus, mass operations and the API are b
 this catalog. Besides the built-in operations it holds the custom operations defined by an
 admin (see customops.py); they run scripts configured in the host agent's operations.d,
 like LaMa's custom operations, and appear everywhere without further changes. Operation
-templates (chains of the other operations, templates.py) are part of it as well.
+templates (chains of the other operations, templates.py) are part of it as well, and so are
+the operations described by oslo/operations.json of the active OSLO operations bundle
+(bundle.py); they run like custom operations, with keys "oslo.<key>".
 """
 
 from __future__ import annotations
@@ -16,8 +18,9 @@ from dataclasses import dataclass
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .bundle import BUNDLE_KEY_PREFIX
 from .customspec import CustomSpec, ParameterSpec, spec_applies
-from .models import CustomOperation, Instance, OperationTemplate
+from .models import CustomOperation, Instance, OperationTemplate, PlatformSetting
 from .operations import OperationKind, TargetType
 from .templatespec import StepSpec, TemplateSpec
 from .users import Role, has_role
@@ -41,6 +44,13 @@ class OperationDef:
     # keys ("cat.instance_agent"); empty for the main buttons (start, stop, restart,
     # discovery) and for custom operations without a category ("More").
     category: str = ""
+    # Operations of the OSLO operations bundle: names, descriptions and parameter texts per
+    # language ({"names": {"en": ..., "de": ...}, "descriptions": ..., "parameters": ...}).
+    texts: dict | None = None
+
+    @property
+    def bundle(self) -> bool:
+        return self.custom is not None and self.custom.bundle_version is not None
 
     @property
     def name(self) -> str | None:
@@ -87,6 +97,7 @@ def check_category(text: str | None) -> str:
     if any(part.startswith("cat.") for part in parts):
         raise CategoryError("Categories starting with 'cat.' are reserved")
     return "/".join(parts)
+
 
 _INSTANCE = frozenset({TargetType.INSTANCE})
 
@@ -164,6 +175,79 @@ def definition_of(operation: CustomOperation) -> OperationDef:
     )
 
 
+# Platform setting with the admin's changes to operations of the bundle:
+# {"oslo.<key>": {"hidden": true, "role": "admin"}}. Hidden ones stay usable as template steps.
+BUNDLE_OVERRIDES = "bundle.overrides"
+
+
+def bundle_definition(entry: dict, version: str, override: dict | None = None) -> OperationDef:
+    """An operation of operations.json (checked by bundle.parse_operations) for the catalog.
+    An override can hide it from menus or require a higher role, never a lower one."""
+    override = override or {}
+    role = Role(entry["role"])
+    wanted = override.get("role")
+    if wanted in {r.value for r in Role} and not has_role_value(role, Role(wanted)):
+        role = Role(wanted)
+    spec = CustomSpec(
+        id=0,
+        name=entry["names"]["en"],
+        description=entry["descriptions"].get("en"),
+        agent_operation=entry["agent_operation"],
+        target=entry["target"],
+        instance_types=tuple(entry["instance_types"]),
+        ordering=entry["ordering"],
+        timeout_seconds=entry["timeout_seconds"],
+        locks=entry["locks"],
+        parameters=tuple(
+            ParameterSpec(
+                p["name"],
+                p["labels"]["en"],
+                p["type"],
+                p["required"],
+                p["default"],
+                p["pattern"],
+                p["helps"].get("en"),
+            )
+            for p in entry["parameters"]
+        ),
+        bundle_version=version,
+    )
+    return OperationDef(
+        key=BUNDLE_KEY_PREFIX + entry["key"],
+        kind=OperationKind.CUSTOM,
+        targets=frozenset({TargetType(entry["target"])}),
+        role=role,
+        mass=entry["mass"],
+        danger=entry["danger"],
+        custom=spec,
+        standalone=not override.get("hidden", False),
+        category=entry["category"],
+        texts={
+            "names": entry["names"],
+            "descriptions": entry["descriptions"],
+            "parameters": {
+                p["name"]: {"labels": p["labels"], "helps": p["helps"]}
+                for p in entry["parameters"]
+            },
+        },
+    )
+
+
+def has_role_value(role: Role, wanted: Role) -> bool:
+    """Whether ``role`` is at least ``wanted``."""
+    order = list(Role)
+    return order.index(role) >= order.index(wanted)
+
+
+async def bundle_overrides(session: AsyncSession) -> dict[str, dict]:
+    row = await session.get(PlatformSetting, BUNDLE_OVERRIDES)
+    try:
+        value = json.loads(row.value) if row and row.value else {}
+    except ValueError:
+        return {}
+    return value if isinstance(value, dict) else {}
+
+
 def template_spec(
     template: OperationTemplate, known: dict[str, OperationDef]
 ) -> TemplateSpec | None:
@@ -226,14 +310,30 @@ class Catalog:
     The custom operations are read from the database at startup and after each change.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, bundles=None) -> None:
+        # The BundleStore (bundles.py) whose active bundle provides operations; loaded before
+        # each reload.
+        self.bundles = bundles
+        self._bundle: tuple[OperationDef, ...] = ()
         self._custom: tuple[OperationDef, ...] = ()
         self._templates: tuple[OperationDef, ...] = ()
 
     async def reload(self, session: AsyncSession) -> None:
+        active = self.bundles.active if self.bundles is not None else None
+        overrides = await bundle_overrides(session)
+        self._bundle = (
+            tuple(
+                bundle_definition(
+                    entry, active.version, overrides.get(BUNDLE_KEY_PREFIX + entry["key"])
+                )
+                for entry in active.operations
+            )
+            if active
+            else ()
+        )
         rows = await session.scalars(select(CustomOperation).order_by(CustomOperation.name))
         self._custom = tuple(definition_of(op) for op in rows)
-        known = {op.key: op for op in BUILT_IN + self._custom}
+        known = {op.key: op for op in BUILT_IN + self._bundle + self._custom}
         templates = await session.scalars(
             select(OperationTemplate).order_by(OperationTemplate.name)
         )
@@ -242,11 +342,14 @@ class Catalog:
         )
 
     def all(self) -> tuple[OperationDef, ...]:
-        return BUILT_IN + self._custom + self._templates
+        return BUILT_IN + self._bundle + self._custom + self._templates
+
+    def bundle_operations(self) -> tuple[OperationDef, ...]:
+        return self._bundle
 
     def steps(self) -> tuple[OperationDef, ...]:
         """Operations a template may use as a step: all but templates."""
-        return BUILT_IN + self._custom
+        return BUILT_IN + self._bundle + self._custom
 
     def get(self, key: str) -> OperationDef | None:
         return next((op for op in self.all() if op.key == key), None)

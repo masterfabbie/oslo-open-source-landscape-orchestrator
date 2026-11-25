@@ -697,6 +697,20 @@ TEXTS: dict[str, tuple[str, str]] = {
     "bundle.active": ("active", "aktiv"),
     "bundle.files": ("{count} files", "{count} Dateien"),
     "bundle.activate": ("Make active", "Aktiv setzen"),
+    "bundle.operations": ("Operations of the bundle", "Operationen des Bündels"),
+    "bundle.operations_hint": (
+        "From oslo/operations.json of the active bundle. They run only on hosts where this "
+        "version is installed. Hidden ones stay usable as steps of templates; the role can "
+        "only be raised.",
+        "Aus oslo/operations.json des aktiven Bündels. Sie laufen nur auf Hosts, auf denen "
+        "diese Version installiert ist. Ausgeblendete bleiben als Schritte von Vorlagen "
+        "nutzbar; die Rolle lässt sich nur erhöhen.",
+    ),
+    "bundle.operations_none": (
+        "The active bundle brings no operations.",
+        "Das aktive Bündel bringt keine Operationen mit.",
+    ),
+    "bundle.in_menus": ("In menus", "In Menüs"),
     "bundle.hosts": ("Hosts", "Hosts"),
     "bundle.hosts_hint": (
         "Read with oslo_version at every discovery.",

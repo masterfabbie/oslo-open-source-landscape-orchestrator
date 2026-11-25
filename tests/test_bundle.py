@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import base64
 import io
+import json
 import os
 import shutil
 import subprocess
@@ -329,3 +330,154 @@ async def test_update_needs_an_active_bundle_and_an_admin(app, api, landscape):
     async with client(app, await make_user(app, "conf", "configurator")) as conf:
         body = {"operation": "update_bundle", "target_type": "HOST", "target_ids": [1]}
         assert (await conf.post("/api/mass-operations", json=body)).status_code == 403
+
+
+# --- operations of the bundle (oslo/operations.json) --------------------------------------
+
+RESTART = {
+    "key": "restart",
+    "agent_operation": "oslo_restart_service",
+    "names": {"en": "Restart", "de": "Neu starten"},
+    "target": "INSTANCE",
+}
+FILES = {"oslo_restart_service.conf", "oslo/oslo_restart_service.sh"}
+
+
+def operations_json(*entries: dict, **document) -> bytes:
+    return json.dumps({"format": 1, "operations": list(entries)} | document).encode()
+
+
+def test_operations_of_the_bundle_are_checked():
+    (entry,) = bundle.parse_operations(operations_json(RESTART), FILES)
+    assert entry["role"] == "operator" and entry["mass"] and entry["locks"]
+    assert entry["category"] == "" and entry["parameters"] == []
+    with_parameter = RESTART | {
+        "category": "cat.instance_agent",
+        "parameters": [{"name": "WAIT", "labels": {"en": "Wait"}, "type": "INTEGER"}],
+    }
+    (entry,) = bundle.parse_operations(operations_json(with_parameter), FILES)
+    assert entry["parameters"][0]["labels"] == {"en": "Wait"}
+    for bad, message in (
+        (RESTART | {"key": "Bad-Key"}, "key"),
+        (RESTART | {"agent_operation": "oslo_update"}, "agent_operation"),
+        (RESTART | {"agent_operation": "other"}, "agent_operation"),
+        (RESTART | {"agent_operation": "oslo_missing"}, "missing"),
+        (RESTART | {"names": {"de": "Nur Deutsch"}}, "English"),
+        (RESTART | {"names": {"en": "x", "fr": "y"}}, "texts"),
+        (RESTART | {"target": "DATABASE"}, "target"),
+        (RESTART | {"role": "viewer"}, "role"),
+        (RESTART | {"timeout_seconds": 5}, "timeout"),
+        (RESTART | {"category": "a/b/c"}, "category"),
+        (RESTART | {"mass": "yes"}, "mass"),
+        (RESTART | {"parameters": [{"name": "x", "labels": {"en": "x"}}]}, "parameter"),
+    ):
+        with pytest.raises(BundleError, match=message):
+            bundle.parse_operations(operations_json(bad), FILES)
+    with pytest.raises(BundleError, match="twice"):
+        bundle.parse_operations(operations_json(RESTART, RESTART), FILES)
+    with pytest.raises(BundleError, match="format"):
+        bundle.parse_operations(operations_json(RESTART, format=2), FILES)
+    with pytest.raises(BundleError, match="JSON"):
+        bundle.parse_operations(b"{", FILES)
+
+
+def test_bundle_build_checks_operations(tmp_path):
+    source = tmp_path / "files"
+    shutil.copytree(bundle.source_dir(), source, ignore=shutil.ignore_patterns("__pycache__"))
+    manifest = bundle.read_manifest(bundle.build_payload("1.0.0", source))
+    assert [o["key"] for o in manifest.operations] == ["restart_service", "restart_service_force"]
+    (source / "oslo" / "operations.json").write_text('{"format": 1, "operations": [{}]}')
+    with pytest.raises(BundleError, match="key"):
+        bundle.build_payload("1.0.0", source)
+    (source / "oslo" / "operations.json").unlink()
+    assert bundle.read_manifest(bundle.build_payload("1.0.0", source)).operations == ()
+
+
+async def instance_id(api, label: str) -> int:
+    systems = (await api.get("/api/landscape")).json()["systems"]
+    return next(i["id"] for s in systems for i in s["instances"] if i["label"] == label)
+
+
+async def run_on(app, api, instance: int, key: str) -> dict:
+    response = await api.post(f"/api/instances/{instance}/operations/{key}")
+    assert response.status_code == 202, response.text
+    await app.state.runner.wait(response.json()["id"])
+    return (await api.get(f"/api/activities/{response.json()['id']}")).json()
+
+
+async def test_operations_of_the_bundle_in_the_catalog(app, api, landscape):
+    await configure(api)
+    listed = {op["key"] for op in (await api.get("/api/operations")).json()}
+    assert "oslo.restart_service" not in listed  # no active bundle yet
+    assert (await upload(api, make_bundle("1.0.0"))).status_code == 201
+    operations = {op["key"]: op for op in (await api.get("/api/operations")).json()}
+    restart = operations["oslo.restart_service"]
+    assert restart["bundle"] and restart["category"] == "cat.instance_agent"
+    assert restart["names"]["de"] == "Instanz-Agent neu starten"
+    rows = {op["key"]: op for op in (await api.get("/api/landscape")).json()["operations"]}
+    assert rows["oslo.restart_service_force"]["danger"]
+    assert rows["oslo.restart_service_force"]["descriptions"]["en"].startswith("Ends")
+
+    # Runs only where this version of the bundle is installed and unchanged.
+    sapapp1 = landscape.host("sapapp1")
+    dev01 = await instance_id(api, "DEV/01")
+    refused = await run_on(app, api, dev01, "oslo.restart_service")
+    assert refused["status"] == "FAILED" and "needs the OSLO operations 1.0.0" in refused["error"]
+    sapapp1.bundle_version, sapapp1.bundle_key = "1.0.0", PUBLIC.decode()
+    await discover(api)
+    done = await run_on(app, api, dev01, "oslo.restart_service")
+    assert done["status"] == "SUCCEEDED", done
+    assert any("running again" in e["message"] for e in done["entries"])
+
+    # An instance agent that does not answer: only the forced restart helps.
+    agent = next(i for i in sapapp1.instances if i.nr == 1)
+    agent.service_running = False
+    assert (await run_on(app, api, dev01, "oslo.restart_service"))["status"] == "FAILED"
+    agent.service_running = False
+    forced = await run_on(app, api, dev01, "oslo.restart_service_force")
+    assert forced["status"] == "SUCCEEDED" and agent.service_running
+
+    # A newer bundle on OSLO: the host has to be updated first.
+    assert (await upload(api, make_bundle("1.1.0"))).status_code == 201
+    outdated = await run_on(app, api, dev01, "oslo.restart_service")
+    assert "installed: 1.0.0" in outdated["error"]
+
+
+async def test_admin_changes_to_operations_of_the_bundle(app, api):
+    await configure(api)
+    assert (await upload(api, make_bundle("1.0.0"))).status_code == 201
+    listed = (await api.get("/api/bundle-operations")).json()
+    assert [o["key"] for o in listed] == ["oslo.restart_service", "oslo.restart_service_force"]
+    assert listed[0]["role"] == "operator" and not listed[0]["hidden"]
+
+    key = "oslo.restart_service_force"
+    lower = await api.put(f"/api/bundle-operations/{key}", json={"role": "operator"})
+    assert lower.status_code == 200
+    changed = await api.put(f"/api/bundle-operations/{key}", json={"role": "admin"})
+    assert changed.json()["role"] == "admin"
+    hidden = await api.put("/api/bundle-operations/oslo.restart_service", json={"hidden": True})
+    assert hidden.json()["hidden"]
+    assert (await api.put("/api/bundle-operations/oslo.nothing", json={})).status_code == 404
+
+    async with client(app, await make_user(app, "op", "operator")) as operator:
+        keys = {o["key"]: o for o in (await operator.get("/api/operations")).json()}
+        assert key not in keys  # needs an admin now
+        assert keys["oslo.restart_service"]["standalone"] is False  # only as template step
+        assert (await operator.get("/api/bundle-operations")).status_code == 403
+    # Back to the bundle's settings.
+    reset = await api.put(f"/api/bundle-operations/{key}", json={})
+    assert reset.json()["role"] == "operator"
+    changes = (await api.get("/api/config-changes", params={"object_type": "platform"})).json()
+    assert any(c["object_name"] == "bundle.overrides" for c in changes)
+
+
+def test_restart_script_checks_its_arguments():
+    script = bundle.source_dir() / "oslo" / "oslo_restart_service.sh"
+    for arguments, message in (
+        ([], "usage"),
+        (["normal", "dev", "01"], "invalid SID"),
+        (["normal", "DEV", "1"], "invalid instance number"),
+        (["force", "DEV", "01; rm"], "invalid instance number"),
+    ):
+        result = subprocess.run(["sh", str(script), *arguments], capture_output=True, text=True)
+        assert result.returncode == 1 and message in result.stdout, result.stdout

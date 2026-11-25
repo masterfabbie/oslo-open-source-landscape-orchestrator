@@ -38,6 +38,9 @@ class CustomSpec:
     parameters: tuple[ParameterSpec, ...]
     # Locks its target like start and stop; snapshots from before migration 0008 lack it.
     locks: bool = True
+    # Operations of the OSLO operations bundle: the bundle version they belong to. They run
+    # only on hosts with exactly this version installed and unchanged (bundles.py).
+    bundle_version: str | None = None
 
     def to_dict(self) -> dict:
         data = self.__dict__ | {"parameters": [p.__dict__ for p in self.parameters]}

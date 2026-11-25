@@ -4,7 +4,7 @@
 // reason. Stopping operations need a second click on the same entry.
 
 import { useEffect, useRef, useState } from "react";
-import { type Choice, type Menu, categoryLabel, filterMenu, groupOperations, operationChoices } from "../lib/categories";
+import { type BundleReady, type Choice, type Menu, categoryLabel, filterMenu, groupOperations, operationChoices } from "../lib/categories";
 import type { InstanceRow, OperationDef, TargetType } from "../lib/types";
 import { operationLabel } from "./selection";
 import { useApp } from "./ui";
@@ -14,7 +14,7 @@ interface Props {
   ids: number[];
   operations: OperationDef[];
   instances: Map<number, InstanceRow>;
-  bundleReady?: (ids: number[]) => boolean;
+  bundleReady?: BundleReady;
   onRun: (op: OperationDef) => void;
   // "up" in the bar at the bottom, "down" in the detail panel.
   direction: "up" | "down";
@@ -120,7 +120,8 @@ function MenuButton({
   run: (choice: Choice) => void;
   direction: "up" | "down";
 }) {
-  const { t } = useApp();
+  const { t, language } = useApp();
+  const describe = (op: OperationDef) => op.descriptions?.[language] ?? op.descriptions?.en ?? op.description ?? undefined;
   const [search, setSearch] = useState("");
   const [sub, setSub] = useState<string | null>(null);
   // The flyout of a second level sits outside the scrolling menu (which would cut it off),
@@ -150,7 +151,7 @@ function MenuButton({
       role="menuitem"
       className={`oslo-opmenu-item${choice.op.danger ? " oslo-danger" : ""}${armed === choice.op.key ? " oslo-armed" : ""}`}
       aria-disabled={choice.reason ? true : undefined}
-      title={choice.reason ? t(choice.reason) : choice.op.description ?? undefined}
+      title={choice.reason ? t(choice.reason) : describe(choice.op)}
       onClick={() => run(choice)}
     >
       <span>{text(choice)}</span>

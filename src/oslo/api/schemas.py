@@ -337,6 +337,29 @@ class OperationOut(BaseModel):
     standalone: bool = True
     parameters: list[ParameterDef] = []
     category: str = ""
+    # Operations of the OSLO operations bundle: names per language.
+    bundle: bool = False
+    names: dict[str, str] = {}
+
+
+class BundleOperationOut(BaseModel):
+    """An operation of the active bundle with the admin's changes."""
+
+    key: str
+    names: dict[str, str]
+    descriptions: dict[str, str]
+    agent_operation: str
+    target: str
+    category: str
+    # Declared by the bundle; the admin can only require a higher one.
+    bundle_role: str
+    role: str
+    hidden: bool
+
+
+class BundleOperationIn(BaseModel):
+    hidden: bool = False
+    role: Literal["operator", "configurator", "admin"] | None = None
 
 
 class CustomOperationIn(BaseModel):

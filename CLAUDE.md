@@ -510,6 +510,23 @@ Wichtige Entwurfsentscheidungen:
   Bündel installiert, `oslo-server --mock` gibt `sapapp1` Version 0.9.0. Annahmen: Ausführung
   als root, OpenSSL ≥ 1.1.1, nur UNIX, kein `ReloadConfiguration` nötig. Der Name `oslo_*` ist
   reserviert. Neue OSLO-eigene Operationen kommen als Dateien nach `bundle_files/`.
+- **Operationen des Bündels im Katalog** (2026-11-25, Zustimmung des Eigentümers):
+  `bundle_files/oslo/operations.json` (`format` 1) beschreibt Operationen, die OSLO ohne
+  Anlegen einer eigenen Operation anbietet; `bundle.parse_operations` prüft sie beim Bauen und
+  Hochladen (`Manifest.operations`, `ActiveBundle.operations`). Katalogschlüssel
+  `oslo.<key>` (`BUNDLE_KEY_PREFIX`; eigene Schlüssel haben keinen Punkt). `Catalog(bundles)`
+  baut sie in `reload` mit `bundle_definition` als `CustomSpec` mit `bundle_version`;
+  nach Hochladen oder Aktivieren eines Bündels `catalog.reload`. `_run_host_operation` lehnt
+  Hosts ab, deren `bundle_version` nicht gleich ist oder deren Dateien verändert sind. Texte je
+  Sprache in `OperationDef.texts` (`names`, `descriptions`, Parametertexte), im Browser
+  `operationLabel` mit `names`. Landschaft: Hosts haben `bundle_state`, `bundleReadiness`
+  (`lib/categories.ts`) graut ab (`op.reason.bundle`; bei Systemen zählen Diagnostics Agents
+  nicht). Admin: `/api/bundle-operations` (nur Admin), ausblenden (wie „Nicht für
+  Einzelausführung“) oder höhere Rolle, gespeichert in `platform_settings`
+  `bundle.overrides`. Erste Operationen: `oslo_restart_service` und
+  `oslo_restart_service_force` (ein Skript, Modus als erstes Argument; Annahmen im Skript).
+  Der Mock kennt sie (`BUNDLE_OPERATIONS`, `MockLandscape._restart_service`: normal nur bei
+  antwortendem sapstartsrv, forciert immer). Aktivitäten tragen den englischen Namen.
 - **HTTPS von OSLO** (Wunsch des Eigentümers, 2026-11-23): `oslo-server --tls` (oder
   `OSLO_TLS=1`) nutzt das unter Administration → HTTPS gespeicherte Zertifikat;
   `--ssl-certfile`/`--ssl-keyfile` (oder `OSLO_TLS_CERT`/`OSLO_TLS_KEY`) haben Vorrang
@@ -749,9 +766,9 @@ und freigeben lassen:
    gewünscht 2026-11-21).
 9. ~~Bereich „Schedules“ für alle geplanten Operationen.~~ Erledigt 2026-11-22 (Operationen → Einplanungen).
 10. ~~Konzept für OSLO-eigene Operationen: Dateien in `operations.d` verteilen und prüfen.~~
-    Erledigt 2026-11-23 (signiertes Bündel, siehe „OSLO-Operationen“). Offen: Operationen für den
-    Neustart des Instanz-Agents (normal und forciert) ins Bündel aufnehmen; Test des Bündels an
-    einem echten Host.
+    Erledigt 2026-11-23 (signiertes Bündel, siehe „OSLO-Operationen“). Neustart des Instanz-Agents
+    (normal und forciert) im Bündel seit 2026-11-25 (`operations.json`). Offen: Test des
+    Bündels und des Neustarts an einem echten Host.
 11. Prüfung vor dem Neu-Registrieren des Instanz-Agents festlegen (heute: Abbruch, solange ein
     Prozess der Instanz läuft; gewünscht 2026-11-21). Am Host lief Neu registrieren trotz
     laufender Prozesse durch. Vorschlag: nur bei abgelehnter Verbindung weitermachen, sonst
@@ -774,8 +791,7 @@ und freigeben lassen:
 - kein Probelauf für Operationsvorlagen
 - Werte, nach denen eine Vorlage beim Start fragt, lassen sich nur im Editor der Vorlage
   einplanen, nicht unter Operationen → Einplanungen
-- Instanz-Agent neu starten (normal und forciert) fehlt noch (kommt ins Bündel der
-  OSLO-Operationen)
+- Neustart des Instanz-Agents nicht an einem echten Host geprüft (Annahmen im README)
 - Bündel der OSLO-Operationen nur für UNIX-Hosts
 - keine Kernel-Repositories (Ablage der Kernel-Versionen für Kernel-Tausch-Skripte)
 - keine Hooks und kein HTTP-Provider für eigene Operationen

@@ -4,6 +4,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ApiError, api } from "../lib/api";
+import { bundleReadiness } from "../lib/categories";
 import type { InstanceRow, OperationDef, Snapshot, TargetType } from "../lib/types";
 import { ActionBar } from "./ActionBar";
 import { CommandPalette } from "./CommandPalette";
@@ -38,7 +39,7 @@ function currentParams(): URLSearchParams {
 }
 
 export function Landscape() {
-  const { t } = useApp();
+  const { t, language } = useApp();
   const queries = useQueryClient();
   useLiveUpdates();
   const { data, error, isPending } = useQuery({
@@ -101,6 +102,10 @@ export function Landscape() {
     return () => window.removeEventListener("keydown", onKey);
   }, [paletteOpen, asking]);
 
+  const bundleReady = useMemo(
+    () => bundleReadiness(data?.systems ?? [], data?.hosts ?? []),
+    [data],
+  );
   const instances = useMemo(() => {
     const map = new Map<number, InstanceRow>();
     for (const system of data?.systems ?? []) for (const i of system.instances) map.set(i.id, i);
@@ -125,7 +130,7 @@ export function Landscape() {
         setAsking({ op, selection: target, options });
         return;
       }
-      const label = operationLabel(op, target.kind, t);
+      const label = operationLabel(op, target.kind, t, language);
       try {
         const activityId = await runOperation(op, target, options);
         notify({ kind: "success", text: t("ui.started", { operation: label }), activityId });
@@ -136,7 +141,7 @@ export function Landscape() {
         notify({ kind: "error", text: `${label}: ${text}` });
       }
     },
-    [notify, queries, t],
+    [notify, queries, t, language],
   );
 
   const select = useCallback((kind: TargetType, ids: number[], add: boolean) => {
@@ -232,6 +237,7 @@ export function Landscape() {
           operations={data.operations}
           onClose={() => setDetail(null)}
           onRun={execute}
+          bundleReady={bundleReady}
           notify={notify}
           onOpenInstance={(id) => setDetail({ kind: "INSTANCE", id })}
         />
@@ -243,6 +249,7 @@ export function Landscape() {
           operations={data.operations}
           onClose={() => setDetail(null)}
           onRun={execute}
+          bundleReady={bundleReady}
           onOpenSystem={(id) => setDetail({ kind: "SYSTEM", id })}
         />
       )}
@@ -253,6 +260,7 @@ export function Landscape() {
           operations={data.operations}
           onClose={() => setDetail(null)}
           onRun={execute}
+          bundleReady={bundleReady}
         />
       )}
 
@@ -261,6 +269,7 @@ export function Landscape() {
         operations={data.operations}
         instances={instances}
         onRun={execute}
+          bundleReady={bundleReady}
         onClear={() => setSelection(EMPTY)}
       />
 

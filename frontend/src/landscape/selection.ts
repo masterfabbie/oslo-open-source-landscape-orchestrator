@@ -42,7 +42,8 @@ export function operationLabel(
   t: (key: string) => string,
   language = "en",
 ): string {
-  if (op.names) return op.names[language] ?? op.names.en ?? op.name ?? op.key;
+  const named = op.names?.[language] ?? op.names?.en;
+  if (named) return named;
   if (op.custom) return op.name ?? op.key;
   return t(op.labels[kind] ?? `op.${op.key}`);
 }

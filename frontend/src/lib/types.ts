@@ -49,6 +49,8 @@ export interface HostRow {
   last_error: string | null;
   instance_count: number;
   activity: ActivityRef | null;
+  // OSLO operations on the host compared with the active bundle (lib/bundle.ts).
+  bundle_state?: string;
 }
 
 export interface Parameter {
@@ -59,6 +61,9 @@ export interface Parameter {
   default: string | null;
   pattern: string | null;
   help: string | null;
+  // Operations of the bundle: texts per language.
+  labels?: Record<string, string>;
+  helps?: Record<string, string>;
 }
 
 export interface OperationDef {
@@ -84,8 +89,9 @@ export interface OperationDef {
   category?: string;
   // An OSLO operation from the bundle: runs only on hosts with the current bundle.
   bundle?: boolean;
-  // Names per language of OSLO operations, e.g. {"de": "...", "en": "..."}.
+  // Names and descriptions per language of OSLO operations, e.g. {"de": "...", "en": "..."}.
   names?: Record<string, string>;
+  descriptions?: Record<string, string>;
 }
 
 export interface Snapshot {

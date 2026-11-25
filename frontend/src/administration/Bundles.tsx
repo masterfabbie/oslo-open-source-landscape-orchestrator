@@ -7,11 +7,15 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { ApiError, api } from "../lib/api";
 import { BUNDLE_BADGE, NEEDS_UPDATE, bundleState, type BundleFields } from "../lib/bundle";
+import { categoryPath } from "../lib/categories";
 import { ActionForm, Messages, PageHead, Section, errorMessage, useAction } from "../lib/forms";
 import { activityNumber } from "../lib/numbers";
 import { formatTime, useApp, useLiveUpdates } from "../landscape/ui";
 
 const PAGE = "/administration/bundle";
+const ROLES = ["viewer", "operator", "configurator", "admin"];
+// The roles an admin may require for an operation of the bundle: its own or higher.
+const rolesFrom = (role: string) => ROLES.slice(Math.max(ROLES.indexOf(role), 0));
 
 interface Settings {
   public_key: string;
@@ -54,6 +58,7 @@ export function BundlePage() {
           <BundlesSection bundles={data.bundles} />
         </div>
       </div>
+      {active && <OperationsSection />}
       <HostsSection active={active?.version ?? null} />
     </div>
   );
@@ -205,6 +210,89 @@ function BundlesSection({ bundles }: { bundles: BundleRow[] }) {
                         {t("bundle.activate")}
                       </button>
                     )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <Messages error={action.error} />
+    </Section>
+  );
+}
+
+interface BundleOperation {
+  key: string;
+  names: Record<string, string>;
+  descriptions: Record<string, string>;
+  agent_operation: string;
+  target: string;
+  category: string;
+  bundle_role: string;
+  role: string;
+  hidden: boolean;
+}
+
+/** The operations of operations.json: hide them from menus or require a higher role. */
+function OperationsSection() {
+  const { t, language } = useApp();
+  const queries = useQueryClient();
+  const { data } = useQuery({ queryKey: ["bundle-operations"], queryFn: () => api<BundleOperation[]>("/bundle-operations") });
+  const action = useAction();
+  const save = (op: BundleOperation, change: { hidden?: boolean; role?: string }) =>
+    action.run(async () => {
+      await api(`/bundle-operations/${op.key}`, { method: "PUT", body: { hidden: op.hidden, role: op.role, ...change } });
+      await queries.invalidateQueries({ queryKey: ["bundle-operations"] });
+    });
+  const operations = data ?? [];
+  return (
+    <Section title={t("bundle.operations")} hint={t("bundle.operations_hint")}>
+      {!operations.length ? (
+        <p className="oslo-muted">{t("bundle.operations_none")}</p>
+      ) : (
+        <div className="oslo-table-wrap">
+          <table className="oslo-table">
+            <thead>
+              <tr>
+                <th>{t("field.name")}</th>
+                <th>{t("field.target")}</th>
+                <th>{t("field.category")}</th>
+                <th>{t("field.role")}</th>
+                <th>{t("bundle.in_menus")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {operations.map((op) => (
+                <tr key={op.key}>
+                  <td>
+                    <span className="oslo-strong">{op.names[language] ?? op.names.en}</span>
+                    <span className="oslo-sub oslo-mono">{op.agent_operation}</span>
+                  </td>
+                  <td>{t(`target.${op.target}`)}</td>
+                  <td>{categoryPath(op.category, t)}</td>
+                  <td>
+                    <select
+                      value={op.role}
+                      aria-label={t("field.role")}
+                      disabled={action.busy}
+                      onChange={(e) => void save(op, { role: e.target.value })}
+                    >
+                      {rolesFrom(op.bundle_role).map((role) => (
+                        <option key={role} value={role}>
+                          {t(`role.${role}`)}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  <td>
+                    <input
+                      type="checkbox"
+                      checked={!op.hidden}
+                      aria-label={t("bundle.in_menus")}
+                      disabled={action.busy}
+                      onChange={(e) => void save(op, { hidden: !e.target.checked })}
+                    />
                   </td>
                 </tr>
               ))}

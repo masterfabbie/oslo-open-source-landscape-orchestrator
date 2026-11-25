@@ -5,6 +5,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { type ReactNode, useEffect, useState } from "react";
 import { api } from "../lib/api";
+import type { BundleReady } from "../lib/categories";
 import { hasRole } from "../lib/i18n";
 import type { Activity, HostRow, InstanceRow, OperationDef, ProcessList, SystemRow } from "../lib/types";
 import { reachOf } from "./filter";
@@ -49,11 +50,13 @@ function Operations({
   selection,
   onRun,
   instance,
+  bundleReady,
 }: {
   operations: OperationDef[];
   selection: Selection;
   onRun: Run;
   instance?: InstanceRow;
+  bundleReady?: BundleReady;
 }) {
   const instances = new Map(instance ? [[instance.id, instance]] : []);
   return (
@@ -63,6 +66,7 @@ function Operations({
         ids={selection.ids}
         operations={operations}
         instances={instances}
+        bundleReady={bundleReady}
         direction="down"
         onRun={(op) => onRun(op, selection)}
       />
@@ -126,6 +130,7 @@ export function SystemDrawer({
   operations,
   onClose,
   onRun,
+  bundleReady,
   notify,
   onOpenInstance,
 }: {
@@ -133,6 +138,7 @@ export function SystemDrawer({
   operations: OperationDef[];
   onClose: () => void;
   onRun: Run;
+  bundleReady?: BundleReady;
   notify: (toast: Omit<Toast, "id">) => void;
   onOpenInstance: (id: number) => void;
 }) {
@@ -186,7 +192,7 @@ export function SystemDrawer({
           </>
         )}
       </dl>
-      <Operations operations={operations} selection={{ kind: "SYSTEM", ids: [system.id] }} onRun={onRun} />
+      <Operations operations={operations} selection={{ kind: "SYSTEM", ids: [system.id] }} onRun={onRun} bundleReady={bundleReady} />
       <div className="oslo-drawer-links">
         <button type="button" className="secondary" onClick={refresh} disabled={refreshing}>
           {t("ui.refresh_status")}
@@ -284,6 +290,7 @@ export function InstanceDrawer({
   operations,
   onClose,
   onRun,
+  bundleReady,
   onOpenSystem,
 }: {
   instance: InstanceRow | undefined;
@@ -291,6 +298,7 @@ export function InstanceDrawer({
   operations: OperationDef[];
   onClose: () => void;
   onRun: Run;
+  bundleReady?: BundleReady;
   onOpenSystem: (id: number) => void;
 }) {
   const { t, language } = useApp();
@@ -363,7 +371,13 @@ export function InstanceDrawer({
             <dt>{t("field.checked")}</dt>
             <dd>{formatTime(instance.status_checked_at, language) || "–"}</dd>
           </dl>
-          <Operations operations={operations} selection={{ kind: "INSTANCE", ids: [instance.id] }} onRun={onRun} instance={instance} />
+          <Operations
+            operations={operations}
+            selection={{ kind: "INSTANCE", ids: [instance.id] }}
+            onRun={onRun}
+            instance={instance}
+            bundleReady={bundleReady}
+          />
         </>
       )}
       {tab === "status" && <Processes instance={instance} />}
@@ -380,12 +394,14 @@ export function HostDrawer({
   operations,
   onClose,
   onRun,
+  bundleReady,
 }: {
   host: HostRow | undefined;
   systems: SystemRow[];
   operations: OperationDef[];
   onClose: () => void;
   onRun: Run;
+  bundleReady?: BundleReady;
 }) {
   const { t, role, language } = useApp();
   useEscape(onClose);
@@ -412,7 +428,7 @@ export function HostDrawer({
           </>
         )}
       </dl>
-      <Operations operations={operations} selection={{ kind: "HOST", ids: [host.id] }} onRun={onRun} />
+      <Operations operations={operations} selection={{ kind: "HOST", ids: [host.id] }} onRun={onRun} bundleReady={bundleReady} />
       <div className="oslo-drawer-links">
         <a href={`/hosts/${host.id}`}>{t("ui.open_page")}</a>
         {hasRole(role, "configurator") && <a href={`/configuration/hosts/${host.id}`}>{t("action.configure")}</a>}

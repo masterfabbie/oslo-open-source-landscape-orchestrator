@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { MORE, categoryPath, filterMenu, groupOperations, operationChoices } from "./categories";
-import type { InstanceRow, OperationDef } from "./types";
+import { operationLabel } from "../landscape/selection";
+import { MORE, bundleReadiness, categoryPath, filterMenu, groupOperations, operationChoices } from "./categories";
+import type { HostRow, InstanceRow, OperationDef, SystemRow } from "./types";
 
 function op(key: string, extra: Partial<OperationDef> = {}): OperationDef {
   return {
@@ -66,5 +67,32 @@ describe("categories", () => {
     const found = filterMenu(grouped.menus[1], "kern", (o) => o.key);
     expect(found.items).toEqual([]);
     expect(found.subs[0].items.map((c) => c.op.key)).toEqual(["getkernel"]);
+  });
+
+  it("knows where the OSLO operations are current", () => {
+    const instance = (id: number, host: number, agent = false) => ({ id, host: { id: host }, agent }) as InstanceRow;
+    const systems = [{ id: 7, instances: [instance(1, 10), instance(2, 11), instance(3, 12, true)] }] as SystemRow[];
+    const hosts = [
+      { id: 10, bundle_state: "current" },
+      { id: 11, bundle_state: "outdated" },
+      { id: 12, bundle_state: "missing" },
+    ] as HostRow[];
+    const ready = bundleReadiness(systems, hosts);
+    expect(ready("INSTANCE", [1])).toBe(true);
+    expect(ready("INSTANCE", [1, 2])).toBe(false);
+    expect(ready("HOST", [10])).toBe(true);
+    expect(ready("HOST", [12])).toBe(false);
+    // Diagnostics agents do not count for a system.
+    expect(ready("SYSTEM", [7])).toBe(false);
+    hosts[1].bundle_state = "current";
+    expect(bundleReadiness(systems, hosts)("SYSTEM", [7])).toBe(true);
+  });
+
+  it("names operations of the bundle in the user's language", () => {
+    const bundled = op("oslo.restart_service", { custom: true, bundle: true, names: { en: "Restart", de: "Neu starten" } });
+    expect(operationLabel(bundled, "INSTANCE", t, "de")).toBe("Neu starten");
+    expect(operationLabel(bundled, "INSTANCE", t, "fr")).toBe("Restart");
+    // An empty set of names does not hide the translation of built-in operations.
+    expect(operationLabel(op("start", { names: {}, labels: { INSTANCE: "cat.more" } }), "INSTANCE", t)).toBe("Weitere");
   });
 });

@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from .attention import attention_items, load_exceptions, load_rules, overview_columns
+from .bundles import host_state
 from .catalog import Catalog, OperationDef
 from .clients import SoapError
 from .connections import ClientFactory
@@ -105,10 +106,15 @@ def operation_row(operation: OperationDef) -> dict[str, Any]:
     """An operation of the catalog for the interface."""
     custom = operation.custom
     template = operation.template
+    texts = operation.texts or {}
     if template is not None:
         parameters = [p.__dict__ for p in template.run_parameters()]
     else:
-        parameters = [p.__dict__ for p in custom.parameters] if custom else []
+        # Operations of the bundle bring their texts per language.
+        parameters = [
+            p.__dict__ | texts.get("parameters", {}).get(p.name, {})
+            for p in (custom.parameters if custom else ())
+        ]
     return {
         "key": operation.key,
         # Translation keys per target type for built-in operations.
@@ -124,6 +130,10 @@ def operation_row(operation: OperationDef) -> dict[str, Any]:
         "locks": custom.locks if custom else True,
         "standalone": operation.standalone,
         "category": operation.category,
+        # From the OSLO operations bundle: runs only where it is installed and current.
+        "bundle": operation.bundle,
+        "names": texts.get("names", {}),
+        "descriptions": texts.get("descriptions", {}),
         "role": operation.role.value,
         # Translation keys (built-in) or names (custom operations) of the steps.
         "steps": [step.label_key() for step in template.steps] if template else [],
@@ -150,6 +160,7 @@ async def landscape_snapshot(session: AsyncSession, catalog: Catalog, user: User
     active = await active_by_system(session)
     host_active = await active_by_host(session)
     names = {s.id: s.name for s in systems}
+    active_bundle = catalog.bundles.version if catalog.bundles is not None else None
     system_rows = []
     for system in systems:
         depends = depends_on_sids(system)
@@ -200,6 +211,9 @@ async def landscape_snapshot(session: AsyncSession, catalog: Catalog, user: User
             "last_error": h.last_error,
             "instance_count": len(h.instances),
             "activity": _activity(host_active.get(h.id)),
+            # OSLO operations installed on the host compared with the active bundle; only
+            # "current" hosts run operations of the bundle.
+            "bundle_state": host_state(h, active_bundle),
         }
         for h in hosts
     ]

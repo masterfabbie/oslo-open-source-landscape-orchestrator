@@ -1,0 +1,32 @@
+{
+  "format": 1,
+  "operations": [
+    {
+      "key": "restart_service",
+      "agent_operation": "oslo_restart_service",
+      "names": {"en": "Restart instance agent", "de": "Instanz-Agent neu starten"},
+      "descriptions": {
+        "en": "Restarts sapstartsrv of the instance (sapcontrol RestartService); the instance keeps running.",
+        "de": "Startet den sapstartsrv der Instanz neu (sapcontrol RestartService); die Instanz läuft weiter."
+      },
+      "target": "INSTANCE",
+      "role": "operator",
+      "category": "cat.instance_agent",
+      "timeout_seconds": 360
+    },
+    {
+      "key": "restart_service_force",
+      "agent_operation": "oslo_restart_service_force",
+      "names": {"en": "Restart instance agent (forced)", "de": "Instanz-Agent neu starten (forciert)"},
+      "descriptions": {
+        "en": "Ends sapstartsrv of the instance and starts it again, for an instance agent that no longer answers; the instance keeps running.",
+        "de": "Beendet den sapstartsrv der Instanz und startet ihn neu, für einen Instanz-Agent, der nicht mehr antwortet; die Instanz läuft weiter."
+      },
+      "target": "INSTANCE",
+      "role": "operator",
+      "category": "cat.instance_agent",
+      "danger": true,
+      "timeout_seconds": 360
+    }
+  ]
+}
