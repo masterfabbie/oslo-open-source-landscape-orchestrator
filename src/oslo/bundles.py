@@ -169,29 +169,28 @@ def host_state(host: Host, active_version: str | None) -> str:
     return CURRENT if host.bundle_version == active_version else OUTDATED
 
 
-async def run_and_read(
+async def follow_operation(
     agent: HostAgentClient,
     name: str,
+    operation_id: str,
     *,
     sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
     poll: float = 0.5,
     attempts: int = 60,
 ) -> list[str]:
-    """Run an operation of the bundle and return the texts of its lines, like a custom
-    operation (ExecuteOperation without waiting, then IsOperationFinished and
-    GetOperationResults). Raises SoapFaultError if the host agent does not know it."""
-    started = await agent.execute_async(name)
-    operation_id = started.operation_id
+    """The texts of the lines of a started operation, once it has ended (like a custom
+    operation: GetOperationResults until it answers without fault 255). Raises
+    SoapFaultError if it fails or does not end in time."""
     for _ in range(attempts):
-        finished = await agent.is_operation_finished(operation_id)
         try:
             result = await agent.get_operation_results(operation_id)
         except OperationFault as fault:
             if fault.code != FAULT_TIMEOUT:
                 raise
         else:
-            if finished:
-                return [line.text for line in result.log]
+            # Results without a fault: it ended. The host agent forgets the operation then;
+            # IsOperationFinished would answer "Failed to determine operation status".
+            return [line.text for line in result.log]
         await sleep(poll)
     raise SoapFaultError(f"{name} did not finish in time")
 
@@ -200,11 +199,18 @@ async def read_host_bundle(
     agent: HostAgentClient, sleep: Callable[[float], Awaitable[None]] = asyncio.sleep
 ) -> tuple[str, str | None]:
     """(version, integrity) of the OSLO operations on a host; ("none", None) if the host agent
-    does not know oslo_version. Connection errors are raised."""
+    refuses to start oslo_version (not configured in operations.d). Any other error, e.g. in
+    reading the results, is raised, so that it is shown and the stored state stays."""
     try:
-        values = parse_output(await run_and_read(agent, VERSION_OPERATION, sleep=sleep))
+        started = await agent.execute_async(VERSION_OPERATION)
     except OperationFault:
         raise
     except SoapFaultError:
         return "none", None
-    return values.get("version", "none")[:32], values.get("integrity")
+    if not started.operation_id:
+        raise SoapFaultError(f"{VERSION_OPERATION}: the host agent returned no operation ID")
+    lines = await follow_operation(agent, VERSION_OPERATION, started.operation_id, sleep=sleep)
+    values = parse_output(lines)
+    if "version" not in values:
+        raise SoapFaultError(f"{VERSION_OPERATION} printed no version: {' | '.join(lines)[:300]}")
+    return values["version"][:32], values.get("integrity")

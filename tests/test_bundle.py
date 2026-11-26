@@ -481,3 +481,41 @@ def test_restart_script_checks_its_arguments():
     ):
         result = subprocess.run(["sh", str(script), *arguments], capture_output=True, text=True)
         assert result.returncode == 1 and message in result.stdout, result.stdout
+
+
+async def test_version_of_a_script_that_ends_between_two_calls(app, api, landscape):
+    """Seen on a real host: oslo_version ended between IsOperationFinished ("not yet") and
+    GetOperationResults (all lines); afterwards the host agent no longer knew the operation."""
+    landscape.finish_between_calls = True
+    sapapp1 = landscape.host("sapapp1")
+    sapapp1.bundle_version = "1.0.0"
+    host = await discover(api)
+    assert host["bundle_version"] == "1.0.0" and host["bundle_integrity"] == "ok"
+
+    landscape.bundle_source = app.state.bundles.files
+    sapapp1.bundle_key = PUBLIC.decode()
+    await configure(api)
+    assert (await upload(api, make_bundle("1.1.0"))).status_code == 201
+    result = await update(app, api, [1])
+    assert result["status"] == "SUCCEEDED", result
+    assert (await api.get("/api/hosts/1")).json()["bundle_version"] == "1.1.0"
+
+
+async def test_version_that_cannot_be_read_is_no_missing_bundle(app, api, landscape):
+    """Only an unknown oslo_version means "not installed"; other errors are shown and leave
+    the state as it was."""
+    sapapp1 = landscape.host("sapapp1")
+    sapapp1.bundle_version = "1.0.0"
+    assert (await discover(api))["bundle_version"] == "1.0.0"
+    run_bundle_operation = landscape.run_bundle_operation
+
+    def never_ends(host, name, arguments=None):
+        run = run_bundle_operation(host, name, arguments)
+        run.duration = 10**6
+        return run
+
+    landscape.run_bundle_operation = never_ends
+    response = await api.post("/api/hosts/1/discover")
+    assert response.status_code == 200, response.text
+    assert any("OSLO operations could not be read" in w for w in response.json()["warnings"])
+    assert (await api.get("/api/hosts/1")).json()["bundle_version"] == "1.0.0"

@@ -115,6 +115,15 @@ Bestätigt mit einem echten Host, auf dem ein ABAP-System und eine HANA-Datenban
   - `CancelOperation` beendet das Skript (Exit-Code 15) und antwortet mit Fault-Code 127 und
     den Zeilen bis dahin. Danach kennt der Host Agent die Operation nicht mehr
     (`GetOperationResults`: Fault-Code -20 „Operation ID not found“).
+  - Auch nach dem Abholen des Endergebnisses (`GetOperationResults` ohne Fault) kennt der
+    Host Agent die Operation nicht mehr: `IsOperationFinished` antwortet dann „Failed to
+    determine operation status“ (2026-11-26, mit `oslo_version` des Bündels geprüft). Ein
+    kurzes Skript kann zwischen `IsOperationFinished` („noch nicht fertig“) und
+    `GetOperationResults` enden; OSLO wertet deshalb jede Antwort ohne Fault als Ende. Vorher
+    meldete das Update des Bündels „version none“, und die Discovery zeigte die
+    OSLO-Operationen als „nicht installiert“, obwohl sie liefen.
+  - Von Hand: `saphostctrl -function ExecuteOperation -name <Name>` liefert die Operation-ID,
+    `saphostctrl -function GetOperationResults -id <ID>` die Zeilen.
 
 - **HTTPS zum Host Agent** (Port 1129) funktioniert mit abgeschalteter Zertifikatsprüfung
   (selbst signiertes Zertifikat) und mit Zertifikatsprüfung gegen das unter Administration →
@@ -733,6 +742,10 @@ eine höhere Rolle verlangen, nie eine niedrigere (`platform_settings` `bundle.o
 - Annahmen, an einem echten Host noch nicht geprüft: Das `sapcontrol` des Host Agents
   (`/usr/sap/hostctrl/exe/sapcontrol`) erreicht den sapstartsrv als root lokal; der Prozess
   ist an seinem Profil `pf=/usr/sap/<SID>/SYS/profile/<SID>_<Name><NR>_<Host>` zu erkennen.
+
+Als „nicht installiert“ gilt ein Host nur, wenn der Host Agent `oslo_version` nicht startet.
+Scheitert das Lesen danach, zeigt die Discovery eine Warnung mit dem Grund (das Update bricht
+mit dem Grund ab), und der gespeicherte Zustand bleibt.
 
 Annahmen und Voraussetzungen: Die Operationen laufen als root (ohne `Username:` in der
 `.conf`); auf den Hosts gibt es `curl`, `tar`, `sha256sum` und OpenSSL ab 1.1.1 (Ed25519); nur

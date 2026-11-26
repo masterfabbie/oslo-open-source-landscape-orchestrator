@@ -487,7 +487,7 @@ def create_hostagent_app(landscape: MockLandscape, host_name: str) -> FastAPI:
 
     def _run(params: dict[str, Any]):
         run = landscape.operation_runs.get(params.get("aOperationID") or "")
-        if run is None or run.host != host.name:
+        if run is None or run.host != host.name or run.delivered:
             raise _operation_fault("Operation ID not found", -20)
         return run
 
@@ -500,10 +500,12 @@ def create_hostagent_app(landscape: MockLandscape, host_name: str) -> FastAPI:
 
     def get_operation_results(params: dict[str, Any]) -> dict[str, Any]:
         run = _run(params)
+        run.results_requested = True
         if not landscape.operation_finished(run):
             raise _operation_fault("Timeout occurred", 255, run, _run_lines(run, final=False))
         if run.exit_code or run.cancelled:
             raise _operation_fault("Command execution failed.", 127, run, _run_lines(run, True))
+        run.delivered = True  # forgotten afterwards, like on a real host
         return {"result": {"mOperationID": run.id, "mOperationResults": _run_lines(run, True)}}
 
     def cancel_operation(params: dict[str, Any]) -> dict[str, Any]:

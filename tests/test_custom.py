@@ -172,6 +172,19 @@ async def test_run_on_instance(app, api, landscape):
     assert (await api.post("/api/instances/2/operations/nothing", json={})).status_code == 404
 
 
+async def test_script_that_ends_between_two_calls(app, api, landscape):
+    """The results come without fault although IsOperationFinished said "not yet"; the host
+    agent forgets the operation then (seen on a real host)."""
+    await create(api)
+    landscape.finish_between_calls = True
+    body = {"parameters": {"RC": 0, "SLEEP": 0}}
+    response = await api.post("/api/instances/2/operations/oslo_test", json=body)
+    assert response.status_code == 202, response.text
+    result = await finished(app, api, response.json()["id"])
+    assert result["status"] == "SUCCEEDED", result
+    assert any("hook successfully executed" in m for m in log(result))
+
+
 async def test_failed_script(app, api):
     await create(api)
     body = {"parameters": {"RC": 3}}

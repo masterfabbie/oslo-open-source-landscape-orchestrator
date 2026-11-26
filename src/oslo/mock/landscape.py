@@ -171,6 +171,13 @@ class MockOperationRun:
     cancelled: bool = False
     # Lines of the script instead of the echoed arguments (operations of the OSLO bundle).
     output: tuple[str, ...] | None = None
+    # The script ends right between IsOperationFinished and GetOperationResults, as seen
+    # with oslo_version on a real host: unfinished until its results are requested.
+    ends_on_results: bool = False
+    results_requested: bool = False
+    # The final results were delivered. A real host agent forgets the operation then;
+    # IsOperationFinished answers "Failed to determine operation status" (seen on a host).
+    delivered: bool = False
 
 
 @dataclass
@@ -221,6 +228,9 @@ class MockLandscape:
         self.start_duration = start_duration
         self.stop_duration = stop_duration
         self.clock = clock
+        # New operations of operations.d end between IsOperationFinished and
+        # GetOperationResults (MockOperationRun.ends_on_results).
+        self.finish_between_calls = False
         # Where oslo_update gets the bundle: (payload, signature) of the bundle OSLO offers.
         # The real script downloads it over HTTPS; tests and oslo-server --mock set this.
         self.bundle_source: Callable[[], tuple[bytes, bytes] | None] = lambda: None
@@ -296,6 +306,7 @@ class MockLandscape:
             started=self.clock(),
             duration=duration,
             exit_code=exit_code,
+            ends_on_results=self.finish_between_calls,
         )
         self.operation_runs[run.id] = run
         return run
@@ -362,12 +373,15 @@ class MockLandscape:
             started=self.clock(),
             duration=0.0,
             exit_code=exit_code,
+            ends_on_results=self.finish_between_calls,
             output=tuple(lines),
         )
         self.operation_runs[run.id] = run
         return run
 
     def operation_finished(self, run: MockOperationRun) -> bool:
+        if run.ends_on_results and not run.results_requested:
+            return False
         return run.cancelled or self.clock() >= run.started + run.duration
 
     def host(self, name: str) -> MockHost:

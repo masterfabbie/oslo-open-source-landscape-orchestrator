@@ -714,6 +714,17 @@ Aktuelle WSDLs lassen sich von einem Host abrufen:
   aus dem Tool heraus erfolgreich durch; die Ausgabe des Skripts steht vollständig und in
   der richtigen Reihenfolge im Protokoll. Noch offen aus dem Tool: Fehler mit Exit-Code,
   Abbruch, Operationen auf Instanzen und Systemen.
+- **Ende einer Operation** (2026-11-26, Bündel 1.1.1 an einem echten Host): Nach dem Abholen
+  des Endergebnisses vergisst der Host Agent die Operation; `IsOperationFinished` antwortet
+  „Failed to determine operation status“. `oslo_version` endete zwischen
+  `IsOperationFinished` („nicht fertig“) und `GetOperationResults` (alle Zeilen); OSLO verwarf
+  das Ergebnis, fragte erneut, und `read_host_bundle` wertete den Fehler stumm als „nicht
+  installiert“ („After the update … reports version none (None)“). Seitdem gilt jede Antwort
+  ohne Fault als Ende (`_run_host_operation`, `bundles.follow_operation`), und nur ein
+  abgelehntes `ExecuteOperation` heißt „nicht installiert“; andere Fehler erscheinen als
+  Warnung bzw. Fehler und lassen den Zustand. Der Mock bildet beides nach
+  (`MockLandscape.finish_between_calls`, `MockOperationRun.delivered`). `saphostctrl`:
+  `-function GetOperationResults -id <ID>`.
 - **Operationsvorlagen und Einplanen** (2026-11-21): Eine Vorlage mit festen Zielen (System
   stoppen → eigene Operation auf zwei Hosts als Massenoperation → System starten) lief
   erfolgreich, auch als eingeplante Operation; Zeitplan und Protokoll zeigen die Schritte richtig.

@@ -1571,9 +1571,12 @@ class OperationRunner:
                             reason = errors[-1] if errors else fault.faultstring
                             raise OperationFailedError(f"{prefix}{reason}") from fault
                     else:
+                        # A running operation is answered with fault 255; results without a
+                        # fault mean it ended, also if IsOperationFinished said "not yet" just
+                        # before. The host agent forgets the operation then, so asking again
+                        # would fail (seen with a short script on a real host).
                         await log_new(result)
-                        if finished:
-                            return
+                        return
                 if self._deadline_reached(deadline):
                     await self._cancel_host_operation(host, operation_id, log, log_new)
                     raise OperationFailedError(
